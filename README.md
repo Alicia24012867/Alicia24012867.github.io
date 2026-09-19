@@ -23,7 +23,7 @@ npm run build
 npm run preview
 ```
 
-构建结果位于 `dist/`，其中 `index.html` 是主页，`blog/index.html` 是文章区；可以部署到任意静态服务器，不需要 Node.js 服务端或数据库。`npm test` 检查文章解析、HTML 清理、图片路径和元信息校验。
+构建结果位于 `dist/`，其中 `index.html` 是主页，`blog/index.html` 是文章区；可以部署到任意静态服务器，不需要 Node.js 服务端或数据库。`npm test` 运行文章编译及目录集成测试，覆盖公式、脚注、HTML 清理、元信息、互链、附件路径及草稿排除。`npm run typecheck` 可单独检查 TypeScript。
 
 ## GitHub Pages
 
@@ -41,17 +41,22 @@ Vite 使用多页面构建与相对资源路径 `base: './'`，同时兼容仓�
 
 - `src/content.ts`：姓名、简介、邮箱、GitHub 链接、研究方向与学习资源。
 - `src/App.tsx`：个人主页内容及交互。
-- `blog/index.html` / `src/blog/`：独立文章页面、列表、阅读页及文章排版。
+- `blog/index.html` / `src/blog/Blog.tsx`：文章区入口、页面选择与共享外壳。
+- `src/blog/ArticleIndex.tsx` / `ArticleReader.tsx` / `ArticleMeta.tsx`：文章列表、阅读页与共享元信息组件。
+- `src/blog/useSearchQuery.ts` / `useArticleReader.ts`：URL 搜索状态、目录高亮、代码复制及图表生命周期。
 - `articles/`：以 Markdown 或 HTML 撰写的文章，构建时自动收录。
 - `scripts/sections.mjs`：手记列表上预先写好的分区（学习、生活）。
 - `articles/assets/`：随文章打包的图片与附件。
-- `scripts/articles.mjs` / `scripts/articles-plugin.mjs`：在构建时解析、清理、排版和收录文章，主页不会加载 Markdown 解析器。
+- `scripts/articles.mjs`：文章编译入口；`scripts/articles/` 分离元信息校验、Markdown 扩展、HTML 清理/排版、链接解析与文章目录校验。
+- `scripts/articles-plugin.mjs`：将编译结果接入 Vite 虚拟模块与开发时热更新，主页不会加载 Markdown 解析器。
 - `src/components/ThemeToggle.tsx`：两部分共用的主题切换，保留原有行为与外观。
 - `src/styles.css`：蓝白主题、夜空主题、移动端布局和动效。
 - `public/images/summer-sky.webp`：本地首页插画，也用于头像。
 - `public/favicon.svg`：蓝白云朵图标。
 
 包括响应式导航、研究方向弹窗、邮箱复制反馈、持久化主题选择、键盘焦点、跳过导航链接和减少动效支持。文章支持自动目录、代码高亮与复制、表格、引用、任务清单、数学公式、Mermaid 示意图、脚注、学习/生活分区、搜索、标签筛选、相邻文章及本地图片。不依赖外部图片服务。Google Fonts 为可选字体增强，加载失败时自动使用系统字体。
+
+搜索与标签点击会同步到 `?q=关键词`，刷新、分享链接或从文章后退时保留筛选。数学公式在构建时生成可视内容及 MathML；Mermaid 仅在包含图表的阅读页按需加载，主题切换的渲染会串行处理，失败时保留源码。Mermaid 的复杂布局依赖会产生较大的懒加载分块，构建时仍可能提示体积警告；它们不进入主页的首屏依赖。
 
 ## 写文章
 

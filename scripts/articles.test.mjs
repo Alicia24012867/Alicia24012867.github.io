@@ -82,3 +82,75 @@ test('drafts are excluded; invalid metadata and escaping paths fail clearly', ()
   assert.throws(() => compileArticle('---\ntitle: Broken\nText', 'invalid.md'), /缺少结束/);
   assert.throws(() => compileArticle('![secret](../../secrets.png)', 'note.md'), /不可越过/);
 });
+
+test('math and footnotes produce readable titles, summaries and stable heading ids', () => {
+  const article = compileArticle('# Energy $E=mc^2$\n\nAbout $x+y$.[^a]\n\n## More $x^2$\n\n[^a]: A note.', 'math-title.md');
+  assert.equal(article.title, 'Energy E=mc^2');
+  assert.equal(article.description, 'About x+y.');
+  assert.deepEqual(article.headings, [{ id: 'section-more-x-2', text: 'More x^2', level: 2 }]);
+  assert.doesNotMatch(JSON.stringify(article), /ALICIA_MATH_PLACEHOLDER|ALICIA_FNREF|data-math-index/);
+  assert.match(article.html, /<math\b/); // Accessible MathML accompanies the visual formula.
+});
+
+test('footnotes cannot modify link attributes or nest anchors inside other links', () => {
+  const article = compileArticle('[link](https://example.com "note[^a]") [A[^a]](https://example.com)\n\n<a href="https://example.com" title="[^a]">[^a]</a>\n\n[^a]: Unused note.', 'attributes.md');
+  assert.match(article.html, /title="note\[\^a\]"/);
+  assert.match(article.html, /title="\[\^a\]"/);
+  assert.doesNotMatch(article.html, /<sup|article-footnotes/);
+});
+
+test('indented and tilde fences, multi-backtick spans and HTML code preserve literal syntax', () => {
+  const article = compileArticle('   ```text\n[^a]: stays code\n$x$\n   ```\n\n~~~text\n[^a]\n~~~\n\n``[^a] ` $x$`` and <code>[^a] $x$</code>\n\nReference[^a].', 'code.md');
+  assert.match(article.html, /<code class="hljs">\[\^a\]: stays code\n\$x\$/);
+  assert.match(article.html, /<code>\[\^a\] \$x\$<\/code>/);
+  assert.match(article.html, /<p>Reference\[\^a\].<\/p>/);
+  assert.doesNotMatch(article.html, /footnote-ref|class="katex"/);
+});
+
+test('colliding footnote labels receive unique anchors and each occurrence has a backlink', () => {
+  const article = compileArticle('One[^a.b]. Two[^a-b]. Again[^a.b].\n\n[^a.b]: First.\n[^a-b]: Second.', 'notes.md');
+  const ids = [...article.html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(ids.length, new Set(ids).size);
+  for (const match of article.html.matchAll(/href="#([^"]+)"/g)) assert.ok(ids.includes(match[1]), `Missing target ${match[1]}`);
+  assert.equal((article.html.match(/class="footnote-back"/g) || []).length, 3);
+  assert.equal(article.description, 'One. Two. Again.');
+});
+
+test('footnotes support multiple paragraphs, nested code and formulas without shared state', () => {
+  const article = compileArticle('One[^a].\n\n[^a]: First $x^2$.\n\n    Second with **bold**.\n\n    ```text\n    [^not]: literal\n    ```\n\nEnd.', 'notes.md');
+  assert.match(article.html, /class="katex"/);
+  assert.match(article.html, /Second with <strong>bold<\/strong>/);
+  assert.match(article.html, /\[\^not\]: literal/);
+  assert.match(article.html, /<p>End.<\/p>/);
+  assert.doesNotMatch(compileArticle('Undefined[^a].', 'next.md').html, /footnote-ref/);
+});
+
+test('literal placeholder-like prose and code are not rewritten', () => {
+  const article = compileArticle('Literal ALICIA_MATH_PLACEHOLDER_0 and ALICIA_FNREF_0_1. Math $a < b$.\n\n`<span data-math-index="0">x</span>`', 'literal.md');
+  assert.match(article.html, /Literal ALICIA_MATH_PLACEHOLDER_0 and ALICIA_FNREF_0_1/);
+  assert.match(article.html, /&lt;span data-math-index=/);
+  assert.match(article.html, /class="katex"/);
+});
+
+test('unsafe math remains untrusted and normal currency stays literal', () => {
+  const article = compileArticle('Price $5 and $10.\n\n$\\href{javascript:alert(1)}{bad}$', 'safe-math.md');
+  assert.match(article.html, /Price \$5 and \$10/);
+  assert.doesNotMatch(article.html, /href="javascript:|<script|onerror=/);
+});
+
+test('metadata trims tags, handles BOM/CRLF and rejects quoted draft booleans', () => {
+  const article = compileArticle('\uFEFF---\r\ntags: [" 学习 ", 学习, ""]\r\n---\r\n# Title\r\n\r\nBody.', 'note.md');
+  assert.deepEqual(article.tags, ['学习']);
+  assert.equal(article.title, 'Title');
+  assert.equal(compileArticle('---\n---\n# Empty metadata', 'empty.md').title, 'Empty metadata');
+  assert.throws(() => compileArticle('---\ndraft: "true"\n---\nDraft', 'draft.md'), /布尔值/);
+});
+
+test('malformed and encoded traversal links are rejected and query links stay intact', () => {
+  assert.throws(() => compileArticle('![x](%2e%2e%5csecret.png)', 'note.md'), /不可越过/);
+  assert.throws(() => compileArticle('[x](%invalid)', 'note.md'), /无效的链接/);
+  const article = compileArticle('[search](?q=hello)\n\n[mail](mailto:a@example.com)\n\n[external](https://example.com)', 'note.md');
+  assert.match(article.html, /href="\?q=hello"/);
+  assert.match(article.html, /href="mailto:a@example.com"/);
+  assert.match(article.html, /target="_blank" rel="noopener noreferrer"/);
+});

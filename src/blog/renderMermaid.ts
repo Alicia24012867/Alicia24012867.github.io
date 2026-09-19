@@ -39,7 +39,17 @@ function clearMermaidArtifacts(id: string) {
   document.getElementById(`d${id}`)?.remove();
 }
 
-export async function renderMermaidDiagrams(root: HTMLElement, theme: 'day' | 'night', shouldAbort?: () => boolean) {
+// Mermaid has global configuration: serialize initialization AND rendering across theme changes.
+let renderQueue: Promise<void> = Promise.resolve();
+
+export function renderMermaidDiagrams(root: HTMLElement, theme: 'day' | 'night', shouldAbort?: () => boolean) {
+  const task = renderQueue.then(() => drawDiagrams(root, theme, shouldAbort));
+  renderQueue = task.catch(() => {});
+  return task;
+}
+
+async function drawDiagrams(root: HTMLElement, theme: 'day' | 'night', shouldAbort?: () => boolean) {
+  if (shouldAbort?.()) return;
   const diagrams = [...root.querySelectorAll<HTMLElement>('.article-mermaid')];
   if (!diagrams.length) return;
 
@@ -77,6 +87,7 @@ export async function renderMermaidDiagrams(root: HTMLElement, theme: 'day' | 'n
       block.classList.remove('is-error');
     } catch {
       clearMermaidArtifacts(id);
+      if (shouldAbort?.()) return;
       canvas.replaceChildren();
       canvas.hidden = true;
       block.classList.remove('is-rendered');
