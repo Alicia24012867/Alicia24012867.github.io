@@ -53,6 +53,10 @@ img, svg { display: block; }
 .nav-links a:hover, .nav-links a.is-active { color: var(--blue-strong); }
 .nav-links a.is-active::after { transform: scale(1); }
 .header-actions { display: flex; align-items: center; gap: 10px; margin-left: 17px; }
+.page-switch { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; gap: 7px; height: 36px; padding-inline: 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--light-blue); color: var(--blue-strong); font-size: 11px; }
+.page-switch .icon { width: 16px; height: 16px; }
+.page-switch:hover { border-color: var(--blue); }
+@media (max-width: 800px) { .page-switch { width: 34px; padding-inline: 0; } .page-switch > span { display: none; } }
 .icon-button { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: transparent; transition: background .2s, color .2s; }
 .icon-button:hover { background: var(--light-blue); color: var(--blue); }
 .theme-toggle { color: #6992b5; }

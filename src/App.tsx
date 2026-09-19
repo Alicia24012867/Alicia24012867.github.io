@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Icon from './Icons';
+import ThemeToggle from './components/ThemeToggle';
 import { interests, profile, type Interest } from './content';
 
 const navigation = [
@@ -47,19 +48,12 @@ function InterestDialog({ interest, close }: { interest: Interest | null; close:
 }
 
 export default function App() {
-  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme === 'night' ? 'night' : 'day');
   const [menuOpen, setMenuOpen] = useState(false);
   const [active, setActive] = useState('home');
   const [interest, setInterest] = useState<Interest | null>(null);
   const [copyStatus, setCopyStatus] = useState('');
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const menuButton = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'night' ? '#111e33' : '#f5faff');
-    try { localStorage.setItem('alicia-sky-theme', theme); } catch { /* Theme still works without storage. */ }
-  }, [theme]);
 
   useEffect(() => {
     const sections = navigation.map(({ id }) => document.getElementById(id)).filter((element): element is HTMLElement => !!element);
@@ -100,7 +94,8 @@ export default function App() {
           {navigation.map(item => <a key={item.id} href={`#${item.id}`} className={active === item.id ? 'is-active' : ''} aria-current={active === item.id ? 'location' : undefined} onClick={() => { setActive(item.id); setMenuOpen(false); }}>{item.label}</a>)}
         </nav>
         <div className="header-actions">
-          <button className="icon-button theme-toggle" onClick={() => setTheme(theme === 'day' ? 'night' : 'day')} aria-label={theme === 'day' ? '切换到夜空主题' : '切换到晴空主题'} title={theme === 'day' ? '切换到夜空主题' : '切换到晴空主题'}><Icon name={theme === 'day' ? 'sun' : 'moon'} /></button>
+          <a className="page-switch" href="./blog/" aria-label="前往手记" title="前往手记"><Icon name="book" /><span>手记</span></a>
+          <ThemeToggle />
           <span className="header-divider" />
           <a className="icon-button github-button" href={profile.github} target="_blank" rel="noreferrer" aria-label="访问 Alicia 的 GitHub（新窗口）"><Icon name="github" /></a>
           <button ref={menuButton} className="icon-button mobile-menu-button" aria-label={menuOpen ? '收起导航菜单' : '展开导航菜单'} aria-expanded={menuOpen} aria-controls="primary-navigation" onClick={() => setMenuOpen(!menuOpen)}><Icon name={menuOpen ? 'close' : 'menu'} /></button>
