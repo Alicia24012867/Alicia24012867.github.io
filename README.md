@@ -1,6 +1,6 @@
 # Alicia · 在代码与蓝天之间
 
-YangBo Huang 的个人网站，使用 React 19、TypeScript 和 Vite 构建，适用于 GitHub Pages。网站由个人主页，以及独立的「手记」文章区组成。
+YangBo Huang 的个人网站，使用 React 19、TypeScript 和 Vite 构建，适用于 GitHub Pages。网站由个人主页、独立的 Blog「手记」文章区，以及 Notes / Knowledge Base 个人知识库组成。
 
 我是一名对高性能计算、科学计算与机器学习感兴趣的学生，正在探索高性能数值计算、GPU 编程和机器学习系统。
 
@@ -16,7 +16,7 @@ npm ci
 npm run dev
 ```
 
-个人主页为 `http://127.0.0.1:5173/`，手记为 `http://127.0.0.1:5173/blog/`。两者通过顶部按钮跳转。生产构建及预览：
+个人主页为 `http://127.0.0.1:5173/`，手记为 `http://127.0.0.1:5173/blog/`。知识库为 `http://127.0.0.1:5173/notes/`。三者通过顶部导航跳转。生产构建及预览：
 
 ```sh
 npm run build
@@ -66,3 +66,9 @@ Vite 使用多页面构建，并以根路径 `base: '/'` 生成资源地址，�
 详见 [文章撰写说明](articles/README.md)。已加入示例 [test.md](articles/test.md)，在 `/blog/?post=test` 可阅读并检查排版。示例用于验证正常文章中的段落、引用、代码、公式、示意图、表格、图片、脚注、分区及目录，后续可删除或设为草稿。
 
 插画由内置 ImageGen 生成；完整提示词与素材说明见 [ASSETS.md](ASSETS.md)。
+
+## 知识库 Notes
+
+`/notes/` 独立收录 `notes/content/` 中的笔记，按公式、源码阅读、CUDA API、SPICE 算法组织，支持全文搜索、标签筛选、笔记互链与反向链接。Blog 保留完整文章，Notes 用来维护持续修订的知识条目。
+
+入口为 `notes/index.html` / `src/notes/Notes.tsx`。撰写与目录规则见 [知识库说明](notes/README.md)。

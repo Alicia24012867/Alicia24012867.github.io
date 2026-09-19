@@ -5,7 +5,7 @@ import { articlesPlugin } from './scripts/articles-plugin.mjs';
 
 // This repository is deployed as a GitHub User Page at the domain root.
 export default defineConfig({
-  plugins: [react(), articlesPlugin()],
+  plugins: [react(), articlesPlugin(), articlesPlugin({ directory: 'notes/content', moduleId: 'virtual:notes' })],
   base: '/',
   appType: 'mpa',
   build: {
@@ -13,6 +13,7 @@ export default defineConfig({
       input: {
         home: resolve(import.meta.dirname, 'index.html'),
         blog: resolve(import.meta.dirname, 'blog/index.html'),
+        notes: resolve(import.meta.dirname, 'notes/index.html'),
       },
     },
   },

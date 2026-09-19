@@ -30,7 +30,7 @@ export default function ArticleIndex() {
   const clearQuery = () => setQuery('');
 
   return <>
-    <section className="journal-hero"><div className="journal-width"><p className="eyebrow"><span /> ALICIA'S FIELD NOTES</p><h1>字里行间，<br className="journal-mobile-break"/>都是探索<span>。</span></h1><p>记录代码里的灵光，学习中的顿悟，<br/>还有生活里那些值得留住的片刻。</p><div className="journal-hero-note"><span>✧</span> 慢慢写，慢慢成为自己。</div><div className="journal-doodle" aria-hidden="true"><Icon name="book"/><span>✦</span><i>thoughts, in the making</i></div></div></section>
+    <section className="journal-hero"><div className="journal-width"><p className="eyebrow"><span /> ALICIA'S BLOG</p><h1>字里行间，<br className="journal-mobile-break"/>都是探索<span>。</span></h1><p>记录代码里的灵光，学习中的顿悟，<br/>还有生活里那些值得留住的片刻。</p><div className="journal-hero-note"><span>✧</span> 慢慢写，慢慢成为自己。</div><div className="journal-doodle" aria-hidden="true"><Icon name="book"/><span>✦</span><i>thoughts, in the making</i></div></div></section>
     <div className="journal-width journal-list-section">
       <div className="journal-list-heading">
         <div><p className="eyebrow">THE NOTEBOOK</p><h2 id="journal-list-title">所有手记<span className="article-count">{String(articles.length).padStart(2, '0')}</span></h2></div>

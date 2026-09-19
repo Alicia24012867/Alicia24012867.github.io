@@ -24,3 +24,31 @@ test('Vite development mode transforms the virtual catalog without treating dire
     await server.close();
   }
 });
+
+test('Notes and Blog stay isolated while note links and math compile within Notes', async (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), 'alicia-notes-test-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(path.join(root, 'articles'));
+  mkdirSync(path.join(root, 'notes/content/formulas'), { recursive: true });
+  writeFileSync(path.join(root, 'articles', 'blog-only.md'), '# Blog exclusive');
+  writeFileSync(path.join(root, 'notes/content/formulas', 'first.md'), '# Notes exclusive\n\n[Math](second.md)');
+  writeFileSync(path.join(root, 'notes/content/formulas', 'second.md'), '# Math note\n\n$x^2$');
+  const server = await createServer({
+    root, configFile: false,
+    plugins: [articlesPlugin(), articlesPlugin({ directory: 'notes/content', moduleId: 'virtual:notes' })],
+    server: { middlewareMode: true, hmr: false, ws: false, watch: null },
+    optimizeDeps: { noDiscovery: true, include: [] },
+  });
+  try {
+    const blog = await server.transformRequest('virtual:articles');
+    const notes = await server.transformRequest('virtual:notes');
+    assert.match(blog.code, /Blog exclusive/);
+    assert.doesNotMatch(blog.code, /Notes exclusive/);
+    assert.match(notes.code, /Notes exclusive/);
+    assert.doesNotMatch(notes.code, /Blog exclusive/);
+    assert.match(notes.code, /\?post=formulas%2Fsecond/);
+    assert.match(notes.code, /katex/);
+  } finally {
+    await server.close();
+  }
+});

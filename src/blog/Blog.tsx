@@ -32,6 +32,7 @@ export default function Blog() {
         </a>
         <nav className="journal-nav" aria-label="手记导航">
           <a href="./" aria-current={!slug ? 'page' : undefined}><Icon name="book"/>手记</a>
+        <a href="../notes/">知识库</a>
         </nav>
         <div className="header-actions">
           <a className="page-switch journal-home-switch" href="../#home" aria-label="返回个人主页" title="返回个人主页">

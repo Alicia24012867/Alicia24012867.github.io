@@ -95,6 +95,7 @@ export default function App() {
         </nav>
         <div className="header-actions">
           <a className="page-switch" href="./blog/" aria-label="前往手记" title="前往手记"><Icon name="book" /><span>手记</span></a>
+          <a className="page-switch" href="./notes/" aria-label="前往知识库" title="Notes / Knowledge Base"><Icon name="code" /><span>知识库</span></a>
           <ThemeToggle />
           <span className="header-divider" />
           <a className="icon-button github-button" href={profile.github} target="_blank" rel="noreferrer" aria-label="访问 Alicia 的 GitHub（新窗口）"><Icon name="github" /></a>

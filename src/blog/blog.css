@@ -2,7 +2,7 @@
 .blog-site { min-height: 100dvh; display: flex; flex-direction: column; }
 .blog-site > main { flex: 1; }
 .journal-width { width: min(1050px, calc(100% - 96px)); margin-inline: auto; }
-.journal-nav { margin-left: auto; }
+.journal-nav { display: flex; align-items: center; gap: 20px; margin-left: auto; }
 .journal-nav a { display: flex; align-items: center; gap: 8px; color: var(--blue-strong); font-size: 13px; }
 .journal-nav .icon { width: 17px; height: 17px; }
 .back-arrow { transform: rotate(180deg); }

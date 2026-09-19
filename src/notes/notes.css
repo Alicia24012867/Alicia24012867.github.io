@@ -1,0 +1,18 @@
+.note-topics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 28px 0; }
+.note-topics a { display: flex; flex-direction: column; gap: 12px; padding: 22px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--section); }
+.note-topics a:hover { border-color: var(--blue-strong); }
+.note-topics strong { font-size: 16px; }
+.note-topics span, .note-topics small, .note-date, .note-results { font-size: 12px; color: var(--muted); }
+.note-topics small { margin-top: auto; }
+.note-entry { display: grid; grid-template-columns: minmax(0, 1fr) 40px; align-items: center; gap: 24px; padding: 25px 0; border-bottom: 1px solid var(--line); }
+.note-entry h3 { font-size: 21px; margin-bottom: 10px; overflow-wrap: anywhere; }
+.note-entry p { color: var(--muted); font-size: 14px; line-height: 1.8; }
+.note-entry .article-tags { margin-top: 14px; }
+.note-date { margin-top: 15px; }
+.note-backlinks { margin-top: 45px; border-top: 1px solid var(--line); padding-top: 28px; }
+.note-backlinks h2 { font-size: 22px; margin: 12px 0; }
+.note-backlinks > p:last-child { color: var(--muted); font-size: 13px; }
+.note-backlinks ul { list-style: none; padding: 0; }
+.note-backlinks a { display: inline-flex; gap: 12px; align-items: center; padding-block: 10px; }
+@media (max-width: 760px) { .note-topics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 400px) { .note-topics a { padding: 16px 12px; } .notes-site .header-inner { gap: 8px; } .notes-site .journal-nav { gap: 12px; } .notes-site .brand { font-size: 22px; } }

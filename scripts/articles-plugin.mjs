@@ -1,14 +1,12 @@
 import path from 'node:path';
 import { buildArticleCatalog, catalogModule } from './articles/catalog.mjs';
 
-const moduleId = 'virtual:articles';
-const resolvedId = `\0${moduleId}`;
-
-export function articlesPlugin() {
+export function articlesPlugin({ directory = 'articles', moduleId = 'virtual:articles' } = {}) {
+  const resolvedId = `\0${moduleId}`;
   let articleRoot;
   return {
-    name: 'local-articles',
-    configResolved(config) { articleRoot = path.resolve(config.root, 'articles'); },
+    name: `local-${directory}`,
+    configResolved(config) { articleRoot = path.resolve(config.root, directory); },
     resolveId(id) { return id === moduleId ? resolvedId : null; },
     load(id) {
       if (id !== resolvedId) return null;
