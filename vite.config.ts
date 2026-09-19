@@ -3,10 +3,10 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 import { articlesPlugin } from './scripts/articles-plugin.mjs';
 
-// Relative assets work both at / and /Alicia24012867/ on GitHub Pages.
+// This repository is deployed as a GitHub User Page at the domain root.
 export default defineConfig({
   plugins: [react(), articlesPlugin()],
-  base: './',
+  base: '/',
   appType: 'mpa',
   build: {
     rolldownOptions: {

@@ -4,7 +4,7 @@ import { slugFromFile } from './text.mjs';
 export function createReferenceResolver(filename, resolveAsset, onArticleLink) {
   return (value, image = false) => {
     if (!value || /^(?:[a-z][a-z\d+.-]*:|\/\/|#|\?)/i.test(value)) return value;
-    // Root-relative paths are site-relative, including a GitHub Pages repository prefix.
+    // Root-relative paths resolve from the User Pages site root.
     if (value.startsWith('/')) return `..${value}`;
     const match = /^([^?#]*)([?#].*)?$/.exec(value);
     if (!match || !match[1]) return value;

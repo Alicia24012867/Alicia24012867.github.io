@@ -31,9 +31,9 @@ npm run preview
 2. 在 GitHub 仓库的 **Settings → Pages → Build and deployment → Source** 中选择 **GitHub Actions**。
 3. 等待 `Deploy homepage to GitHub Pages` 工作流成功。也可在 Actions 页面手动运行。
 
-此仓库对应的地址为 **https://Alicia24012867.github.io/Alicia24012867/**。这是普通项目仓库；如需使用根地址 `https://Alicia24012867.github.io/`，仓库名需为 `Alicia24012867.github.io`。
+此仓库是 GitHub User Pages 仓库，对应的地址为 **https://Alicia24012867.github.io/**。仓库名称必须保持为 `Alicia24012867.github.io`，以便发布到根地址。
 
-Vite 使用多页面构建与相对资源路径 `base: './'`，同时兼容仓库子路径和根域名部署。主页使用锚点导航，文章通过 `blog/?post=test` 这样的查询参数打开，刷新及直接访问不需要服务端路由。工作流在 PR 时验证测试和构建，仅在推送 main 或手动运行时部署。
+Vite 使用多页面构建，并以根路径 `base: '/'` 生成资源地址，适配 User Pages 域名根目录部署。主页使用锚点导航，文章通过 `blog/?post=test` 这样的查询参数打开，刷新及直接访问不需要服务端路由。工作流在 PR 时验证测试和构建，仅在推送 main 或手动运行时部署。
 
 参考：[Vite 静态部署](https://vite.dev/guide/static-deploy.html#github-pages)、[GitHub Pages 自定义工作流](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)。
 

@@ -80,7 +80,7 @@ tags: [随记]
 - 图片放在 `articles/assets/`，或文章附近的其他目录，通过相对路径引用。它们会随 Vite 构建打包，不依赖外部图床。
 - 嵌套文章例如 `articles/2026/note.md`，引用共享图片时写 `../assets/my-image.webp`。
 - PDF 等附件同样使用相对链接，构建时会被收录；不存在的本地附件会导致构建报错，避免发布损坏的链接。
-- `/images/summer-sky.webp` 等以 `/` 开头的资源路径表示当前站点根目录（包括 GitHub Pages 仓库前缀），适合引用 `public/` 下的现有资源。
+- `/images/summer-sky.webp` 等以 `/` 开头的资源路径表示当前 User Pages 站点根目录，适合引用 `public/` 下的现有资源。
 - `[另一篇](./test.md)` 会转换成对应文章详情地址，`.html` 文章也相同。指向不存在、草稿或被排除文章的互链会导致构建报错。
 - 文件名决定文章地址：`articles/test.md` → `/blog/?post=test`；`articles/2026/note.md` → `/blog/?post=2026%2Fnote`。链接复制、刷新和浏览器前进/后退均不依赖服务器路由。
 - 标题会自动生成目录锚点；HTML 可自定义标题 `id`。重复标题的锚点会自动加序号。
