@@ -36,20 +36,29 @@ export function sanitizeArticleHtml(html, resolveReference) {
   });
 }
 
-export function extractHeadings(html) {
+export function extractHeadings(html, footnotes = '') {
   const headings = [];
-  const ids = new Set();
+  // Reserve authored anchors before generating any: a later custom id must not be stolen.
+  const authoredIds = new Set();
+  const ids = new Set(['main']);
+  for (const [, tag, attrs] of `${html}${footnotes}`.matchAll(/<([a-z][a-z0-9]*)\b([^>]*)>/gi)) {
+    const encodedId = attrs.match(/\bid="([^"]+)"/)?.[1];
+    if (!encodedId) continue;
+    const id = decodeHTML(encodedId);
+    authoredIds.add(id);
+    if (!/^h[1-6]$/i.test(tag)) ids.add(id);
+  }
   html = html.replace(/<h([1-6])\b([^>]*)>([\s\S]*?)<\/h\1>/gi, (_match, depth, attrs, inner) => {
     const level = Math.max(2, Number(depth));
     const text = plainText(inner);
-    const authoredId = attrs.match(/\bid="([^"]+)"/)?.[1];
+    const authoredId = decodeHTML(attrs.match(/\bid="([^"]+)"/)?.[1] || '');
     const base = authoredId || `section-${headingSlug(text)}`;
     let id = base;
     let count = 2;
-    while (ids.has(id)) id = `${base}-${count++}`;
+    while (ids.has(id) || (id !== authoredId && authoredIds.has(id))) id = `${base}-${count++}`;
     ids.add(id);
-    if (level <= 3) headings.push({ id: decodeHTML(id), text, level });
-    return `<h${level} id="${id}">${inner}</h${level}>`;
+    if (level <= 3 && text) headings.push({ id, text, level });
+    return `<h${level} id="${escapeHtml(id)}">${inner}</h${level}>`;
   });
   return { html, headings };
 }

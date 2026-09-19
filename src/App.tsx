@@ -105,7 +105,7 @@ export default function App() {
 
     <main id="main">
       <section className="hero" id="home" aria-labelledby="hero-title">
-        <img className="hero-image" src={`${import.meta.env.BASE_URL}images/summer-sky.webp`} alt="蓝天与白云下，银蓝色长发的动漫少女站在海边，回头微笑" fetchPriority="high" width="1536" height="1024" />
+        <img className="hero-image" src={`${import.meta.env.BASE_URL}images/summer-sky.webp`} alt="蓝天白云与海浪前，戴星星发饰的银紫长发少女身穿白色蕾丝裙，面向左侧仰望晴空" fetchPriority="high" width="1536" height="1024" />
         <div className="hero-wash" />
         <div className="hero-inner page-width">
           <div className="hero-copy">
@@ -128,7 +128,7 @@ export default function App() {
       <section className="about-section section-space page-width" id="about" aria-labelledby="about-title">
         <div className="section-heading"><div><p className="eyebrow"><span /> A LITTLE ABOUT ME</p><h2 id="about-title">很高兴，在这里遇见你<span className="heading-dot">。</span></h2></div><span className="section-aside" lang="ja">はじめまして <span>✳</span></span></div>
         <div className="about-layout">
-          <aside className="profile-card"><div className="profile-decoration" aria-hidden="true">✧</div><div className="avatar"><img src={`${import.meta.env.BASE_URL}images/summer-sky.webp`} alt="Alicia 的动漫形象" width="112" height="112" loading="lazy" /></div><span className="profile-sticker">HELLO!</span><h3>{profile.fullName}</h3><a href={profile.github} target="_blank" rel="noreferrer">{profile.handle}</a><div className="profile-divider"/><p><Icon name="book"/>Student & lifelong learner</p><p><Icon name="cloud"/>在自己的时区里，慢慢生长</p><span className="profile-card-footer">MORE THAN A README <span>✦</span></span></aside>
+          <aside className="profile-card"><div className="profile-decoration" aria-hidden="true">✧</div><div className="avatar"><img src={`${import.meta.env.BASE_URL}images/summer-sky.webp`} alt="Alicia 的动漫头像：面向左侧，银紫长发与星星发饰" width="1536" height="1024" loading="lazy" /></div><span className="profile-sticker">HELLO!</span><h3>{profile.fullName}</h3><a href={profile.github} target="_blank" rel="noreferrer">{profile.handle}</a><div className="profile-divider"/><p><Icon name="book"/>Student & lifelong learner</p><p><Icon name="cloud"/>在自己的时区里，慢慢生长</p><span className="profile-card-footer">MORE THAN A README <span>✦</span></span></aside>
           <div className="about-copy"><span className="about-hello">Hi, I'm YangBo <span aria-hidden="true">✌</span></span><h3>一个喜欢追问「为什么」的人。</h3><p>{profile.description}</p><p>目前正在探索高性能数值计算、GPU 编程与机器学习系统。对我来说，学习的乐趣，就藏在「原来如此」的那一刻。</p><div className="skill-list" aria-label="技术兴趣">{profile.skills.map(skill => <span key={skill}>{skill}</span>)}</div><div className="about-quote"><Icon name="sparkles"/><p>把复杂的问题想明白，<br className="quote-break"/>把简单的日子过有趣。</p></div></div>
           <div className="now-card"><div className="now-card-top"><span className="status-dot"/>此刻的我<span>NOW</span></div><div className="now-item"><span className="now-icon"><Icon name="code" /></span><div><span>正在探索</span><p>GPU 的并行世界</p></div></div><div className="now-item"><span className="now-icon"><Icon name="book" /></span><div><span>持续学习</span><p>数值计算与 ML 系统</p></div></div><div className="now-card-bottom"><Icon name="cloud"/><p>前路漫漫，<br />每一步都算数。</p><span aria-hidden="true">✦</span></div></div>
         </div>

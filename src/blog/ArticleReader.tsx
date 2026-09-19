@@ -6,6 +6,7 @@ import { articleSectionById } from '../../scripts/sections.mjs';
 import { ArticleMeta, ArticleTags } from './ArticleMeta';
 import { articleUrl } from './urls';
 import { useArticleReader } from './useArticleReader';
+import ArticleToc from './ArticleToc';
 
 export default function ArticleReader({ article }: { article: Article }) {
   const bodyRef = useRef<HTMLElement>(null);
@@ -29,7 +30,7 @@ export default function ArticleReader({ article }: { article: Article }) {
     </header>
     <div className="reading-layout">
       <article ref={bodyRef} className="article-body" aria-label="文章正文" dangerouslySetInnerHTML={markup} />
-      {article.headings.length > 0 && <aside className="article-toc"><nav aria-label="本文目录"><p>本文目录<span>CONTENTS</span></p><ol>{article.headings.map(heading => <li className={heading.level === 3 ? 'toc-subheading' : ''} key={heading.id}><a href={`#${encodeURIComponent(heading.id)}`} className={activeHeading === heading.id ? 'is-active' : undefined} aria-current={activeHeading === heading.id ? 'location' : undefined}>{heading.text}</a></li>)}</ol></nav><div className="toc-note"><Icon name="cloud"/><span>读一点，想一点。<br/>让好奇心继续生长。</span></div></aside>}
+      <ArticleToc headings={article.headings} activeHeading={activeHeading}/>
     </div>
     {(older || newer) && <nav className="article-pager" aria-label={`${section.label}中的相邻手记`}>
       {older ? <a href={articleUrl(older.slug)}><span>更早一篇</span><strong>{older.title}</strong></a> : <span />}

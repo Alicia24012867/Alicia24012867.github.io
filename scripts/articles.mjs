@@ -18,14 +18,15 @@ export function compileArticle(source, filename, resolveAsset = (file) => `../ar
   const title = metadata.title || (firstTitle ? plainText(firstTitle[1]) : path.posix.basename(slugFromFile(filename)));
   if (firstTitle && plainText(firstTitle[1]) === title) html = html.replace(firstTitle[0], '');
 
-  const extracted = extractHeadings(html);
+  const footnotes = sanitizeArticleHtml(rendered.footnotes, resolveReference);
+  const extracted = extractHeadings(html, footnotes);
   html = extracted.html;
   const text = plainText(html);
   const paragraph = html.match(/<p\b[^>]*>([\s\S]*?)<\/p>/i)?.[1] || '';
   const description = metadata.description || plainText(paragraph).slice(0, 140);
   const chineseCharacters = (text.match(/[\u3400-\u9fff]/g) || []).length;
   const words = (text.replace(/[\u3400-\u9fff]/g, '').match(/[\p{L}\p{N}]+/gu) || []).length;
-  html += sanitizeArticleHtml(rendered.footnotes, resolveReference);
+  html += footnotes;
   html = restoreMath(decorateRichHtml(html), rendered.mathHtml);
 
   return {

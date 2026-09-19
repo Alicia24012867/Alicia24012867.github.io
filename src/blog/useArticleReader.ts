@@ -8,18 +8,27 @@ function useActiveHeading(bodyRef: BodyRef, article: Article) {
   useEffect(() => {
     const root = bodyRef.current;
     if (!root) return;
-    const headings = article.headings.map(heading => document.getElementById(heading.id)).filter((node): node is HTMLElement => !!node && root.contains(node));
+    const ids = new Set(article.headings.map(heading => heading.id));
+    const headings = [...root.querySelectorAll<HTMLElement>('h2[id], h3[id]')].filter(node => ids.has(node.id));
+    setActive(headings[0]?.id ?? '');
+    if (!headings.length) return;
     let frame = 0;
     const update = () => {
-      cancelAnimationFrame(frame);
+      if (frame) return;
       frame = requestAnimationFrame(() => {
-        let current = headings[0]?.id ?? '';
+        frame = 0;
+        const visible = headings.filter(heading => heading.getClientRects().length > 0);
+        let current = visible[0]?.id ?? '';
         const padding = Number.parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
-        const margin = headings[0] ? Number.parseFloat(getComputedStyle(headings[0]).scrollMarginTop) || 0 : 0;
-        const top = Math.max(116, window.innerHeight * .18, padding + margin + 1);
-        for (const heading of headings) {
+        const margin = visible[0] ? Number.parseFloat(getComputedStyle(visible[0]).scrollMarginTop) || 0 : 0;
+        const top = padding + margin + 1;
+        for (const heading of visible) {
           if (heading.getBoundingClientRect().top > top) break;
           current = heading.id;
+        }
+        // A short final section cannot always reach the top of the reading viewport.
+        if (window.scrollY > 0 && Math.ceil(window.scrollY + window.innerHeight) >= document.documentElement.scrollHeight) {
+          current = visible[visible.length - 1]?.id ?? '';
         }
         setActive(current);
       });
@@ -28,12 +37,14 @@ function useActiveHeading(bodyRef: BodyRef, article: Article) {
     observer.observe(root);
     window.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);
+    window.addEventListener('hashchange', update);
     update();
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener('scroll', update);
       window.removeEventListener('resize', update);
+      window.removeEventListener('hashchange', update);
     };
   }, [bodyRef, article]);
   return active;

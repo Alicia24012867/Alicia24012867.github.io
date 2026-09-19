@@ -1,6 +1,6 @@
 # Alicia · 在代码与蓝天之间
 
-YangBo Huang 的蓝白色二次元个人网站，使用 React 19、TypeScript 和 Vite 构建，适用于 GitHub Pages。网站由保持原有设计的个人主页，以及独立的「手记」文章区组成。
+YangBo Huang 的个人网站，使用 React 19、TypeScript 和 Vite 构建，适用于 GitHub Pages。网站由个人主页，以及独立的「手记」文章区组成。
 
 我是一名对高性能计算、科学计算与机器学习感兴趣的学生，正在探索高性能数值计算、GPU 编程和机器学习系统。
 
@@ -43,6 +43,7 @@ Vite 使用多页面构建与相对资源路径 `base: './'`，同时兼容仓�
 - `src/App.tsx`：个人主页内容及交互。
 - `blog/index.html` / `src/blog/Blog.tsx`：文章区入口、页面选择与共享外壳。
 - `src/blog/ArticleIndex.tsx` / `ArticleReader.tsx` / `ArticleMeta.tsx`：文章列表、阅读页与共享元信息组件。
+- `src/blog/ArticleToc.tsx`：从正文二、三级标题生成的目录，支持当前章节标记、长目录跟随与窄屏布局。
 - `src/blog/useSearchQuery.ts` / `useArticleReader.ts`：URL 搜索状态、目录高亮、代码复制及图表生命周期。
 - `articles/`：以 Markdown 或 HTML 撰写的文章，构建时自动收录。
 - `scripts/sections.mjs`：手记列表上预先写好的分区（学习、生活）。
