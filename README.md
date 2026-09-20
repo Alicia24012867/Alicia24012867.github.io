@@ -22,6 +22,7 @@ src/
   home/              首页入口、区块与交互
   blog/              Blog 入口、列表、阅读页与目录索引
   notes/             Notes 入口、列表、阅读页与全文搜索
+  not-found/         独立 404 页面，复用首页主图与全站导航
   components/        全站布局、导航、图标与主题切换
   config/            个人资料、Blog 分区、Notes 主题
   content/           共享内容路由、标签、搜索索引、类型与 URL 工具
@@ -48,7 +49,7 @@ docs/               撰写说明与素材记录
 - `draft: true` 排除发布；本地附件和文章互链在构建时校验。
 - Blog 和所有 Notes 分类统一显示 `Posted on`，有后续编辑时显示 `Edited on`；日期自动读取 Git 历史，也可通过 `date` / `updated` 指定。
 - 列表仅加载摘要；正文按篇加载，Notes 全文索引在首次搜索时加载。搜索文本与反向链接在构建时生成；浏览器只在首次非空搜索时整理匹配文本，后续复用缓存。
-- `content/ContentPage.tsx` 统一 Blog/Notes 的查询路由、页面元信息、正文加载和错误状态；三个页面共用 `components/layout/SiteLayout.tsx`。
+- `content/ContentPage.tsx` 统一 Blog/Notes 的查询路由、页面元信息、正文加载和错误状态；首页、Blog、Notes 与 404 页面共用 `components/layout/SiteLayout.tsx`。
 - 全站共享 Home / Blog / Notes 导航，并提供 About / Explore / Contact 首页锚点；窄屏菜单支持键盘和 Escape 关闭。
 - 从筛选列表打开正文时，链接携带 `q` 查询条件；阅读页的返回入口、文章翻页和笔记反向链接会保留该条件，刷新或新标签页打开同样有效。直接打开不带 `q` 的文章仍返回完整列表。
 - 编译与页面入口：`vite.config.ts`；检查命令：`package.json`。
@@ -60,5 +61,7 @@ docs/               撰写说明与素材记录
 GitHub 仓库 **Settings → Pages → Source** 选择 **GitHub Actions**。推送 `main` 或手动运行 `.github/workflows/deploy.yml` 后部署；PR 只运行检查。
 
 构建产物为 `dist/`，部署到 [Alicia24012867.github.io](https://Alicia24012867.github.io/)。Vite 的 `base: '/'` 对应域名根目录；查询参数路由可直接访问和刷新。
+
+未知路径由 GitHub Pages 返回 `dist/404.html`，保留原地址和 HTTP 404 状态；页面提供首页、Blog、Notes 入口，资源和导航使用根路径，支持任意层级的错误地址。本地 `dev` 和 `preview` 通过 `scripts/not-found.mjs` 提供相同的 404 行为。`/blog/?post=不存在的文章` 和 `/notes/?post=不存在的笔记` 仍显示各自的内容缺失提示。
 
 性能验证命令与本轮测量结果见 [性能记录](docs/performance.md)。

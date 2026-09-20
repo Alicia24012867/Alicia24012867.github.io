@@ -1,0 +1,147 @@
+.not-found-site {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+.not-found-site main {
+  display: flex;
+  flex: 1;
+}
+.not-found {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  min-height: 620px;
+  background: #edf7ff;
+}
+.not-found-image {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+.not-found::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, #f5faff 0%, #f5fafff5 25%, #f5faffd9 42%, #f5faff00 78%);
+}
+.not-found-inner {
+  display: flex;
+  align-items: center;
+  min-height: inherit;
+  height: 100%;
+  padding-block: 64px;
+}
+.not-found-copy {
+  max-width: 490px;
+}
+.not-found .eyebrow {
+  color: #527697;
+  font-size: 10px;
+  letter-spacing: 2.6px;
+}
+.not-found h1 {
+  color: var(--heading);
+  font-size: clamp(28px, 3vw, 38px);
+  font-weight: 500;
+  line-height: 1.3;
+}
+.not-found-code {
+  display: block;
+  margin-block: 16px 20px;
+  color: #2e6fa8;
+  font-size: clamp(112px, 13vw, 176px);
+  font-weight: 550;
+  letter-spacing: -0.06em;
+  line-height: 1;
+}
+.not-found-description {
+  margin-top: 20px;
+  color: #52708c;
+  font-size: 14px;
+  line-height: 1.9;
+}
+.not-found-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+.not-found-links .button-primary {
+  background: #2977c6;
+}
+.not-found-links .button-primary:hover {
+  background: #2268af;
+}
+.not-found-links .button-ghost {
+  color: #355b7d;
+  background: #ffffffb3;
+}
+[data-theme='night'] .not-found {
+  background: #16283e;
+}
+[data-theme='night'] .not-found-image {
+  filter: brightness(0.64) saturate(0.72);
+}
+[data-theme='night'] .not-found::before {
+  background: linear-gradient(90deg, #16283e 0%, #16283ef5 25%, #16283ed9 42%, #16283e00 78%);
+}
+[data-theme='night'] .not-found-code {
+  color: #a4c9ed;
+}
+[data-theme='night'] .not-found .eyebrow,
+[data-theme='night'] .not-found-description {
+  color: #b8cee2;
+}
+[data-theme='night'] .not-found-links .button-ghost {
+  color: #bbd3e8;
+  background: #1c3449d9;
+}
+@media (max-width: 800px) {
+  .not-found-copy {
+    max-width: 420px;
+  }
+  .not-found-image {
+    object-position: 60% top;
+  }
+}
+@media (max-width: 600px) {
+  .not-found {
+    min-height: 700px;
+  }
+  .not-found-image {
+    height: 470px;
+    object-position: 66% top;
+  }
+  .not-found::before {
+    background: linear-gradient(0deg, #edf7ff 32%, #edf7fff5 44%, #edf7ff00 80%);
+  }
+  .not-found-inner {
+    align-items: flex-end;
+    padding-block: 270px 44px;
+  }
+  .not-found-code {
+    margin-block: 12px 16px;
+  }
+  .not-found-description {
+    font-size: 13px;
+    margin-top: 16px;
+  }
+  .not-found-links {
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .not-found-links .button {
+    gap: 8px;
+    padding-inline: 14px;
+  }
+  [data-theme='night'] .not-found::before {
+    background: linear-gradient(0deg, #16283e 32%, #16283ef5 44%, #16283e00 80%);
+  }
+}

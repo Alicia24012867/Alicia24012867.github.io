@@ -7,13 +7,21 @@ export default function SiteLayout({
   section,
   children,
 }: {
-  section: 'home' | 'blog' | 'notes';
+  section: 'home' | 'blog' | 'notes' | 'not-found';
   children: ReactNode;
 }) {
   const home = section === 'home';
-  const homeUrl = home ? '#home' : '../#home';
+  const homeUrl = home ? '#home' : '/#home';
   return (
-    <div className={home ? undefined : `blog-site ${section === 'notes' ? 'notes-site' : ''}`}>
+    <div
+      className={
+        home
+          ? undefined
+          : section === 'not-found'
+            ? 'not-found-site'
+            : `blog-site ${section === 'notes' ? 'notes-site' : ''}`
+      }
+    >
       <a className="skip-link" href="#main">
         Skip to content
       </a>

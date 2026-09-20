@@ -8,7 +8,7 @@ const root = path.resolve(process.argv.slice(2).find((arg) => arg !== '--report'
 const sizes = {};
 const manifest = JSON.parse(fs.readFileSync(path.join(root, '.vite/manifest.json'), 'utf8'));
 const deferred = /virtual:|ArticleReader|NoteReader|ArticleBody|renderMermaid|katex/i;
-for (const page of ['index.html', 'blog/index.html', 'notes/index.html']) {
+for (const page of ['index.html', 'blog/index.html', 'notes/index.html', '404.html']) {
   const visited = new Set();
   const files = new Set();
   function visit(key) {
@@ -35,6 +35,14 @@ for (const page of ['index.html', 'blog/index.html', 'notes/index.html']) {
     }
     sizes[page] = total;
   }
+}
+const notFound = fs.readFileSync(path.join(root, '404.html'), 'utf8');
+assert.match(notFound, /<meta name="robots" content="noindex"/);
+for (const match of notFound.matchAll(/(?:src|href)="([^"]+)"/g)) {
+  const url = match[1];
+  if (url.startsWith('https://')) continue;
+  assert.ok(url.startsWith('/') && !url.startsWith('//'), `404 URL is not root-relative: ${url}`);
+  assert.ok(fs.existsSync(path.join(root, url)), `404 target is missing: ${url}`);
 }
 for (const [key, chunk] of Object.entries(manifest)) {
   if (!/virtual:.*\/entry\//.test(key)) continue;
