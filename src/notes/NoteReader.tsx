@@ -1,6 +1,6 @@
 import Icon from '../components/Icon';
-import ArticleTags from '../components/ArticleTags';
-import ArticleBody from '../components/reader/ArticleBody';
+import ArticleTags from '../content/ArticleTags';
+import ArticleBody from '../content/reader/ArticleBody';
 import { topicOf } from '../config/noteTopics';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
 import type { Article, ArticleSummary } from '../content/types';

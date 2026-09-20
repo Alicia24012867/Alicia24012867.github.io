@@ -1,5 +1,5 @@
 import notes, { loadSearch } from 'virtual:notes';
-import { createContentIndex } from '../content';
+import { createContentIndex } from '../content/search';
 import { noteTopics, topicOf } from '../config/noteTopics';
 
 const collator = new Intl.Collator('en');

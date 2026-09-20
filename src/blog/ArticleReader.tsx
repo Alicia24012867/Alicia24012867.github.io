@@ -1,6 +1,6 @@
 import { blogIndex } from './catalog';
-import ArticleBody from '../components/reader/ArticleBody';
-import ArticleTags from '../components/ArticleTags';
+import ArticleBody from '../content/reader/ArticleBody';
+import ArticleTags from '../content/ArticleTags';
 import Icon from '../components/Icon';
 import type { Article } from '../content/types';
 import { articleSectionById } from '../config/sections.mjs';

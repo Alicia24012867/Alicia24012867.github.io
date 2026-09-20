@@ -1,6 +1,6 @@
 import './reader.css';
 import { useMemo, useRef } from 'react';
-import type { Article } from '../../content/types';
+import type { Article } from '../types';
 import ArticleToc from './ArticleToc';
 import { useArticleReader } from './useArticleReader';
 

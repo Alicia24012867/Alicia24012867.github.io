@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import Icon from '../Icon';
-import type { Article } from '../../content/types';
+import Icon from '../../components/Icon';
+import type { Article } from '../types';
 
 export default function ArticleToc({
   headings,

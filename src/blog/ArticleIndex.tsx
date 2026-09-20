@@ -1,6 +1,6 @@
 import { memo, useDeferredValue, useMemo } from 'react';
 import { blogIndex } from './catalog';
-import ArticleTags from '../components/ArticleTags';
+import ArticleTags from '../content/ArticleTags';
 import Icon from '../components/Icon';
 import type { ArticleSummary } from '../content/types';
 import { articleSections } from '../config/sections.mjs';
@@ -8,7 +8,7 @@ import { ArticleMeta } from './ArticleMeta';
 import { articleUrl } from '../content/urls';
 import { useSearchQuery } from '../hooks/useSearchQuery';
 
-const JournalEntry = memo(function JournalEntry({
+function JournalEntry({
   article,
   index,
   onTag,
@@ -42,7 +42,7 @@ const JournalEntry = memo(function JournalEntry({
       </a>
     </article>
   );
-});
+}
 
 const JournalEntries = memo(function JournalEntries({
   entries,

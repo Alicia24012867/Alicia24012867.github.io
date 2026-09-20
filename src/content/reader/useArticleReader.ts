@@ -1,5 +1,5 @@
 import { useEffect, useState, type RefObject } from 'react';
-import type { Article } from '../../content/types';
+import type { Article } from '../types';
 import { headingAt, type HeadingPosition } from './headingPosition';
 
 type BodyRef = RefObject<HTMLElement | null>;

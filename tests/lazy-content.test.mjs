@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { articleModule, listingModule, searchModule } from '../scripts/content/modules.mjs';
-import { headingAt } from '../src/components/reader/headingPosition.ts';
+import { headingAt } from '../src/content/reader/headingPosition.ts';
 
 const article = {
   slug: 'nested/中文:note',

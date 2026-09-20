@@ -3,15 +3,17 @@ import Icon from '../Icon';
 import SiteHeader from './SiteHeader';
 import { profile } from '../../config/profile';
 
-export default function ContentLayout({
+export default function SiteLayout({
   section,
   children,
 }: {
-  section: 'blog' | 'notes';
+  section: 'home' | 'blog' | 'notes';
   children: ReactNode;
 }) {
+  const home = section === 'home';
+  const homeUrl = home ? '#home' : '../#home';
   return (
-    <div className={`blog-site ${section === 'notes' ? 'notes-site' : ''}`}>
+    <div className={home ? undefined : `blog-site ${section === 'notes' ? 'notes-site' : ''}`}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
@@ -19,7 +21,7 @@ export default function ContentLayout({
       <main id="main">{children}</main>
       <footer className="site-footer page-width">
         <div>
-          <a className="footer-brand" href="../#home">
+          <a className="footer-brand" href={homeUrl}>
             <Icon name="cloud" />
             Alicia.
           </a>
@@ -30,9 +32,9 @@ export default function ContentLayout({
         <p>
           Logic in code. Poetry in life.<span>✧</span>
         </p>
-        <a href="../#home">
-          Back to home
-          <Icon name="arrow" />
+        <a href={homeUrl}>
+          {home ? 'Back to top' : 'Back to home'}
+          <Icon name="arrow" className={home ? 'up-arrow' : undefined} />
         </a>
       </footer>
     </div>

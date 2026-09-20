@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createContentIndex } from '../src/content/index.ts';
+import { createContentIndex } from '../src/content/search.ts';
 
 const articles = [
   {
@@ -32,6 +32,33 @@ const labels = new Map([
   ['learn', 'Learning'],
   ['life', 'Life'],
 ]);
+
+test('browsing builds lookups without reading search fields, then normalizes each entry once', () => {
+  let titleReads = 0;
+  let bodyReads = 0;
+  const entry = {
+    ...articles[0],
+    get title() {
+      titleReads++;
+      return 'CUDA API';
+    },
+  };
+  const body = {
+    get [entry.slug]() {
+      bodyReads++;
+      return 'Synchronization';
+    },
+  };
+  const index = createContentIndex([entry], (article) => article.section, labels, body);
+  assert.equal(index.bySlug.get(entry.slug), entry);
+  assert.equal(index.filter('  '), index.groups);
+  assert.equal(titleReads, 0);
+  assert.equal(bodyReads, 0);
+  assert.deepEqual(index.filter('synchronization').get('learn'), [entry]);
+  for (const query of ['cuda', 'absent', '', 'api']) index.filter(query);
+  assert.equal(titleReads, 1);
+  assert.equal(bodyReads, 1);
+});
 
 test('collection search preserves ordering, matches metadata and separates full-text behavior', () => {
   const blog = createContentIndex(articles, (article) => article.section, labels);

@@ -2,7 +2,7 @@ import { memo, useDeferredValue, useMemo } from 'react';
 import type { ArticleSummary } from '../content/types';
 import { useNoteSearch } from './useNoteSearch';
 import Icon from '../components/Icon';
-import ArticleTags from '../components/ArticleTags';
+import ArticleTags from '../content/ArticleTags';
 import { noteTopics } from '../config/noteTopics';
 import { articleUrl } from '../content/urls';
 import { useSearchQuery } from '../hooks/useSearchQuery';
@@ -13,7 +13,7 @@ const visibleTopics = noteTopics.filter(
   (topic) => topic.id !== 'other' || noteIndex.groups.has(topic.id),
 );
 
-const NoteEntry = memo(function NoteEntry({
+function NoteEntry({
   note,
   onTag,
   query,
@@ -40,7 +40,7 @@ const NoteEntry = memo(function NoteEntry({
       </a>
     </article>
   );
-});
+}
 
 const NoteEntries = memo(function NoteEntries({
   entries,
@@ -60,7 +60,10 @@ export default function NotesIndex() {
   const [query, setQuery] = useSearchQuery();
   const deferredQuery = useDeferredValue(query);
   const { index, pending, failed, retry } = useNoteSearch(deferredQuery);
-  const groups = useMemo(() => index.filter(deferredQuery), [index, deferredQuery]);
+  const groups = useMemo(
+    () => (pending || failed ? index.groups : index.filter(deferredQuery)),
+    [index, deferredQuery, pending, failed],
+  );
   const count = [...groups.values()].reduce((total, entries) => total + entries.length, 0);
   const searching = !!deferredQuery.trim();
 

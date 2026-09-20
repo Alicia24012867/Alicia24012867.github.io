@@ -7,18 +7,23 @@ export function createContentIndex(
   labels: ReadonlyMap<string, string>,
   bodyText: Readonly<Record<string, string>> = {},
 ) {
-  const bySlug = new Map(articles.map((article) => [article.slug, article]));
+  const bySlug = new Map<string, ArticleSummary>();
   const groups = new Map<string, ArticleSummary[]>();
   const search = new Map<string, string>();
 
   for (const article of articles) {
+    bySlug.set(article.slug, article);
     const group = groupOf(article);
-    const entries = groups.get(group) ?? [];
-    entries.push(article);
-    groups.set(group, entries);
-    search.set(
-      article.slug,
-      [
+    const entries = groups.get(group);
+    if (entries) entries.push(article);
+    else groups.set(group, [article]);
+  }
+
+  // Listings and readers need lookups, but only searches need normalized text.
+  function matches(article: ArticleSummary, group: string, needle: string) {
+    let text = search.get(article.slug);
+    if (text === undefined) {
+      text = [
         article.title,
         article.description,
         ...article.tags,
@@ -26,8 +31,10 @@ export function createContentIndex(
         Object.hasOwn(bodyText, article.slug) ? bodyText[article.slug] : '',
       ]
         .join(' ')
-        .toLowerCase(),
-    );
+        .toLowerCase();
+      search.set(article.slug, text);
+    }
+    return text.includes(needle);
   }
 
   // Keep only the last result: extending a substring query can only remove matches.
@@ -45,7 +52,7 @@ export function createContentIndex(
         : new Map(
             [...candidates].map(([group, entries]) => [
               group,
-              entries.filter((article) => search.get(article.slug)!.includes(needle)),
+              entries.filter((article) => matches(article, group, needle)),
             ]),
           );
       previousNeedle = needle;

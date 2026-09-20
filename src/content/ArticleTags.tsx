@@ -1,4 +1,4 @@
-import type { ArticleSummary } from '../content/types';
+import type { ArticleSummary } from './types';
 
 const searchUrl = (tag: string) => `./?q=${encodeURIComponent(tag)}`;
 
