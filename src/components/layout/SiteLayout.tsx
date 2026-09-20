@@ -1,27 +1,26 @@
 import type { ReactNode } from 'react';
 import Icon from '../Icon';
-import SiteHeader from './SiteHeader';
+import SiteHeader, { type SiteSection } from './SiteHeader';
 import { profile } from '../../config/profile';
+
+const siteClasses: Record<SiteSection, string | undefined> = {
+  home: undefined,
+  blog: 'blog-site',
+  notes: 'blog-site notes-site',
+  'not-found': 'not-found-site',
+};
 
 export default function SiteLayout({
   section,
   children,
 }: {
-  section: 'home' | 'blog' | 'notes' | 'not-found';
+  section: SiteSection;
   children: ReactNode;
 }) {
   const home = section === 'home';
   const homeUrl = home ? '#home' : '/#home';
   return (
-    <div
-      className={
-        home
-          ? undefined
-          : section === 'not-found'
-            ? 'not-found-site'
-            : `blog-site ${section === 'notes' ? 'notes-site' : ''}`
-      }
-    >
+    <div className={siteClasses[section]}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>

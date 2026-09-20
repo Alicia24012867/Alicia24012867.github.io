@@ -1,9 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import SiteLayout from '../components/layout/SiteLayout';
-import Icon from '../components/Icon';
-import '../styles/global.css';
-import './not-found.css';
+import SiteLayout from './components/layout/SiteLayout';
+import Icon from './components/Icon';
+import './styles/global.css';
+import './styles/not-found.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

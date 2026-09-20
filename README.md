@@ -22,13 +22,13 @@ src/
   home/              首页入口、区块与交互
   blog/              Blog 入口、列表、阅读页与目录索引
   notes/             Notes 入口、列表、阅读页与全文搜索
-  not-found/         独立 404 页面，复用首页主图与全站导航
+  not-found.tsx      独立 404 入口，复用首页主图与全站导航
   components/        全站布局、导航、图标与主题切换
   config/            个人资料、Blog 分区、Notes 主题
   content/           共享内容路由、标签、搜索索引、类型与 URL 工具
     reader/          正文、目录、代码复制与图表渲染
   hooks/             搜索状态与页面元信息
-  styles/            全局样式与内容页样式
+  styles/            全局、内容页与 404 样式
 content/
   blog/              文章和附件
   notes/             笔记和附件
@@ -62,6 +62,6 @@ GitHub 仓库 **Settings → Pages → Source** 选择 **GitHub Actions**。推�
 
 构建产物为 `dist/`，部署到 [Alicia24012867.github.io](https://Alicia24012867.github.io/)。Vite 的 `base: '/'` 对应域名根目录；查询参数路由可直接访问和刷新。
 
-未知路径由 GitHub Pages 返回 `dist/404.html`，保留原地址和 HTTP 404 状态；页面提供首页、Blog、Notes 入口，资源和导航使用根路径，支持任意层级的错误地址。本地 `dev` 和 `preview` 通过 `scripts/not-found.mjs` 提供相同的 404 行为。`/blog/?post=不存在的文章` 和 `/notes/?post=不存在的笔记` 仍显示各自的内容缺失提示。
+未知路径由 GitHub Pages 返回 `dist/404.html`，保留原地址和 HTTP 404 状态；页面提供首页、Blog、Notes 入口，资源和导航使用根路径，支持任意层级的错误地址。本地 `dev` 和 `preview` 通过 `scripts/not-found.mjs` 提供相同的 404 行为：按文件版本复用模板读取与 HTML 转换，编辑或重新构建后自动更新，HEAD 请求不加载正文。`/blog/?post=不存在的文章` 和 `/notes/?post=不存在的笔记` 仍显示各自的内容缺失提示。
 
 性能验证命令与本轮测量结果见 [性能记录](docs/performance.md)。

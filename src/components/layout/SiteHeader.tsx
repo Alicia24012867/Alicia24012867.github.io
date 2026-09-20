@@ -10,17 +10,14 @@ const pages = [
   { id: 'blog', label: 'Blog', href: '/blog/' },
   { id: 'notes', label: 'Notes', href: '/notes/' },
 ] as const;
+export type SiteSection = (typeof pages)[number]['id'] | 'not-found';
 const sections = [
   { id: 'about', label: 'About' },
   { id: 'explore', label: 'Explore' },
   { id: 'contact', label: 'Contact' },
 ];
 
-export default function SiteHeader({
-  section,
-}: {
-  section: 'home' | 'blog' | 'notes' | 'not-found';
-}) {
+export default function SiteHeader({ section }: { section: SiteSection }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [active, setActive] = useState('home');
   const header = useRef<HTMLElement>(null);
