@@ -12,10 +12,12 @@ const JournalEntry = memo(function JournalEntry({
   article,
   index,
   onTag,
+  query,
 }: {
   article: ArticleSummary;
   index: number;
   onTag: (tag: string) => void;
+  query: string;
 }) {
   return (
     <article className="journal-entry">
@@ -26,20 +28,34 @@ const JournalEntry = memo(function JournalEntry({
       <div className="journal-entry-content">
         <ArticleMeta article={article} />
         <h3>
-          <a href={articleUrl(article.slug)}>{article.title}</a>
+          <a href={articleUrl(article.slug, query)}>{article.title}</a>
         </h3>
         <p>{article.description}</p>
         <ArticleTags article={article} onTag={onTag} showFormat />
       </div>
       <a
         className="journal-read"
-        href={articleUrl(article.slug)}
+        href={articleUrl(article.slug, query)}
         aria-label={`Read: ${article.title}`}
       >
         <Icon name="arrow" />
       </a>
     </article>
   );
+});
+
+const JournalEntries = memo(function JournalEntries({
+  entries,
+  onTag,
+  query,
+}: {
+  entries: ArticleSummary[];
+  onTag: (tag: string) => void;
+  query: string;
+}) {
+  return entries.map((article, index) => (
+    <JournalEntry article={article} index={index} key={article.slug} onTag={onTag} query={query} />
+  ));
 });
 
 export default function ArticleIndex() {
@@ -142,14 +158,7 @@ export default function ArticleIndex() {
                     <p>{section.description}</p>
                   </div>
                   {entries.length ? (
-                    entries.map((article, index) => (
-                      <JournalEntry
-                        article={article}
-                        index={index}
-                        key={article.slug}
-                        onTag={setQuery}
-                      />
-                    ))
+                    <JournalEntries entries={entries} onTag={setQuery} query={deferredQuery} />
                   ) : (
                     <div className="journal-shelf-empty">
                       <Icon name="cloud" />

@@ -16,24 +16,44 @@ const visibleTopics = noteTopics.filter(
 const NoteEntry = memo(function NoteEntry({
   note,
   onTag,
+  query,
 }: {
   note: ArticleSummary;
   onTag: (tag: string) => void;
+  query: string;
 }) {
   return (
     <article className="note-entry">
       <div>
         <h3>
-          <a href={articleUrl(note.slug)}>{note.title}</a>
+          <a href={articleUrl(note.slug, query)}>{note.title}</a>
         </h3>
         <p>{note.description}</p>
         <ArticleTags article={note} onTag={onTag} />
       </div>
-      <a className="journal-read" href={articleUrl(note.slug)} aria-label={`Read: ${note.title}`}>
+      <a
+        className="journal-read"
+        href={articleUrl(note.slug, query)}
+        aria-label={`Read: ${note.title}`}
+      >
         <Icon name="arrow" />
       </a>
     </article>
   );
+});
+
+const NoteEntries = memo(function NoteEntries({
+  entries,
+  onTag,
+  query,
+}: {
+  entries: ArticleSummary[];
+  onTag: (tag: string) => void;
+  query: string;
+}) {
+  return entries.map((note) => (
+    <NoteEntry note={note} onTag={onTag} query={query} key={note.slug} />
+  ));
 });
 
 export default function NotesIndex() {
@@ -134,9 +154,7 @@ export default function NotesIndex() {
                     <p>{topic.description}</p>
                   </div>
                   {entries.length ? (
-                    entries.map((note) => (
-                      <NoteEntry note={note} onTag={setQuery} key={note.slug} />
-                    ))
+                    <NoteEntries entries={entries} onTag={setQuery} query={deferredQuery} />
                   ) : (
                     <div className="journal-shelf-empty">
                       <p>No notes yet. Room for the next discovery.</p>

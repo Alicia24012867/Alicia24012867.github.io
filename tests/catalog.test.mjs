@@ -216,3 +216,56 @@ test('cached backlink targets follow source edits and collection base changes', 
   writeFileSync(path.join(root, 'a.md'), '# A\n\n[B](b.md)');
   assert.deepEqual(incoming(build('/notes/')), ['a'], 'Standalone builds detect unreported edits');
 });
+
+test('discovery prunes private directories and retains nested and symlink file behavior', (t) => {
+  const root = fixture(t, {
+    'nested/a.md': '# A',
+    '_private/deep/secret.md': '# Secret',
+    '.hidden/deep/secret.md': '# Secret',
+    'directory.md/b.md': '# B',
+  });
+  symlinkSync(path.join(root, 'nested/a.md'), path.join(root, 'alias.md'));
+  symlinkSync(path.join(root, 'nested'), path.join(root, 'linked-directory.md'));
+  const readDirectory = fs.readdirSync;
+  const directories = [];
+  t.mock.method(fs, 'readdirSync', (directory, ...args) => {
+    directories.push(path.relative(root, directory));
+    return readDirectory(directory, ...args);
+  });
+  const catalog = buildArticleCatalog(root);
+  assert.deepEqual(
+    catalog.articles.map((article) => article.slug),
+    ['alias', 'directory.md/b', 'nested/a'],
+  );
+  assert.deepEqual(directories.sort(), ['', 'directory.md', 'nested']);
+  const outside = fixture(t, { 'secret.md': '# Outside' });
+  rmSync(path.join(root, 'alias.md'));
+  symlinkSync(path.join(outside, 'secret.md'), path.join(root, 'alias.md'));
+  assert.throws(() => buildArticleCatalog(root), /不可越过 articles/);
+});
+
+test('shared attachments are checked once per build and symlink changes are revalidated', (t) => {
+  const root = fixture(t, {
+    'a.md': '![A](shared.svg)',
+    'b.md': '![B](shared.svg)',
+    'shared.svg': '<svg/>',
+  });
+  const stat = fs.statSync;
+  let checks = 0;
+  t.mock.method(fs, 'statSync', (file, ...args) => {
+    if (file === path.join(root, 'shared.svg')) checks++;
+    return stat(file, ...args);
+  });
+  const cache = new Map();
+  const watched = [];
+  buildArticleCatalog(root, (file) => watched.push(file), { cache });
+  assert.equal(checks, 1);
+  assert.equal(watched.filter((file) => file === path.join(root, 'shared.svg')).length, 1);
+  const outside = fixture(t, { 'image.svg': '<svg/>' });
+  rmSync(path.join(root, 'shared.svg'));
+  symlinkSync(path.join(outside, 'image.svg'), path.join(root, 'shared.svg'));
+  assert.throws(
+    () => buildArticleCatalog(root, undefined, { cache, changedFiles: new Set() }),
+    /不可越过 articles/,
+  );
+});

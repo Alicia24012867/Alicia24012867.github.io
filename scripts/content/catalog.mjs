@@ -24,39 +24,48 @@ export function buildArticleCatalog(
   watch = () => {},
   { basePath = '/blog/', cache = new Map(), changedFiles } = {},
 ) {
-  const root = fs.realpathSync(articleRoot);
+  const root = fs.realpathSync.native(articleRoot);
   const articles = [];
   const assets = new Map();
   const links = [];
   const slugs = new Set();
   const visited = new Set();
   const outgoing = new Map();
+  const checked = new Set();
 
-  function checkedFile(relative, owner) {
+  function checkedFile(relative, owner, isFile = false) {
     const absolute = path.resolve(root, relative);
-    if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile())
+    if (checked.has(absolute)) return absolute;
+    if (!isFile && !fs.statSync(absolute, { throwIfNoEntry: false })?.isFile())
       throw new Error(`${owner}: 找不到文章附件 ${relative}`);
-    const real = fs.realpathSync(absolute);
+    const real = fs.realpathSync.native(absolute);
     if (!real.startsWith(`${root}${path.sep}`))
       throw new Error(`${owner}: 文件不可越过 articles 目录：${relative}`);
     watch(absolute);
+    checked.add(absolute);
     return absolute;
   }
 
   // Only files belong in Vite's module graph. The plugin watches the directory separately.
-  const files = fs
-    .readdirSync(root, { recursive: true })
-    .map((entry) => String(entry).replaceAll('\\', '/'))
-    .sort();
-  for (const file of files) {
-    if (
-      !/\.(md|html)$/i.test(file) ||
-      /(^|\/)README\.md$/i.test(file) ||
-      file.split('/').some((part) => part.startsWith('_') || part.startsWith('.'))
-    )
-      continue;
-    if (!fs.statSync(path.join(root, file)).isFile()) continue;
-    const absolute = checkedFile(file, file);
+  const files = new Map();
+  function discover(directory = '') {
+    for (const entry of fs.readdirSync(path.join(root, directory), { withFileTypes: true })) {
+      if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
+      const file = directory ? `${directory}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) discover(file);
+      else if (/\.(md|html)$/i.test(entry.name) && !/^README\.md$/i.test(entry.name)) {
+        // Match regular files and file symlinks, without following directory symlinks.
+        if (
+          entry.isFile() ||
+          (entry.isSymbolicLink() && fs.statSync(path.join(root, file)).isFile())
+        )
+          files.set(file, entry.isFile());
+      }
+    }
+  }
+  discover();
+  for (const file of [...files.keys()].sort()) {
+    const absolute = checkedFile(file, file, files.get(file));
     visited.add(absolute);
     let compiled = cache.get(absolute);
     // Only a complete watcher change set permits skipping reads; standalone builds reread.

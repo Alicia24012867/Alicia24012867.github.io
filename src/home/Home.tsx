@@ -1,5 +1,5 @@
 import Icon from '../components/Icon';
-import HomeHeader from './HomeHeader';
+import SiteHeader from '../components/layout/SiteHeader';
 import { profile } from '../config/profile';
 import Hero from './Hero';
 import About from './About';
@@ -12,7 +12,7 @@ export default function Home() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <HomeHeader />
+      <SiteHeader section="home" />
 
       <main id="main">
         <Hero />

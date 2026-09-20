@@ -30,18 +30,26 @@ export function createContentIndex(
     );
   }
 
+  // Keep only the last result: extending a substring query can only remove matches.
+  let previousNeedle = '';
+  let previousGroups = groups;
   return {
     bySlug,
     groups,
     filter(query: string) {
       const needle = query.trim().toLowerCase();
-      if (!needle) return groups;
-      return new Map(
-        [...groups].map(([group, entries]) => [
-          group,
-          entries.filter((article) => search.get(article.slug)!.includes(needle)),
-        ]),
-      );
+      if (needle === previousNeedle) return previousGroups;
+      const candidates = needle.includes(previousNeedle) ? previousGroups : groups;
+      previousGroups = !needle
+        ? groups
+        : new Map(
+            [...candidates].map(([group, entries]) => [
+              group,
+              entries.filter((article) => search.get(article.slug)!.includes(needle)),
+            ]),
+          );
+      previousNeedle = needle;
+      return previousGroups;
     },
   };
 }

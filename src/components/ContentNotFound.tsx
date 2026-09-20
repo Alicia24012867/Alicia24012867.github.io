@@ -1,3 +1,4 @@
+import { listingUrl, queryFromSearch } from '../content/urls';
 import Icon from './Icon';
 
 export default function ContentNotFound({ kind }: { kind: 'post' | 'note' }) {
@@ -7,7 +8,10 @@ export default function ContentNotFound({ kind }: { kind: 'post' | 'note' }) {
       <p className="eyebrow">PAGE NOT FOUND</p>
       <h1>This {kind} is not here yet.</h1>
       <p>It may have moved or may still be a draft.</p>
-      <a className="button button-primary" href="./">
+      <a
+        className="button button-primary"
+        href={listingUrl(queryFromSearch(window.location.search))}
+      >
         Back to all {kind}s<Icon name="arrow" />
       </a>
     </div>

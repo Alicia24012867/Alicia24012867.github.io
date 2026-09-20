@@ -87,3 +87,28 @@ test('prototype-named slugs do not introduce inherited properties into search te
   assert.deepEqual(full.filter('formula').get('learn'), [entries[0]]);
   assert.deepEqual(full.filter('allocation').get('learn'), [entries[1]]);
 });
+
+test('successive searches match a fresh search when typing, deleting, replacing, and clearing', () => {
+  const build = () => createContentIndex(articles, (article) => article.section, labels);
+  const index = build();
+  for (const query of [
+    'c',
+    'cu',
+    'cuda',
+    'CUDA ',
+    'cu',
+    'day',
+    'absent',
+    'absent!',
+    'a',
+    '',
+    'gpu',
+  ]) {
+    assert.deepEqual(index.filter(query), build().filter(query), query);
+  }
+  const result = index.filter('cuda');
+  assert.equal(index.filter(' CUDA '), result, 'Equivalent searches reuse the result');
+  assert.deepEqual(index.filter('cuda api').get('learn'), [articles[0]]);
+  assert.deepEqual(result.get('learn'), [articles[0], articles[2]], 'Earlier results stay intact');
+  assert.equal(index.filter(' '), index.groups);
+});

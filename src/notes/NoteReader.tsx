@@ -2,19 +2,21 @@ import Icon from '../components/Icon';
 import ArticleTags from '../components/ArticleTags';
 import ArticleBody from '../components/reader/ArticleBody';
 import { topicOf } from '../config/noteTopics';
-import { articleUrl } from '../content/urls';
+import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
 import type { Article, ArticleSummary } from '../content/types';
 import { noteIndex } from './catalog';
 
 export default function NoteReader({ article: note }: { article: Article }) {
+  const query = queryFromSearch(window.location.search);
+  const backUrl = listingUrl(query);
   const backlinks = note.backlinks
     .map((slug) => noteIndex.bySlug.get(slug))
     .filter((item): item is ArticleSummary => !!item);
   return (
     <div className="journal-width reading-page">
-      <a className="journal-back" href="./">
+      <a className="journal-back" href={backUrl}>
         <Icon name="arrow" />
-        All notes
+        {query ? 'Back to results' : 'All notes'}
       </a>
       <header className="reading-header">
         <p className="eyebrow">KNOWLEDGE BASE / {topicOf(note).label}</p>
@@ -35,7 +37,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
           <ul>
             {backlinks.map((item) => (
               <li key={item.slug}>
-                <a href={articleUrl(item.slug)}>
+                <a href={articleUrl(item.slug, query)}>
                   {item.title}
                   <Icon name="arrow" />
                 </a>

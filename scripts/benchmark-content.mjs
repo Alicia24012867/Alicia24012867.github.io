@@ -1,14 +1,31 @@
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { buildArticleCatalog } from './content/catalog.mjs';
 
+const variants = [{ name: 'current', build: buildArticleCatalog }];
+const compareArg = process.argv.indexOf('--compare-ref');
+if (compareArg !== -1) {
+  const ref = process.argv[compareArg + 1];
+  if (!ref || ref.startsWith('--')) throw new Error('--compare-ref requires a Git revision');
+  // Compare catalog implementations with the same compiler and dependencies.
+  const source = execFileSync('git', ['show', `${ref}:scripts/content/catalog.mjs`], {
+    encoding: 'utf8',
+  })
+    .replace("from 'entities'", `from ${JSON.stringify(import.meta.resolve('entities'))}`)
+    .replace(
+      "from './compile.mjs'",
+      `from ${JSON.stringify(import.meta.resolve('./content/compile.mjs'))}`,
+    );
+  const baseline = await import(`data:text/javascript,${encodeURIComponent(source)}`);
+  variants.unshift({ name: ref, build: baseline.buildArticleCatalog });
+}
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'alicia-content-bench-'));
 const count = 200;
 const samples = 9;
-const cache = new Map();
-const watchedCache = new Map();
 const paragraph = 'A repeatable note about numerical methods and memory access. '.repeat(
   process.argv.includes('--long') ? 300 : 20,
 );
@@ -20,47 +37,75 @@ function measure(build) {
   return performance.now() - start;
 }
 const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+const ordered = (index) => (index % 2 ? [...variants].reverse() : variants);
 try {
   for (let index = 0; index < count; index++)
     fs.writeFileSync(path.join(root, `note-${index}.md`), sample(index), 'utf8');
-  const full = Array.from({ length: samples }, () => measure(() => buildArticleCatalog(root)));
-  buildArticleCatalog(root, undefined, { cache });
-  buildArticleCatalog(root, undefined, { cache: watchedCache });
-  const incremental = [];
-  const watched = [];
+  for (const variant of variants) {
+    Object.assign(variant, {
+      cache: new Map(),
+      watchedCache: new Map(),
+      full: [],
+      incremental: [],
+      watched: [],
+    });
+    variant.build(root); // Warm up compilation before timing either implementation.
+  }
+  for (let index = 0; index < samples; index++)
+    for (const variant of ordered(index)) variant.full.push(measure(() => variant.build(root)));
+  for (const variant of variants) {
+    variant.build(root, undefined, { cache: variant.cache });
+    variant.build(root, undefined, { cache: variant.watchedCache });
+  }
   for (let index = 0; index < samples; index++) {
     fs.writeFileSync(path.join(root, 'note-0.md'), `${sample(0)}\n\nEdit ${index}`, 'utf8');
-    const reread = () =>
-      incremental.push(measure(() => buildArticleCatalog(root, undefined, { cache })));
-    const fromEvents = () =>
-      watched.push(
-        measure(() =>
-          buildArticleCatalog(root, undefined, {
-            cache: watchedCache,
-            changedFiles: new Set(['note-0.md']),
+    let expected;
+    for (const variant of ordered(index)) {
+      let rereadResult;
+      let watchedResult;
+      const reread = () =>
+        variant.incremental.push(
+          measure(() => {
+            rereadResult = variant.build(root, undefined, { cache: variant.cache });
           }),
-        ),
-      );
-    // Alternate order to reduce filesystem cache and scheduling bias.
-    if (index % 2) {
-      fromEvents();
-      reread();
-    } else {
-      reread();
-      fromEvents();
+        );
+      const fromEvents = () =>
+        variant.watched.push(
+          measure(() => {
+            watchedResult = variant.build(root, undefined, {
+              cache: variant.watchedCache,
+              changedFiles: new Set(['note-0.md']),
+            });
+          }),
+        );
+      // Alternate both implementation and cached-mode order to reduce timing bias.
+      if (index % 2) {
+        fromEvents();
+        reread();
+      } else {
+        reread();
+        fromEvents();
+      }
+      assert.deepEqual(watchedResult, rereadResult);
+      if (expected) assert.deepEqual(rereadResult, expected);
+      expected = rereadResult;
     }
   }
+  const results = variants.map((variant) => ({
+    implementation: variant.name,
+    fullMedianMs: median(variant.full),
+    singleEditMedianMs: median(variant.incremental),
+    speedup: median(variant.full) / median(variant.incremental),
+    watchedEditMedianMs: median(variant.watched),
+    watchedSpeedup: median(variant.full) / median(variant.watched),
+  }));
   console.log(
     JSON.stringify(
       {
         documents: count,
         samples,
         proseCharactersPerDocument: paragraph.length,
-        fullMedianMs: median(full),
-        singleEditMedianMs: median(incremental),
-        speedup: median(full) / median(incremental),
-        watchedEditMedianMs: median(watched),
-        watchedSpeedup: median(full) / median(watched),
+        ...(compareArg === -1 ? results[0] : { results }),
       },
       null,
       2,

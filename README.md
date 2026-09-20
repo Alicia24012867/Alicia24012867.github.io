@@ -43,6 +43,8 @@ docs/               撰写说明与素材记录
 - 文件路径决定地址：`content/blog/test.md` → `/blog/?post=test`。目录迁移不改变现有线上地址。
 - `draft: true` 排除发布；本地附件和文章互链在构建时校验。
 - 列表仅加载摘要；正文按篇加载，Notes 全文索引在首次搜索时加载。搜索文本与反向链接在构建时生成。
+- 全站共享 Home / Blog / Notes 导航，并提供 About / Explore / Contact 首页锚点；窄屏菜单支持键盘和 Escape 关闭。
+- 从筛选列表打开正文时，链接携带 `q` 查询条件；阅读页的返回入口、文章翻页和笔记反向链接会保留该条件，刷新或新标签页打开同样有效。直接打开不带 `q` 的文章仍返回完整列表。
 - 编译与页面入口：`vite.config.ts`；检查命令：`package.json`。
 
 详细语法见 [文章撰写](docs/writing.md)、[知识库说明](docs/notes.md)。素材记录见 [assets](docs/assets.md)。

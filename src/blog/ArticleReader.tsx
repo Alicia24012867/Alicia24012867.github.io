@@ -5,9 +5,11 @@ import Icon from '../components/Icon';
 import type { Article } from '../content/types';
 import { articleSectionById } from '../config/sections.mjs';
 import { ArticleMeta } from './ArticleMeta';
-import { articleUrl } from '../content/urls';
+import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
 
 export default function ArticleReader({ article }: { article: Article }) {
+  const query = queryFromSearch(window.location.search);
+  const backUrl = listingUrl(query);
   const section = articleSectionById(article.section);
   const inSection = blogIndex.groups.get(article.section) ?? [];
   const index = inSection.findIndex((item) => item.slug === article.slug);
@@ -16,9 +18,9 @@ export default function ArticleReader({ article }: { article: Article }) {
 
   return (
     <div className="journal-width reading-page">
-      <a className="journal-back" href="./">
+      <a className="journal-back" href={backUrl}>
         <Icon name="arrow" />
-        All posts
+        {query ? 'Back to results' : 'All posts'}
       </a>
       <header className="reading-header">
         <p className="eyebrow">
@@ -33,7 +35,7 @@ export default function ArticleReader({ article }: { article: Article }) {
       {(older || newer) && (
         <nav className="article-pager" aria-label={`More posts in ${section.label}`}>
           {older ? (
-            <a href={articleUrl(older.slug)}>
+            <a href={articleUrl(older.slug, query)}>
               <span>Previous post</span>
               <strong>{older.title}</strong>
             </a>
@@ -41,7 +43,7 @@ export default function ArticleReader({ article }: { article: Article }) {
             <span />
           )}
           {newer ? (
-            <a className="pager-newer" href={articleUrl(newer.slug)}>
+            <a className="pager-newer" href={articleUrl(newer.slug, query)}>
               <span>Next post</span>
               <strong>{newer.title}</strong>
             </a>
@@ -53,9 +55,9 @@ export default function ArticleReader({ article }: { article: Article }) {
       <div className="reading-end">
         <span>✧</span>
         <p>Thanks for reading.</p>
-        <a className="button button-ghost" href="./">
+        <a className="button button-ghost" href={backUrl}>
           <Icon name="book" />
-          Back to blog
+          {query ? 'Back to results' : 'Back to blog'}
         </a>
         <a className="reading-home" href="../#home">
           Visit my homepage
