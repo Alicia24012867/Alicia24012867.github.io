@@ -1,0 +1,218 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync, realpathSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { buildArticleCatalog } from '../scripts/content/catalog.mjs';
+import { articleModule } from '../scripts/content/modules.mjs';
+
+function fixture(t, files) {
+  const root = mkdtempSync(path.join(tmpdir(), 'alicia-articles-test-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  for (const [file, contents] of Object.entries(files)) {
+    const absolute = path.join(root, file);
+    mkdirSync(path.dirname(absolute), { recursive: true });
+    writeFileSync(absolute, contents);
+  }
+  return realpathSync(root);
+}
+
+test('catalog discovers nested articles, excludes drafts/private files and sorts deterministically', (t) => {
+  const root = fixture(t, {
+    'old.md': '---\ndate: 2026-01-01\n---\nOld.',
+    '2026/new.html': '---\ndate: 2026-02-01\nsection: life\n---\n<p>New.</p>',
+    'draft.md': '---\ndraft: true\n---\nSecret.',
+    '_private/note.md': 'Private.',
+    '.hidden.md': 'Hidden.',
+    'README.md': 'Docs.',
+  });
+  const watched = [];
+  const { articles } = buildArticleCatalog(root, (file) => watched.push(file));
+  assert.deepEqual(
+    articles.map((article) => article.slug),
+    ['2026/new', 'old'],
+  );
+  assert.ok(watched.includes(path.join(root, 'draft.md')));
+  assert.doesNotMatch(JSON.stringify(articles), /Secret|Private|Hidden|Docs/);
+});
+
+test('catalog validates article links, missing targets and unpublished targets', (t) => {
+  const good = fixture(t, {
+    'a.md': '[Next](./nested/b.html#intro)',
+    'nested/b.html': '<h2 id="intro">B</h2>',
+  });
+  assert.match(buildArticleCatalog(good).articles[0].html, /post=nested%2Fb#intro/);
+  const missing = fixture(t, { 'a.md': '[Missing](./missing.md)' });
+  assert.throws(() => buildArticleCatalog(missing), /不存在或未发布/);
+  const draft = fixture(t, {
+    'a.md': '[Draft](./draft.md)',
+    'draft.md': '---\ndraft: true\n---\nNot public.',
+  });
+  assert.throws(() => buildArticleCatalog(draft), /不存在或未发布/);
+});
+
+test('catalog rejects duplicate slugs and missing or executable attachments', (t) => {
+  const duplicate = fixture(t, { 'same.md': 'One.', 'same.html': '<p>Two.</p>' });
+  assert.throws(() => buildArticleCatalog(duplicate), /文章地址重复/);
+  const missing = fixture(t, { 'a.md': '![Missing](./no.webp)' });
+  assert.throws(() => buildArticleCatalog(missing), /找不到文章附件/);
+  const script = fixture(t, { 'a.md': '[Script](./unsafe.cjs)', 'unsafe.cjs': 'alert(1)' });
+  assert.throws(() => buildArticleCatalog(script), /不能引用文章源码或脚本/);
+});
+
+test('attachments are deduplicated and module generation delegates their URLs to Vite', (t) => {
+  const root = fixture(t, {
+    'a.md': '![One](./assets/image.svg)\n\n![Two](./assets/image.svg)',
+    'assets/image.svg': '<svg xmlns="http://www.w3.org/2000/svg" />',
+  });
+  const catalog = buildArticleCatalog(root);
+  assert.equal(catalog.assets.size, 1);
+  const module = articleModule(
+    catalog.articles[0],
+    new Map([...catalog.assets].map(([file, marker]) => [marker, file])),
+  );
+  assert.match(module, /import asset0 from .*image.svg\?url/);
+  assert.doesNotMatch(module, /import asset1/);
+  assert.match(module, /export default body/);
+});
+
+test('symlink attachments cannot expose files outside the articles root', (t) => {
+  const outside = fixture(t, { 'secret.txt': 'Not a public article asset.' });
+  const root = fixture(t, { 'a.md': '[Attachment](./escape.txt)' });
+  symlinkSync(path.join(outside, 'secret.txt'), path.join(root, 'escape.txt'));
+  assert.throws(() => buildArticleCatalog(root), /不可越过 articles/);
+});
+
+test('backlinks are deduplicated, stay within their collection, and ignore self-links and drafts', (t) => {
+  const root = fixture(t, {
+    'target.md': '# Target\n\n[Self](target.md)',
+    'first.md': '[Target](target.md)\n\n[Again](target.md#heading)',
+    'second.html': '<a href="?q=x&amp;post=target">Query link</a>',
+    'third.md': '[Root](/notes/?post=target)',
+    'cross.md': '[Blog](/blog/?post=target)\n\n[External](https://example.com/notes/?post=target)',
+    'draft.md': '---\ndraft: true\n---\n[Target](target.md)',
+  });
+  const catalog = buildArticleCatalog(root, undefined, { basePath: '/notes/' });
+  assert.deepEqual(catalog.articles.find((article) => article.slug === 'target').backlinks, [
+    'first',
+    'second',
+    'third',
+  ]);
+  assert.ok(
+    catalog.articles.every(
+      (article) => article.slug === 'target' || article.backlinks.length === 0,
+    ),
+  );
+});
+
+test('search text includes readable prose, code and formulas without generated controls or markup', (t) => {
+  const root = fixture(t, {
+    'note.md':
+      '# Title\n\nOnlyBodyToken &amp; 中文\n\n```cpp\ncudaDeviceSynchronize();\n```\n\n$E=mc^2$\n\nA footnote[^n].\n\n[^n]: FootnoteToken.',
+  });
+  const article = buildArticleCatalog(root).articles[0];
+  assert.match(article.searchText, /onlybodytoken & 中文/);
+  assert.match(article.searchText, /cudadevicesynchronize/);
+  assert.match(article.searchText, /footnotetoken/);
+  assert.match(article.searchText, /e/);
+  assert.doesNotMatch(article.searchText, /<[^>]+>|copy code|hljs|__ALICIA/i);
+});
+
+test('generated catalogs replace every attachment marker and escape URLs for HTML attributes', async () => {
+  const assets = new Map([
+    ['/one.svg', '__ALICIA_ARTICLE_ASSET_0__'],
+    ['/two.svg', '__ALICIA_ARTICLE_ASSET_1__'],
+  ]);
+  const urls = ['https://example.com/one?a=1&b="two"', '/two.svg'];
+  const source = articleModule(
+    {
+      html: '<img src="__ALICIA_ARTICLE_ASSET_0__"><a href="__ALICIA_ARTICLE_ASSET_1__">File</a><img src="__ALICIA_ARTICLE_ASSET_0__">',
+    },
+    new Map([...assets].map(([file, marker]) => [marker, file])),
+  ).replace(
+    /import asset(\d+) from [^;]+;/g,
+    (_, index) => `const asset${index} = ${JSON.stringify(urls[index])};`,
+  );
+  const { default: body } = await import(`data:text/javascript,${encodeURIComponent(source)}`);
+  assert.equal(
+    body.html,
+    '<img src="https://example.com/one?a=1&amp;b=&quot;two&quot;"><a href="/two.svg">File</a><img src="https://example.com/one?a=1&amp;b=&quot;two&quot;">',
+  );
+});
+
+test('incremental compilation reuses unchanged sources, remaps assets, and revalidates deleted targets', (t) => {
+  const root = fixture(t, {
+    'a.md': '# A\n\n![A](one.svg)\n\n[B](b.md)',
+    'b.md': '# B\n\n![B](two.svg)',
+    'one.svg': '<svg/>',
+    'two.svg': '<svg/>',
+  });
+  const cache = new Map();
+  const build = () => buildArticleCatalog(root, undefined, { cache });
+  const first = build();
+  const cachedA = cache.get(path.join(root, 'a.md'));
+  const cachedB = cache.get(path.join(root, 'b.md'));
+  assert.deepEqual(build(), first);
+  assert.equal(cache.get(path.join(root, 'a.md')), cachedA);
+  writeFileSync(path.join(root, 'b.md'), '# B revised\n\n![B](two.svg)');
+  const next = build();
+  assert.equal(cache.get(path.join(root, 'a.md')), cachedA);
+  assert.notEqual(cache.get(path.join(root, 'b.md')), cachedB);
+  assert.match(next.articles.find((article) => article.slug === 'a').html, /ASSET_0/);
+  assert.match(next.articles.find((article) => article.slug === 'b').html, /ASSET_1/);
+  assert.deepEqual(next.articles.find((article) => article.slug === 'b').backlinks, ['a']);
+  rmSync(path.join(root, 'two.svg'));
+  assert.throws(build, /找不到文章附件/);
+  writeFileSync(path.join(root, 'two.svg'), '<svg/>');
+  rmSync(path.join(root, 'b.md'));
+  assert.throws(build, /不存在或未发布/);
+  assert.equal(cache.has(path.join(root, 'b.md')), false);
+});
+
+test('watcher change sets reread only edited documents and still validate attachments', (t) => {
+  const root = fixture(t, {
+    'a.md': '# A\n\n![A](one.svg)\n\n[B](nested/b.md)',
+    'nested/b.md': '# B',
+    'one.svg': '<svg/>',
+  });
+  const cache = new Map();
+  buildArticleCatalog(root, undefined, { cache });
+  const reads = [];
+  const read = fs.readFileSync;
+  t.mock.method(fs, 'readFileSync', (file, ...args) => {
+    reads.push(path.relative(root, file));
+    return read(file, ...args);
+  });
+  writeFileSync(path.join(root, 'nested/b.md'), '# C');
+  const changedFiles = new Set(['nested/b.md']);
+  const catalog = buildArticleCatalog(root, undefined, { cache, changedFiles });
+  assert.deepEqual(reads, ['nested/b.md']);
+  assert.equal(catalog.articles.find((article) => article.slug === 'nested/b').title, 'C');
+  assert.deepEqual(catalog.articles.find((article) => article.slug === 'nested/b').backlinks, [
+    'a',
+  ]);
+  rmSync(path.join(root, 'one.svg'));
+  assert.throws(
+    () => buildArticleCatalog(root, undefined, { cache, changedFiles: new Set(['one.svg']) }),
+    /找不到文章附件/,
+  );
+});
+
+test('cached backlink targets follow source edits and collection base changes', (t) => {
+  const root = fixture(t, {
+    'a.md': '# A\n\n[B](/notes/?post=b)',
+    'b.md': '# B',
+  });
+  const cache = new Map();
+  const build = (basePath, changedFiles) =>
+    buildArticleCatalog(root, undefined, { cache, basePath, changedFiles });
+  const incoming = (catalog) => catalog.articles.find((article) => article.slug === 'b').backlinks;
+  assert.deepEqual(incoming(build('/notes/')), ['a']);
+  assert.deepEqual(incoming(build('/blog/', new Set())), []);
+  assert.deepEqual(incoming(build('/notes/', new Set())), ['a']);
+  writeFileSync(path.join(root, 'a.md'), '# A\n\nNo link now.');
+  assert.deepEqual(incoming(build('/notes/', new Set(['a.md']))), []);
+  writeFileSync(path.join(root, 'a.md'), '# A\n\n[B](b.md)');
+  assert.deepEqual(incoming(build('/notes/')), ['a'], 'Standalone builds detect unreported edits');
+});

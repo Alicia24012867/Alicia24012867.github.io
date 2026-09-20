@@ -1,26 +1,50 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;450;500;550;600;650;700&amp;family=Outfit:wght@400;450;500;550;600;650;700&amp;display=swap"
+    />
+    <link
+      rel="preload"
+      as="image"
+      type="image/webp"
+      href="%BASE_URL%images/summer-sky.webp"
+      fetchpriority="high"
+    />
     <meta name="theme-color" content="#f5faff" />
-    <meta name="description" content="Alicia · YangBo Huang 的个人主页。探索高性能计算、科学计算与机器学习，在代码与蓝天之间，保持好奇。" />
-    <meta property="og:title" content="Alicia · 在代码与蓝天之间" />
-    <meta property="og:description" content="YangBo Huang 的个人小站，记录兴趣、探索与好奇心。" />
+    <meta
+      name="description"
+      content="Alicia. Exploring high-performance computing, scientific computing, and machine learning. Stay curious, between code and blue skies."
+    />
+    <meta property="og:title" content="Alicia · Between code and blue skies" />
+    <meta
+      property="og:description"
+      content="Alicia's personal corner of the web. Interests, discoveries, and curiosity."
+    />
     <meta property="og:type" content="website" />
     <meta name="color-scheme" content="light dark" />
-    <title>Alicia · 在代码与蓝天之间</title>
+    <title>Alicia · Between code and blue skies</title>
     <script>
       try {
         const savedTheme = localStorage.getItem('alicia-sky-theme');
         document.documentElement.dataset.theme = savedTheme === 'night' ? 'night' : 'day';
-      } catch { document.documentElement.dataset.theme = 'day'; }
+      } catch {
+        document.documentElement.dataset.theme = 'day';
+      }
     </script>
   </head>
   <body>
     <div id="root"></div>
-    <noscript>欢迎来到 Alicia 的个人主页。请启用 JavaScript 浏览完整页面，或访问 https://github.com/Alicia24012867。联系邮箱：hyb24@mails.tsinghua.edu.cn。</noscript>
+    <noscript
+      >Welcome to Alicia’s homepage. Enable JavaScript to explore, or visit
+      https://github.com/Alicia24012867. Email: hyb24@mails.tsinghua.edu.cn.</noscript
+    >
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

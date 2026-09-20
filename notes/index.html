@@ -1,25 +1,42 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;450;500;550;600;650;700&amp;family=Outfit:wght@400;450;500;550;600;650;700&amp;display=swap"
+    />
     <meta name="theme-color" content="#f5faff" />
-    <meta name="description" content="Alicia 的知识库。公式、源码阅读、CUDA API 与 SPICE 算法的个人 Wiki。" />
-    <meta property="og:title" content="知识库 · Alicia" />
-    <meta property="og:description" content="Alicia 的知识库。公式、源码阅读、CUDA API 与 SPICE 算法的个人 Wiki。" />
+    <meta
+      name="description"
+      content="Alicia’s personal wiki for formulas, source code, CUDA APIs, and SPICE algorithms."
+    />
+    <meta property="og:title" content="Notes / Knowledge Base · Alicia" />
+    <meta
+      property="og:description"
+      content="Alicia’s personal wiki for formulas, source code, CUDA APIs, and SPICE algorithms."
+    />
     <meta property="og:type" content="website" />
     <meta name="color-scheme" content="light dark" />
-    <title>知识库 · Alicia</title>
+    <title>Notes / Knowledge Base · Alicia</title>
     <script>
       try {
-        document.documentElement.dataset.theme = localStorage.getItem('alicia-sky-theme') === 'night' ? 'night' : 'day';
-      } catch { document.documentElement.dataset.theme = 'day'; }
+        document.documentElement.dataset.theme =
+          localStorage.getItem('alicia-sky-theme') === 'night' ? 'night' : 'day';
+      } catch {
+        document.documentElement.dataset.theme = 'day';
+      }
     </script>
   </head>
   <body>
     <div id="root"></div>
-    <noscript>请启用 JavaScript 阅读知识库。<a href="../">返回个人主页</a></noscript>
+    <noscript
+      >Please enable JavaScript to read the knowledge base.<a href="../">Back to home</a></noscript
+    >
     <script type="module" src="/src/notes/main.tsx"></script>
   </body>
 </html>

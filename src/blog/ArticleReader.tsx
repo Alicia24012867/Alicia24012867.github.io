@@ -1,41 +1,67 @@
-import { useMemo, useRef } from 'react';
-import articles from 'virtual:articles';
-import Icon from '../Icons';
-import type { Article } from './types';
-import { articleSectionById } from '../../scripts/sections.mjs';
-import { ArticleMeta, ArticleTags } from './ArticleMeta';
-import { articleUrl } from './urls';
-import { useArticleReader } from './useArticleReader';
-import ArticleToc from './ArticleToc';
+import { blogIndex } from './catalog';
+import ArticleBody from '../components/reader/ArticleBody';
+import ArticleTags from '../components/ArticleTags';
+import Icon from '../components/Icon';
+import type { Article } from '../content/types';
+import { articleSectionById } from '../config/sections.mjs';
+import { ArticleMeta } from './ArticleMeta';
+import { articleUrl } from '../content/urls';
 
 export default function ArticleReader({ article }: { article: Article }) {
-  const bodyRef = useRef<HTMLElement>(null);
-  // Preserve enhanced DOM nodes when TOC state changes (Mermaid, copy feedback, lazy images).
-  const markup = useMemo(() => ({ __html: article.html }), [article.html]);
-  const activeHeading = useArticleReader(bodyRef, article);
   const section = articleSectionById(article.section);
-  const inSection = articles.filter(item => item.section === article.section);
-  const index = inSection.findIndex(item => item.slug === article.slug);
+  const inSection = blogIndex.groups.get(article.section) ?? [];
+  const index = inSection.findIndex((item) => item.slug === article.slug);
   const newer = index > 0 ? inSection[index - 1] : undefined;
   const older = index >= 0 && index < inSection.length - 1 ? inSection[index + 1] : undefined;
 
-  return <div className="journal-width reading-page">
-    <a className="journal-back" href="./"><Icon name="arrow"/>全部手记</a>
-    <header className="reading-header">
-      <p className="eyebrow">{section.english} / {section.label}</p>
-      <h1>{article.title}</h1>
-      <p className="reading-description">{article.description}</p>
-      <ArticleMeta article={article}/>
-      <ArticleTags article={article}/>
-    </header>
-    <div className="reading-layout">
-      <article ref={bodyRef} className="article-body" aria-label="文章正文" dangerouslySetInnerHTML={markup} />
-      <ArticleToc headings={article.headings} activeHeading={activeHeading}/>
+  return (
+    <div className="journal-width reading-page">
+      <a className="journal-back" href="./">
+        <Icon name="arrow" />
+        All posts
+      </a>
+      <header className="reading-header">
+        <p className="eyebrow">
+          {section.english} / {section.label}
+        </p>
+        <h1>{article.title}</h1>
+        <p className="reading-description">{article.description}</p>
+        <ArticleMeta article={article} />
+        <ArticleTags article={article} />
+      </header>
+      <ArticleBody article={article} />
+      {(older || newer) && (
+        <nav className="article-pager" aria-label={`More posts in ${section.label}`}>
+          {older ? (
+            <a href={articleUrl(older.slug)}>
+              <span>Previous post</span>
+              <strong>{older.title}</strong>
+            </a>
+          ) : (
+            <span />
+          )}
+          {newer ? (
+            <a className="pager-newer" href={articleUrl(newer.slug)}>
+              <span>Next post</span>
+              <strong>{newer.title}</strong>
+            </a>
+          ) : (
+            <span />
+          )}
+        </nav>
+      )}
+      <div className="reading-end">
+        <span>✧</span>
+        <p>Thanks for reading.</p>
+        <a className="button button-ghost" href="./">
+          <Icon name="book" />
+          Back to blog
+        </a>
+        <a className="reading-home" href="../#home">
+          Visit my homepage
+          <Icon name="arrow" />
+        </a>
+      </div>
     </div>
-    {(older || newer) && <nav className="article-pager" aria-label={`${section.label}中的相邻手记`}>
-      {older ? <a href={articleUrl(older.slug)}><span>更早一篇</span><strong>{older.title}</strong></a> : <span />}
-      {newer ? <a className="pager-newer" href={articleUrl(newer.slug)}><span>更新一篇</span><strong>{newer.title}</strong></a> : <span />}
-    </nav>}
-    <div className="reading-end"><span>✧</span><p>谢谢你读到这里。</p><a className="button button-ghost" href="./"><Icon name="book"/>回到手记</a><a className="reading-home" href="../#home">去个人主页看看<Icon name="arrow"/></a></div>
-  </div>;
+  );
 }
