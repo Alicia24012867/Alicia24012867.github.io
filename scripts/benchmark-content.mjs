@@ -7,6 +7,7 @@ import { performance } from 'node:perf_hooks';
 import { buildArticleCatalog } from './content/catalog.mjs';
 
 const variants = [{ name: 'current', build: buildArticleCatalog }];
+const withGit = process.argv.includes('--git');
 const compareArg = process.argv.indexOf('--compare-ref');
 if (compareArg !== -1) {
   const ref = process.argv[compareArg + 1];
@@ -17,8 +18,8 @@ if (compareArg !== -1) {
   })
     .replace("from 'entities'", `from ${JSON.stringify(import.meta.resolve('entities'))}`)
     .replace(
-      "from './compile.mjs'",
-      `from ${JSON.stringify(import.meta.resolve('./content/compile.mjs'))}`,
+      /from '\.\/([^']+)'/g,
+      (_, file) => `from ${JSON.stringify(import.meta.resolve(`./content/${file}`))}`,
     );
   const baseline = await import(`data:text/javascript,${encodeURIComponent(source)}`);
   variants.unshift({ name: ref, build: baseline.buildArticleCatalog });
@@ -41,6 +42,22 @@ const ordered = (index) => (index % 2 ? [...variants].reverse() : variants);
 try {
   for (let index = 0; index < count; index++)
     fs.writeFileSync(path.join(root, `note-${index}.md`), sample(index), 'utf8');
+  if (withGit) {
+    const git = (args) => execFileSync('git', args, { cwd: root, stdio: 'ignore' });
+    git(['init']);
+    git(['add', '.']);
+    git([
+      '-c',
+      'user.name=Benchmark',
+      '-c',
+      'user.email=benchmark@example.invalid',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-m',
+      'Initial content',
+    ]);
+  }
   for (const variant of variants) {
     Object.assign(variant, {
       cache: new Map(),
@@ -104,6 +121,7 @@ try {
       {
         documents: count,
         samples,
+        withGit,
         proseCharactersPerDocument: paragraph.length,
         ...(compareArg === -1 ? results[0] : { results }),
       },

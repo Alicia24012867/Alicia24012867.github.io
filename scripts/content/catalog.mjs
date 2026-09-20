@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { decodeHTML } from 'entities';
 import { compileArticle } from './compile.mjs';
+import { createArticleDateResolver } from './metadata.mjs';
 
 function linkedSlugs(html, basePath) {
   const targets = new Set();
@@ -25,6 +26,7 @@ export function buildArticleCatalog(
   { basePath = '/blog/', cache = new Map(), changedFiles } = {},
 ) {
   const root = fs.realpathSync.native(articleRoot);
+  const resolveDates = createArticleDateResolver(root);
   const articles = [];
   const assets = new Map();
   const links = [];
@@ -88,7 +90,13 @@ export function buildArticleCatalog(
         },
         (slug, link) => localLinks.push({ owner: file, slug, link }),
       );
-      compiled = { source, article, localAssets, localLinks };
+      compiled = {
+        source,
+        article,
+        localAssets,
+        localLinks,
+        localDate: compiled?.localDate,
+      };
       cache.set(absolute, compiled);
     }
     // Revalidate assets and targets even when the unchanged source reuses compiled HTML.
@@ -109,6 +117,7 @@ export function buildArticleCatalog(
         : compiled.article.html,
     };
     if (!article) continue;
+    Object.assign(article, resolveDates(article, file, absolute, compiled));
     if (slugs.has(article.slug))
       throw new Error(`文章地址重复：${article.slug}，请勿使用同名 .md 和 .html 文件`);
     slugs.add(article.slug);
@@ -121,7 +130,10 @@ export function buildArticleCatalog(
   for (const { owner, slug, link } of links) {
     if (!slugs.has(slug)) throw new Error(`${owner}: 链接 ${link} 指向不存在或未发布的文章`);
   }
-  articles.sort((a, b) => b.date.localeCompare(a.date) || a.slug.localeCompare(b.slug));
+  articles.sort(
+    (a, b) =>
+      b.date.slice(0, 10).localeCompare(a.date.slice(0, 10)) || a.slug.localeCompare(b.slug),
+  );
   // Rebuild incoming edges from cached targets, including explicit ?post links.
   const incoming = new Map(articles.map((article) => [article.slug, new Set()]));
   for (const article of articles) {

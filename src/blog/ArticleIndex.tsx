@@ -4,7 +4,7 @@ import ArticleTags from '../content/ArticleTags';
 import Icon from '../components/Icon';
 import type { ArticleSummary } from '../content/types';
 import { articleSections } from '../config/sections.mjs';
-import { ArticleMeta } from './ArticleMeta';
+import ArticleMeta from '../content/ArticleMeta';
 import { articleUrl } from '../content/urls';
 import { useSearchQuery } from '../hooks/useSearchQuery';
 
@@ -26,7 +26,7 @@ function JournalEntry({
         <span>/</span>
       </span>
       <div className="journal-entry-content">
-        <ArticleMeta article={article} />
+        <ArticleMeta article={article} showDetails />
         <h3>
           <a href={articleUrl(article.slug, query)}>{article.title}</a>
         </h3>

@@ -4,7 +4,7 @@ import ArticleTags from '../content/ArticleTags';
 import Icon from '../components/Icon';
 import type { Article } from '../content/types';
 import { articleSectionById } from '../config/sections.mjs';
-import { ArticleMeta } from './ArticleMeta';
+import ArticleMeta from '../content/ArticleMeta';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
 
 export default function ArticleReader({ article }: { article: Article }) {
@@ -28,7 +28,7 @@ export default function ArticleReader({ article }: { article: Article }) {
         </p>
         <h1>{article.title}</h1>
         <p className="reading-description">{article.description}</p>
-        <ArticleMeta article={article} />
+        <ArticleMeta article={article} showDetails />
         <ArticleTags article={article} />
       </header>
       <ArticleBody article={article} />

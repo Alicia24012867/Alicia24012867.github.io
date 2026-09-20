@@ -46,6 +46,7 @@ docs/               撰写说明与素材记录
 - 新文章放入 `content/blog/`，新笔记放入 `content/notes/`，支持 `.md` 和 `.html`。
 - 文件路径决定地址：`content/blog/test.md` → `/blog/?post=test`。目录迁移不改变现有线上地址。
 - `draft: true` 排除发布；本地附件和文章互链在构建时校验。
+- Blog 和所有 Notes 分类统一显示 `Posted on`，有后续编辑时显示 `Edited on`；日期自动读取 Git 历史，也可通过 `date` / `updated` 指定。
 - 列表仅加载摘要；正文按篇加载，Notes 全文索引在首次搜索时加载。搜索文本与反向链接在构建时生成；浏览器只在首次非空搜索时整理匹配文本，后续复用缓存。
 - `content/ContentPage.tsx` 统一 Blog/Notes 的查询路由、页面元信息、正文加载和错误状态；三个页面共用 `components/layout/SiteLayout.tsx`。
 - 全站共享 Home / Blog / Notes 导航，并提供 About / Explore / Contact 首页锚点；窄屏菜单支持键盘和 Escape 关闭。

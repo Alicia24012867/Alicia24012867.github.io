@@ -1,5 +1,6 @@
 import Icon from '../components/Icon';
 import ArticleTags from '../content/ArticleTags';
+import ArticleMeta from '../content/ArticleMeta';
 import ArticleBody from '../content/reader/ArticleBody';
 import { topicOf } from '../config/noteTopics';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
@@ -22,11 +23,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
         <p className="eyebrow">KNOWLEDGE BASE / {topicOf(note).label}</p>
         <h1>{note.title}</h1>
         <p className="reading-description">{note.description}</p>
-        {note.date && (
-          <p className="note-date">
-            Updated <time dateTime={note.date}>{note.date}</time>
-          </p>
-        )}
+        <ArticleMeta article={note} />
         <ArticleTags article={note} />
       </header>
       <ArticleBody article={note} label="Note content" />

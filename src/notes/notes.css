@@ -21,7 +21,6 @@
 }
 .note-topics span,
 .note-topics small,
-.note-date,
 .note-results {
   font-size: 12px;
   color: var(--muted);
@@ -50,8 +49,8 @@
 .note-entry .article-tags {
   margin-top: 14px;
 }
-.note-date {
-  margin-top: 15px;
+.note-entry .article-meta {
+  margin-top: 10px;
 }
 .note-backlinks {
   margin-top: 45px;

@@ -213,3 +213,30 @@ test('malformed and encoded traversal links are rejected and query links stay in
   assert.match(article.html, /href="mailto:a@example.com"/);
   assert.match(article.html, /target="_blank" rel="noopener noreferrer"/);
 });
+
+test('metadata accepts zoned timestamps and rejects malformed or impossible dates', () => {
+  const article = compileArticle(
+    '---\ndate: 2026-09-19T09:00:00+08:00\nupdated: 2026-09-19T10:30:00+08:00\n---\nText',
+    'note.md',
+  );
+  assert.equal(article.date, '2026-09-19T09:00:00+08:00');
+  assert.equal(article.updated, '2026-09-19T10:30:00+08:00');
+  for (const field of ['date', 'updated']) {
+    for (const value of [
+      '2026-02-30',
+      '2026-02-30T09:00:00Z',
+      '2026-09-19T24:00:00Z',
+      'yesterday',
+      '2026-09-19T09:00:00',
+    ]) {
+      assert.throws(
+        () => compileArticle(`---\n${field}: ${value}\n---\nText`, 'invalid.md'),
+        new RegExp(`${field} 请使用有效的`),
+      );
+    }
+  }
+  assert.throws(
+    () => compileArticle('---\nupdated: 42\n---\nText', 'invalid.md'),
+    /updated 必须是字符串/,
+  );
+});

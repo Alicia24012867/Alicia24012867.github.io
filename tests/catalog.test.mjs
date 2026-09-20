@@ -1,7 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync, realpathSync } from 'node:fs';
+import childProcess, { execFileSync } from 'node:child_process';
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  rmSync,
+  symlinkSync,
+  realpathSync,
+  renameSync,
+  utimesSync,
+  chmodSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { buildArticleCatalog } from '../scripts/content/catalog.mjs';
@@ -268,4 +279,181 @@ test('shared attachments are checked once per build and symlink changes are reva
     () => buildArticleCatalog(root, undefined, { cache, changedFiles: new Set() }),
     /不可越过 articles/,
   );
+});
+
+function repository(t) {
+  const root = mkdtempSync(path.join(tmpdir(), 'alicia-dates-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const git = (args, timestamp) =>
+    execFileSync('git', args, {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: 'Content test',
+        GIT_AUTHOR_EMAIL: 'content@example.invalid',
+        GIT_COMMITTER_NAME: 'Content test',
+        GIT_COMMITTER_EMAIL: 'content@example.invalid',
+        ...(timestamp ? { GIT_AUTHOR_DATE: timestamp, GIT_COMMITTER_DATE: timestamp } : {}),
+      },
+    });
+  git(['init']);
+  const commit = (timestamp) => {
+    git(['add', '.']);
+    git(['-c', 'commit.gpgsign=false', 'commit', '-m', 'Content change'], timestamp);
+  };
+  return { root, git, commit };
+}
+
+test('Git supplies stable publication dates and same-day edits while ignoring moves and unrelated commits', (t) => {
+  const { root, commit } = repository(t);
+  let directory = path.join(root, 'legacy');
+  mkdirSync(directory);
+  writeFileSync(path.join(directory, '中文 note.md'), '# First version');
+  commit('2026-09-19T10:00:00+08:00');
+  const cache = new Map();
+  const read = () => buildArticleCatalog(directory, undefined, { cache }).articles[0];
+  assert.equal(read().date, '2026-09-19T10:00:00+08:00');
+  assert.equal(read().updated, '');
+
+  writeFileSync(path.join(directory, '中文 note.md'), '# First version\n\nA revision.');
+  commit('2026-09-19T11:00:00+08:00');
+  assert.equal(read().date, '2026-09-19T10:00:00+08:00');
+  assert.equal(read().updated, '2026-09-19T11:00:00+08:00');
+
+  mkdirSync(path.join(root, 'content'));
+  renameSync(directory, path.join(root, 'content/notes'));
+  directory = path.join(root, 'content/notes');
+  commit('2026-09-20T12:00:00+08:00');
+  writeFileSync(path.join(root, 'unrelated.txt'), 'Not an article edit');
+  commit('2026-09-21T12:00:00+08:00');
+  const moved = read();
+  assert.equal(moved.date, '2026-09-19T10:00:00+08:00');
+  assert.equal(moved.updated, '2026-09-19T11:00:00+08:00');
+  utimesSync(path.join(directory, '中文 note.md'), new Date(), new Date());
+  assert.deepEqual(read(), moved, 'Checkout timestamps do not change published metadata');
+
+  writeFileSync(path.join(directory, '中文 note.md'), '# First version\n\nUncommitted edit.');
+  assert.equal(read().updated, moved.updated);
+  commit('2026-09-22T08:00:00+08:00');
+  assert.equal(read().updated, '2026-09-22T08:00:00+08:00');
+});
+
+test('an earlier explicit publication date and a pure rename do not manufacture an edit', (t) => {
+  const { root, commit } = repository(t);
+  writeFileSync(path.join(root, 'before.html'), '---\ndate: 2026-09-01\n---\n<p>First</p>');
+  commit('2026-09-19T10:00:00+08:00');
+  renameSync(path.join(root, 'before.html'), path.join(root, 'after.html'));
+  commit('2026-09-20T10:00:00+08:00');
+  const article = buildArticleCatalog(root).articles[0];
+  assert.equal(article.date, '2026-09-01');
+  assert.equal(article.updated, '');
+});
+
+test('date overrides work for Markdown and HTML, including same-day editing and date order validation', (t) => {
+  const { root } = repository(t);
+  for (const extension of ['md', 'html']) {
+    const file = path.join(root, `article.${extension}`);
+    writeFileSync(file, '---\ndate: 2026-09-19\nupdated: 2026-09-19\n---\nText');
+    const article = buildArticleCatalog(root).articles[0];
+    assert.equal(article.date, '2026-09-19');
+    assert.equal(article.updated, '2026-09-19');
+    writeFileSync(file, '---\ndate: 2026-09-19\nupdated: 2026-09-18\n---\nText');
+    assert.throws(() => buildArticleCatalog(root), /updated 不可早于 date/);
+    rmSync(file);
+  }
+});
+
+test('untracked articles get a local publication date without an invented edit date', (t) => {
+  const { root } = repository(t);
+  writeFileSync(path.join(root, 'new.md'), '# New note');
+  const { date, updated } = buildArticleCatalog(root).articles[0];
+  assert.match(date, /^\d{4}-\d{2}-\d{2}$/);
+  assert.equal(updated, '');
+});
+
+test('one history scan serves both collections, refreshes after commits, and explicit dates skip Git', (t) => {
+  const { root, commit } = repository(t);
+  for (const collection of ['blog', 'notes']) {
+    mkdirSync(path.join(root, collection));
+    for (let index = 0; index < 20; index++)
+      writeFileSync(path.join(root, collection, `${index}.md`), `# Note ${index}`);
+  }
+  commit('2026-09-19T10:00:00+08:00');
+  const calls = [];
+  t.mock.method(childProcess, 'execFileSync', (command, args, options) => {
+    calls.push(args[0]);
+    return execFileSync(command, args, options);
+  });
+  const read = (collection) => buildArticleCatalog(path.join(root, collection));
+  read('blog');
+  read('notes');
+  read('blog');
+  assert.equal(calls.filter((command) => command === 'log').length, 1);
+  assert.equal(calls.filter((command) => command === 'rev-parse').length, 3);
+
+  writeFileSync(path.join(root, 'notes/0.md'), '# Note 0\n\nChanged');
+  commit('2026-09-20T10:00:00+08:00');
+  assert.equal(read('notes').articles[0].updated, '2026-09-20T10:00:00+08:00');
+  read('blog');
+  assert.equal(calls.filter((command) => command === 'log').length, 2);
+
+  const explicit = fixture(t, {
+    'note.md': '---\ndate: 2026-09-19\nupdated: 2026-09-20\n---\n# Explicit',
+    'draft.md': '---\ndraft: true\n---\n# Draft',
+  });
+  calls.length = 0;
+  buildArticleCatalog(explicit);
+  assert.deepEqual(calls, []);
+});
+
+test('batched history handles multiple renames, unusual paths, mode-only changes, and recreation', (t) => {
+  const { root, commit } = repository(t);
+  const first = 'a\t中文\n.md';
+  writeFileSync(path.join(root, first), 'First article\n'.repeat(10));
+  commit('2026-09-18T10:00:00+08:00');
+  writeFileSync(path.join(root, 'b.md'), 'Second article\n'.repeat(10));
+  commit('2026-09-19T10:00:00+08:00');
+  renameSync(path.join(root, 'b.md'), path.join(root, 'c.md'));
+  renameSync(path.join(root, first), path.join(root, 'renamed.md'));
+  commit('2026-09-20T10:00:00+08:00');
+  const read = () =>
+    new Map(buildArticleCatalog(root).articles.map((article) => [article.slug, article]));
+  assert.equal(read().get('renamed').date, '2026-09-18T10:00:00+08:00');
+  assert.equal(read().get('c').date, '2026-09-19T10:00:00+08:00');
+  chmodSync(path.join(root, 'renamed.md'), 0o755);
+  commit('2026-09-21T10:00:00+08:00');
+  assert.equal(read().get('renamed').updated, '');
+  renameSync(path.join(root, 'renamed.md'), path.join(root, 'edited.md'));
+  fs.appendFileSync(path.join(root, 'edited.md'), 'A revision.\n');
+  commit('2026-09-22T10:00:00+08:00');
+  assert.equal(read().get('edited').date, '2026-09-18T10:00:00+08:00');
+  assert.equal(read().get('edited').updated, '2026-09-22T10:00:00+08:00');
+  rmSync(path.join(root, 'c.md'));
+  commit('2026-09-23T10:00:00+08:00');
+  writeFileSync(path.join(root, 'c.md'), '# A new article at the old path');
+  commit('2026-09-24T10:00:00+08:00');
+  assert.equal(read().get('c').date, '2026-09-24T10:00:00+08:00');
+  assert.equal(read().get('c').updated, '');
+});
+
+test('merge commits record when an article change reaches the current branch', (t) => {
+  const { root, git, commit } = repository(t);
+  writeFileSync(path.join(root, 'note.md'), '# Original');
+  commit('2026-09-18T10:00:00+08:00');
+  const branch = git(['branch', '--show-current']).trim();
+  git(['checkout', '-b', 'edit']);
+  writeFileSync(path.join(root, 'note.md'), '# Revised on another branch');
+  commit('2026-09-19T10:00:00+08:00');
+  git(['checkout', branch]);
+  writeFileSync(path.join(root, 'unrelated.txt'), 'Main branch work');
+  commit('2026-09-20T10:00:00+08:00');
+  git(
+    ['-c', 'commit.gpgsign=false', 'merge', '--no-ff', '--no-edit', 'edit'],
+    '2026-09-21T10:00:00+08:00',
+  );
+  const article = buildArticleCatalog(root).articles[0];
+  assert.equal(article.date, '2026-09-18T10:00:00+08:00');
+  assert.equal(article.updated, '2026-09-21T10:00:00+08:00');
 });

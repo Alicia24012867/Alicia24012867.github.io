@@ -3,6 +3,7 @@ import type { ArticleSummary } from '../content/types';
 import { useNoteSearch } from './useNoteSearch';
 import Icon from '../components/Icon';
 import ArticleTags from '../content/ArticleTags';
+import ArticleMeta from '../content/ArticleMeta';
 import { noteTopics } from '../config/noteTopics';
 import { articleUrl } from '../content/urls';
 import { useSearchQuery } from '../hooks/useSearchQuery';
@@ -29,6 +30,7 @@ function NoteEntry({
           <a href={articleUrl(note.slug, query)}>{note.title}</a>
         </h3>
         <p>{note.description}</p>
+        <ArticleMeta article={note} />
         <ArticleTags article={note} onTag={onTag} />
       </div>
       <a

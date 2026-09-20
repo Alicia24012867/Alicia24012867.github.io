@@ -6,6 +6,8 @@ import { headingAt } from '../src/content/reader/headingPosition.ts';
 const article = {
   slug: 'nested/中文:note',
   title: 'Title',
+  date: '2026-09-19',
+  updated: '2026-09-21',
   description: 'Summary',
   tags: [],
   html: '<p>PrivateBodyToken</p><img src="__ALICIA_ARTICLE_ASSET_1__">',
@@ -20,6 +22,8 @@ test('listing modules contain metadata and dynamic loaders without shipping arti
   assert.match(code, /import\("virtual:notes\/entry\/nested%2F/);
   const module = await import(`data:text/javascript,${encodeURIComponent(code)}`);
   assert.equal(module.default[0].slug, article.slug);
+  assert.equal(module.default[0].date, article.date);
+  assert.equal(module.default[0].updated, article.updated);
   await assert.rejects(module.loadArticle('__proto__'), /Unknown article/);
   await assert.rejects(module.loadArticle('absent'), /Unknown article/);
 });

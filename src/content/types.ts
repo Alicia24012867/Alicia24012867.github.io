@@ -4,6 +4,7 @@ export interface ArticleSummary {
   slug: string;
   title: string;
   date: string;
+  updated: string;
   description: string;
   tags: string[];
   section: ArticleSectionId;
