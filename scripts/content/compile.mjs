@@ -3,7 +3,7 @@ import { parseArticleSource } from './metadata.mjs';
 import { renderMarkdown, restoreMath } from './markdown.mjs';
 import { createReferenceResolver } from './references.mjs';
 import { sanitizeArticleHtml, extractHeadings, decorateRichHtml } from './html.mjs';
-import { plainText, slugFromFile } from './text.mjs';
+import { estimateReadingMinutes, plainText, slugFromFile } from './text.mjs';
 
 /** Build-time pipeline; no Markdown parser or sanitizer is shipped to the homepage. */
 export function compileArticle(
@@ -29,12 +29,11 @@ export function compileArticle(
   const footnotes = sanitizeArticleHtml(rendered.footnotes, resolveReference);
   const extracted = extractHeadings(html, footnotes);
   html = extracted.html;
-  const text = plainText(html);
   const paragraph = html.match(/<p\b[^>]*>([\s\S]*?)<\/p>/i)?.[1] || '';
   const description = metadata.description || plainText(paragraph).slice(0, 140);
-  const chineseCharacters = (text.match(/[\u3400-\u9fff]/g) || []).length;
-  const words = (text.replace(/[\u3400-\u9fff]/g, '').match(/[\p{L}\p{N}]+/gu) || []).length;
+  // Count the complete body before code controls and duplicated math markup are added.
   html += footnotes;
+  const readingMinutes = estimateReadingMinutes(html);
   html = restoreMath(decorateRichHtml(html), rendered.mathHtml);
 
   return {
@@ -43,7 +42,7 @@ export function compileArticle(
     title,
     description,
     format,
-    readingMinutes: Math.max(1, Math.ceil(chineseCharacters / 350 + words / 220)),
+    readingMinutes,
     html,
     hasMath: rendered.mathHtml.length > 0,
     headings: extracted.headings,

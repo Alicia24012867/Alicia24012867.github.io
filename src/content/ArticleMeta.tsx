@@ -5,9 +5,11 @@ import type { ArticleSummary } from './types';
 export default function ArticleMeta({
   article,
   showDetails = false,
+  readingTime = showDetails ? 'compact' : false,
 }: {
   article: ArticleSummary;
   showDetails?: boolean;
+  readingTime?: 'compact' | 'estimate' | false;
 }) {
   const section = showDetails ? articleSectionById(article.section) : undefined;
   return (
@@ -28,18 +30,25 @@ export default function ArticleMeta({
           {article.date.slice(0, 10)}
         </time>
       </span>
-      {article.updated && (
-        <span className="article-date">
-          Edited on{' '}
-          <time dateTime={article.updated} title={article.updated}>
-            {article.updated.slice(0, 10)}
-          </time>
-        </span>
-      )}
-      {showDetails && (
+      {readingTime && (
         <>
           <span className="meta-dot">·</span>
-          <span>{article.readingMinutes} min read</span>
+          <span className="reading-time">
+            {readingTime === 'estimate'
+              ? `About ${article.readingMinutes} ${article.readingMinutes === 1 ? "minute's" : "minutes'"} read`
+              : `${article.readingMinutes} min read`}
+          </span>
+        </>
+      )}
+      {article.updated && (
+        <>
+          <span className="meta-dot">·</span>
+          <span className="article-date">
+            Edited on{' '}
+            <time dateTime={article.updated} title={article.updated}>
+              {article.updated.slice(0, 10)}
+            </time>
+          </span>
         </>
       )}
     </div>

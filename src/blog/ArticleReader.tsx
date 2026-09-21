@@ -28,7 +28,7 @@ export default function ArticleReader({ article }: { article: Article }) {
         </p>
         <h1>{article.title}</h1>
         <p className="reading-description">{article.description}</p>
-        <ArticleMeta article={article} showDetails />
+        <ArticleMeta article={article} showDetails readingTime="estimate" />
         <ArticleTags article={article} />
       </header>
       <ArticleBody article={article} />

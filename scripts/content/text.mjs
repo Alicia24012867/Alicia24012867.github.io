@@ -24,3 +24,50 @@ export function plainText(html) {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+const readingBlockTags = new Set([
+  'p',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'div',
+  'li',
+  'dt',
+  'dd',
+  'td',
+  'th',
+  'tr',
+  'pre',
+  'blockquote',
+  'section',
+  'article',
+  'aside',
+  'figure',
+  'figcaption',
+  'summary',
+  'details',
+  'ul',
+  'ol',
+  'dl',
+  'br',
+  'hr',
+]);
+
+/** Input is normalized, sanitized HTML, before math rendering and code controls. */
+export function estimateReadingMinutes(html) {
+  // Strip known markup directly instead of sanitizing the whole document twice again.
+  const text = decodeHTML(
+    html
+      .replace(/<(sup|a)\b[^>]*class="footnote-(?:ref|back)"[^>]*>[\s\S]*?<\/\1>/g, '')
+      .replace(/(<section class="article-footnotes"[^>]*>)<p>Footnotes<\/p>/g, '$1')
+      .replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (_tag, name) =>
+        readingBlockTags.has(name.toLowerCase()) ? ' ' : '',
+      ),
+  );
+  const chineseCharacters = (text.match(/\p{Script=Han}/gu) || []).length;
+  const words = (text.replace(/\p{Script=Han}/gu, ' ').match(/[\p{L}\p{N}]+/gu) || []).length;
+  return Math.max(1, Math.ceil(chineseCharacters / 350 + words / 220));
+}

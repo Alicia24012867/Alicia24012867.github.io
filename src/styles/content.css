@@ -275,13 +275,9 @@
 .meta-dot {
   color: #abc1d3;
 }
-.article-date {
+.article-date,
+.reading-time {
   white-space: nowrap;
-}
-.article-date + .article-date::before {
-  content: '·';
-  color: #abc1d3;
-  margin-right: 10px;
 }
 .journal-entry h3 {
   margin-top: 11px;

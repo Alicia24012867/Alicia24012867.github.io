@@ -23,7 +23,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
         <p className="eyebrow">KNOWLEDGE BASE / {topicOf(note).label}</p>
         <h1>{note.title}</h1>
         <p className="reading-description">{note.description}</p>
-        <ArticleMeta article={note} />
+        <ArticleMeta article={note} readingTime="estimate" />
         <ArticleTags article={note} />
       </header>
       <ArticleBody article={note} label="Note content" />

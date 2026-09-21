@@ -240,3 +240,92 @@ test('metadata accepts zoned timestamps and rejects malformed or impossible date
     /updated 必须是字符串/,
   );
 });
+
+test('reading time handles Chinese, English, mixed text and minute boundaries', () => {
+  const cases = [
+    ['', 1],
+    ['。！ —', 1],
+    ['字'.repeat(350), 1],
+    ['字'.repeat(351), 2],
+    ['𠮷'.repeat(351), 2],
+    ['word '.repeat(220), 1],
+    ['word '.repeat(221), 2],
+    ['字'.repeat(175) + ' word'.repeat(110), 1],
+    ['字'.repeat(176) + ' word'.repeat(110), 2],
+    ['word字word '.repeat(100), 2],
+    ['word '.repeat(2200), 10],
+  ];
+  for (const [body, expected] of cases) {
+    for (const extension of ['md', 'html']) {
+      assert.equal(
+        compileArticle(body, `reading.${extension}`).readingMinutes,
+        expected,
+        `${extension}: ${body.slice(0, 30)} (${body.length} characters)`,
+      );
+    }
+  }
+});
+
+test('word counts respect HTML block boundaries and inline formatting', () => {
+  for (const body of [
+    '<p>word</p>'.repeat(221),
+    `<p>${'word<br>'.repeat(221)}</p>`,
+    `<table><tr>${'<td>word</td>'.repeat(221)}</tr></table>`,
+    'word<p>word</p>'.repeat(111),
+    '<span>word</span><hr>'.repeat(221),
+  ]) {
+    assert.equal(compileArticle(body, 'blocks.html').readingMinutes, 2);
+  }
+  assert.equal(
+    compileArticle('<p>read<strong>ing</strong></p>'.repeat(220), 'inline.html').readingMinutes,
+    1,
+  );
+});
+
+test('reading time includes footnotes once without generated labels or reference numbers', () => {
+  const article = (words) =>
+    compileArticle(`word[^a] word[^a]\n\n[^a]: ${'word '.repeat(words)}`, 'footnotes.md');
+  assert.equal(article(218).readingMinutes, 1);
+  assert.equal(article(219).readingMinutes, 2);
+});
+
+test('reading time counts authored code and math without metadata, markup or added controls', () => {
+  const metadata = `---\ntitle: ${'title '.repeat(500)}\ndescription: ${'summary '.repeat(500)}\n---\n`;
+  assert.equal(compileArticle(`${metadata}word`, 'metadata.md').readingMinutes, 1);
+  assert.equal(
+    compileArticle(`<p title="${'attribute '.repeat(500)}">word</p>`, 'markup.html').readingMinutes,
+    1,
+  );
+  assert.equal(
+    compileArticle('```text\n' + 'word '.repeat(220) + '\n```', 'code.md').readingMinutes,
+    1,
+  );
+  assert.equal(
+    compileArticle('```text\n' + 'word '.repeat(221) + '\n```', 'code.md').readingMinutes,
+    2,
+  );
+  assert.equal(compileArticle('$x$ '.repeat(220), 'math.md').readingMinutes, 1);
+});
+
+test('reading time preserves escaped code and ignores sanitized attributes and hidden content', () => {
+  assert.equal(
+    compileArticle('<code>&lt;p&gt;word&lt;/p&gt;</code> '.repeat(74), 'escaped.html')
+      .readingMinutes,
+    2,
+  );
+  const attributes = 'extra '.repeat(500);
+  assert.equal(
+    compileArticle(
+      `<a href="https://example.com" title="a > ${attributes}">word</a>`,
+      'attributes.html',
+    ).readingMinutes,
+    1,
+  );
+  assert.equal(
+    compileArticle(
+      `<head><title>${attributes}</title></head><script>${attributes}</script><p>word</p>`,
+      'hidden.html',
+    ).readingMinutes,
+    1,
+  );
+});
