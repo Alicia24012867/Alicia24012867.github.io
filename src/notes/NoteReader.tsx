@@ -21,7 +21,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
       </a>
       <header className="reading-header">
         <p className="eyebrow">KNOWLEDGE BASE / {topicOf(note).label}</p>
-        <h1>{note.title}</h1>
+        <h1 className="article-title">{note.title}</h1>
         <p className="reading-description">{note.description}</p>
         <ArticleMeta article={note} readingTime="estimate" />
         <ArticleTags article={note} />
@@ -34,7 +34,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
           <ul>
             {backlinks.map((item) => (
               <li key={item.slug}>
-                <a href={articleUrl(item.slug, query)}>
+                <a className="article-title" href={articleUrl(item.slug, query)}>
                   {item.title}
                   <Icon name="arrow" />
                 </a>

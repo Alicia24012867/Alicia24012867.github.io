@@ -26,7 +26,7 @@ export default function ArticleReader({ article }: { article: Article }) {
         <p className="eyebrow">
           {section.english} / {section.label}
         </p>
-        <h1>{article.title}</h1>
+        <h1 className="article-title">{article.title}</h1>
         <p className="reading-description">{article.description}</p>
         <ArticleMeta article={article} showDetails readingTime="estimate" />
         <ArticleTags article={article} />
@@ -37,7 +37,7 @@ export default function ArticleReader({ article }: { article: Article }) {
           {older ? (
             <a href={articleUrl(older.slug, query)}>
               <span>Previous post</span>
-              <strong>{older.title}</strong>
+              <strong className="article-title">{older.title}</strong>
             </a>
           ) : (
             <span />
@@ -45,7 +45,7 @@ export default function ArticleReader({ article }: { article: Article }) {
           {newer ? (
             <a className="pager-newer" href={articleUrl(newer.slug, query)}>
               <span>Next post</span>
-              <strong>{newer.title}</strong>
+              <strong className="article-title">{newer.title}</strong>
             </a>
           ) : (
             <span />

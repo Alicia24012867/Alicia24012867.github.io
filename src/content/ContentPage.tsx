@@ -92,7 +92,7 @@ function ArticlePage({ summary, loadBody, loadReader }: Loaders & { summary: Art
   return (
     <div className="journal-width reading-page" aria-busy={!failed}>
       <header className="reading-header">
-        <h1>{summary.title}</h1>
+        <h1 className="article-title">{summary.title}</h1>
         <p className="reading-description">{summary.description}</p>
       </header>
       {failed ? (

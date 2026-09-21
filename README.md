@@ -49,6 +49,7 @@ docs/               撰写说明与素材记录
 - `draft: true` 排除发布；本地附件和文章互链在构建时校验。
 - Blog 和所有 Notes 分类统一显示 `Posted on`，有后续编辑时显示 `Edited on`；日期自动读取 Git 历史，也可通过 `date` / `updated` 指定。
 - 列表仅加载摘要；正文按篇加载，Notes 全文索引在首次搜索时加载。搜索文本与反向链接在构建时生成；浏览器只在首次非空搜索时整理匹配文本，后续复用缓存。
+- Blog/Notes 文章标题统一使用花体，样式集中在 `src/styles/content.css` 的 `.article-title`；列表样式共用该文件，阅读器正文、翻页和反向链接样式由 `src/content/reader/reader.css` 按需加载。
 - `content/ContentPage.tsx` 统一 Blog/Notes 的查询路由、页面元信息、正文加载和错误状态；首页、Blog、Notes 与 404 页面共用 `components/layout/SiteLayout.tsx`。
 - 全站共享 Home / Blog / Notes 导航，并提供 About / Explore / Contact 首页锚点；窄屏菜单支持键盘和 Escape 关闭。
 - 从筛选列表打开正文时，链接携带 `q` 查询条件；阅读页的返回入口、文章翻页和笔记反向链接会保留该条件，刷新或新标签页打开同样有效。直接打开不带 `q` 的文章仍返回完整列表。

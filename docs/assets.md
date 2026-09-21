@@ -1,3 +1,8 @@
+# 文章标题字体
+
+- 英文使用 [Courgette](https://fonts.google.com/specimen/Courgette)，中文使用 [Ma Shan Zheng](https://fonts.google.com/specimen/Ma+Shan+Zheng)，通过 Blog/Notes 入口已有的 Google Fonts 样式请求加载常规字重。
+- 字体加载期间使用本地手写/楷体回退；标题保留可选择、可搜索的原始文本。正文、目录和导航继续使用站点原字体。
+
 # 首页插画
 
 - 使用方式：内置 ImageGen 图像编辑，未使用 CLI/API 生成。工具未提供模型版本选择或核验，因此不标注为特定型号。

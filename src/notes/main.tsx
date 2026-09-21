@@ -6,7 +6,6 @@ import { noteIndex } from './catalog';
 import { loadArticle } from 'virtual:notes';
 import '../styles/global.css';
 import '../styles/content.css';
-import './notes.css';
 
 const loadReader = () => import('./NoteReader');
 

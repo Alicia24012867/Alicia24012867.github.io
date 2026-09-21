@@ -26,7 +26,7 @@ function NoteEntry({
   return (
     <article className="note-entry">
       <div>
-        <h3>
+        <h3 className="article-title">
           <a href={articleUrl(note.slug, query)}>{note.title}</a>
         </h3>
         <p>{note.description}</p>

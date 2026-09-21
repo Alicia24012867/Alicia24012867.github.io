@@ -27,7 +27,7 @@ function JournalEntry({
       </span>
       <div className="journal-entry-content">
         <ArticleMeta article={article} showDetails />
-        <h3>
+        <h3 className="article-title">
           <a href={articleUrl(article.slug, query)}>{article.title}</a>
         </h3>
         <p>{article.description}</p>
