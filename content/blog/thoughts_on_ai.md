@@ -60,7 +60,7 @@ tags: [learning, life, journal]
   
   The **ONLY** thing we do in this process is the verification work. Or a little more, acting as the bridge between AI and the experiment equipment, if you can call that work. The most important and demanding parts in the field of scientific research are simply missing: coming up with innovative ideas and figuring out how to implement them. And  even if it does produce results, I would not consider that mine. This is no different from plagiarism, in my opinion.  
   
-### Conclusion
+## Conclusion
   
   I am not against AI. I use it every day, and I will keep using it. But there is a difference between using a tool and letting it use you. When I let AI write my code, I did not learn to write code. When I let it generate my research ideas, I did not learn to think. The output may look like mine, but the competence behind it is not. And if that competence is never developed, it will not be there when I actually need it.
 
