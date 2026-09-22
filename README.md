@@ -37,7 +37,7 @@ scripts/
   verify-build.mjs   构建依赖检查与包体积报告
   benchmark-*.mjs    内容编译与搜索性能基准
 tests/              编译、索引与插件测试
-docs/               撰写说明与素材记录
+docs/               撰写说明
 ```
 
 ## 内容与配置
@@ -55,7 +55,7 @@ docs/               撰写说明与素材记录
 - 从筛选列表打开正文时，链接携带 `q` 查询条件；阅读页的返回入口、文章翻页和笔记反向链接会保留该条件，刷新或新标签页打开同样有效。直接打开不带 `q` 的文章仍返回完整列表。
 - 编译与页面入口：`vite.config.ts`；检查命令：`package.json`。
 
-详细语法见 [文章撰写](docs/writing.md)、[知识库说明](docs/notes.md)。素材记录见 [assets](docs/assets.md)。
+详细语法见 [文章撰写](docs/writing.md)、[知识库说明](docs/notes.md)。
 
 ## 部署
 
@@ -64,5 +64,3 @@ GitHub 仓库 **Settings → Pages → Source** 选择 **GitHub Actions**。推�
 构建产物为 `dist/`，部署到 [Alicia24012867.github.io](https://Alicia24012867.github.io/)。Vite 的 `base: '/'` 对应域名根目录；查询参数路由可直接访问和刷新。
 
 未知路径由 GitHub Pages 返回 `dist/404.html`，保留原地址和 HTTP 404 状态；页面提供首页、Blog、Notes 入口，资源和导航使用根路径，支持任意层级的错误地址。本地 `dev` 和 `preview` 通过 `scripts/not-found.mjs` 提供相同的 404 行为：按文件版本复用模板读取与 HTML 转换，编辑或重新构建后自动更新，HEAD 请求不加载正文。`/blog/?post=不存在的文章` 和 `/notes/?post=不存在的笔记` 仍显示各自的内容缺失提示。
-
-性能验证命令与本轮测量结果见 [性能记录](docs/performance.md)。

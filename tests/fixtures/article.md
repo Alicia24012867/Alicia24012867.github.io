@@ -92,7 +92,7 @@ flowchart LR
 
 ## 也给生活留一点空白
 
-![蓝天、白云与海边的银蓝发少女](../../public/images/summer-sky.webp)
+![蓝天、白云与海边的银蓝发少女](./assets/summer-sky.webp)
 
 一张蓝白色的插画，作为这篇文章的书签。这里没有紧迫的更新计划，只有一些值得慢慢整理的念头。
 
