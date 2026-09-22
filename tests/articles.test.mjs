@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { compileArticle } from '../scripts/content/compile.mjs';
 
-test('test.md renders real Markdown, a unique title, code, tables, tasks and local images', () => {
-  const source = readFileSync(new URL('../content/blog/test.md', import.meta.url), 'utf8');
+test('Markdown fixture renders a unique title, code, tables, tasks and local images', () => {
+  const source = readFileSync(new URL('./fixtures/article.md', import.meta.url), 'utf8');
   const article = compileArticle(source, 'test.md', (asset) => `/built/${asset}`);
   assert.equal(article.slug, 'test');
   assert.equal(article.date, '2026-09-19');
