@@ -6,6 +6,8 @@ export interface ArticleSummary {
   date: string;
   updated: string;
   description: string;
+  author?: string;
+  email?: string;
   tags: string[];
   section: ArticleSectionId;
   format: 'Markdown' | 'HTML';

@@ -273,17 +273,33 @@
   font-size: 16px;
 }
 .article-meta {
+  --meta-gap: 10px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  column-gap: 10px;
+  column-gap: var(--meta-gap);
   row-gap: 4px;
   color: var(--muted);
   font-size: 11px;
   line-height: 1.8;
 }
-.meta-dot {
+.article-meta > * + *::before {
+  content: '·';
+  display: inline-block;
+  margin-inline-end: var(--meta-gap);
   color: #abc1d3;
+}
+.article-author,
+.article-email {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.article-email {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.article-email:hover {
+  color: var(--blue-strong);
 }
 .article-date,
 .reading-time {
@@ -611,8 +627,8 @@
     font-size: 12px;
   }
   .article-meta {
+    --meta-gap: 7px;
     font-size: 10px;
-    column-gap: 7px;
   }
   .article-tags > span,
   .article-tags > a,

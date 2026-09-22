@@ -1,4 +1,3 @@
-import { profile } from '../config/profile';
 import { articleSectionById } from '../config/sections.mjs';
 import type { ArticleSummary } from './types';
 
@@ -15,14 +14,15 @@ export default function ArticleMeta({
   return (
     <div className="article-meta">
       {section && (
-        <>
-          <a className="article-section-mark" href={`./#section-${section.id}`}>
-            {section.label}
-          </a>
-          <span className="meta-dot">·</span>
-          <span>{profile.name}</span>
-          <span className="meta-dot">·</span>
-        </>
+        <a className="article-section-mark" href={`./#section-${section.id}`}>
+          {section.label}
+        </a>
+      )}
+      {article.author && <span className="article-author">{article.author}</span>}
+      {article.email && (
+        <a className="article-email" href={`mailto:${encodeURIComponent(article.email)}`}>
+          {article.email}
+        </a>
       )}
       <span className="article-date">
         Posted on{' '}
@@ -31,25 +31,19 @@ export default function ArticleMeta({
         </time>
       </span>
       {readingTime && (
-        <>
-          <span className="meta-dot">·</span>
-          <span className="reading-time">
-            {readingTime === 'estimate'
-              ? `About ${article.readingMinutes} ${article.readingMinutes === 1 ? "minute's" : "minutes'"} read`
-              : `${article.readingMinutes} min read`}
-          </span>
-        </>
+        <span className="reading-time">
+          {readingTime === 'estimate'
+            ? `About ${article.readingMinutes} ${article.readingMinutes === 1 ? "minute's" : "minutes'"} read`
+            : `${article.readingMinutes} min read`}
+        </span>
       )}
       {article.updated && (
-        <>
-          <span className="meta-dot">·</span>
-          <span className="article-date">
-            Edited on{' '}
-            <time dateTime={article.updated} title={article.updated}>
-              {article.updated.slice(0, 10)}
-            </time>
-          </span>
-        </>
+        <span className="article-date">
+          Edited on{' '}
+          <time dateTime={article.updated} title={article.updated}>
+            {article.updated.slice(0, 10)}
+          </time>
+        </span>
       )}
     </div>
   );

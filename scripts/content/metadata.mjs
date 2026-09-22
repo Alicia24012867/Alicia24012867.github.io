@@ -34,7 +34,7 @@ export function parseArticleSource(source, filename) {
   if (metadata.draft != null && typeof metadata.draft !== 'boolean')
     throw new Error(`${filename}: draft 必须是布尔值 true 或 false，不要加引号`);
   if (metadata.draft === true) return null;
-  for (const field of ['title', 'date', 'updated', 'description']) {
+  for (const field of ['title', 'date', 'updated', 'description', 'author', 'email']) {
     if (metadata[field] != null && typeof metadata[field] !== 'string')
       throw new Error(`${filename}: ${field} 必须是字符串`);
   }
@@ -51,6 +51,8 @@ export function parseArticleSource(source, filename) {
     metadata: {
       title: metadata.title?.trim() || '',
       description: metadata.description?.trim() || '',
+      author: metadata.author?.trim() || undefined,
+      email: metadata.email?.trim() || undefined,
       date,
       updated,
       tags: [...new Set((metadata.tags || []).map((tag) => tag.trim()).filter(Boolean))],
