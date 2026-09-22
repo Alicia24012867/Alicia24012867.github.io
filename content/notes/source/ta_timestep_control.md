@@ -1,7 +1,8 @@
 ---
 title: Transient Analysis - timestep control
+author: Alicia
 description: based on ngspice46
-tags: [source code analysis]
+tags: [source code analysis, ngspice]
 ---
 
 以下以[电子电路的计算机辅助设计方法](https://discover.lib.tsinghua.edu.cn/entrance/searchEntrance/resourceDetail?id=86THU_ALMA_CN21360098260003966&search_scope=default_scope&title=电子电路的计算机辅助分析与设计方法%20%3D%20%3D%20Computer%20aided%20analysis%20and%20design%20methods%20of%20electric%20circuits&version=&frbrgroupid=1503229263&context=L&adaptor=Local%20Search%20Engine&query=any,contains,电子电路的计算机辅助分析与设计方法&isFrbr=true#location)的设计为算法实现参考
