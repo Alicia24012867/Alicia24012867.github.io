@@ -4,6 +4,7 @@ import Hero from './Hero';
 import About from './About';
 import Explore from './Explore';
 import Contact from './Contact';
+import Links from './Links';
 
 export default function Home() {
   return (
@@ -37,6 +38,8 @@ export default function Home() {
       <Explore />
 
       <Contact />
+
+      <Links />
     </SiteLayout>
   );
 }

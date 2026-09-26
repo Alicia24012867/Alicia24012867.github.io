@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Icon from '../Icon';
 import ThemeToggle from '../ThemeToggle';
 import { profile } from '../../config/profile';
+import { friendLinks, homepageLinks } from '../../config/links';
 import { listingUrl, queryFromSearch } from '../../content/urls';
 import './site-header.css';
 
@@ -15,6 +16,9 @@ const sections = [
   { id: 'about', label: 'About' },
   { id: 'explore', label: 'Explore' },
   { id: 'contact', label: 'Contact' },
+  ...([...homepageLinks, ...friendLinks].some((link) => link.name.trim() && link.url.trim())
+    ? [{ id: 'links', label: 'Links' }]
+    : []),
 ];
 
 export default function SiteHeader({ section }: { section: SiteSection }) {

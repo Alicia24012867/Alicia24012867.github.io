@@ -43,6 +43,7 @@ docs/               撰写说明
 ## 内容与配置
 
 - 个人资料：`src/config/profile.ts`；研究方向：`src/config/interests.ts`。
+- 首页底部外链：`src/config/links.ts`，在 `homepageLinks` 中填写自己的主页（Elsewhere），在 `friendLinks` 中填写朋友网站（Friends · 友情链接）。每项填写 `name` 和 `url`；各组独立按数量和屏幕宽度自动换行，空条目和空分组不显示，两组均为空时隐藏整个区域。
 - Blog 分区：`src/config/sections.mjs`；Notes 主题：`src/config/noteTopics.ts`。
 - 新文章放入 `content/blog/`，新笔记放入 `content/notes/`，支持 `.md` 和 `.html`。
 - 文件路径决定地址：`content/blog/test.md` → `/blog/?post=test`。目录迁移不改变现有线上地址。

@@ -734,6 +734,55 @@
 .explore-footnote span {
   font-size: 17px;
 }
+.homepage-links {
+  display: grid;
+  gap: 24px;
+  padding-block: 0 32px;
+}
+.homepage-links > section {
+  min-width: 0;
+}
+.homepage-links h2 {
+  margin-bottom: 12px;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+.homepage-links-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.homepage-links-list li {
+  min-width: 0;
+  max-width: 100%;
+}
+.homepage-links-list a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+.homepage-links-list a span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.homepage-links-list .icon {
+  height: 14px;
+  margin: 0 4px 0 0;
+}
+.homepage-links-list a:hover,
+.homepage-links-list a:focus-visible {
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 .contact-section {
   padding-block: 66px;
 }
