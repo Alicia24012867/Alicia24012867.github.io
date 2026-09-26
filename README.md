@@ -54,6 +54,7 @@ docs/               撰写说明
 - `content/ContentPage.tsx` 统一 Blog/Notes 的查询路由、页面元信息、正文加载和错误状态；首页、Blog、Notes 与 404 页面共用 `components/layout/SiteLayout.tsx`。
 - 全站共享 Home / Blog / Notes 导航，并提供 About / Explore / Contact 首页锚点；窄屏菜单支持键盘和 Escape 关闭。
 - 从筛选列表打开正文时，链接携带 `q` 查询条件；阅读页的返回入口、文章翻页和笔记反向链接会保留该条件，刷新或新标签页打开同样有效。直接打开不带 `q` 的文章仍返回完整列表。
+- Blog 列表支持分类内按最新发布、最早发布、最近更新或标题排序。排序通过 `sort` 查询参数保留，刷新、搜索及从文章返回列表后仍生效；默认最新发布，未编辑的文章以发布日期参与最近更新排序。
 - 编译与页面入口：`vite.config.ts`；检查命令：`package.json`。
 
 详细语法见 [文章撰写](docs/writing.md)、[知识库说明](docs/notes.md)。

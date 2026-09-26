@@ -6,10 +6,12 @@ import type { Article } from '../content/types';
 import { articleSectionById } from '../config/sections.mjs';
 import ArticleMeta from '../content/ArticleMeta';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
+import { sortFromSearch } from '../content/sort';
 
 export default function ArticleReader({ article }: { article: Article }) {
   const query = queryFromSearch(window.location.search);
-  const backUrl = listingUrl(query);
+  const sort = sortFromSearch(window.location.search);
+  const backUrl = listingUrl(query, sort);
   const section = articleSectionById(article.section);
   const inSection = blogIndex.groups.get(article.section) ?? [];
   const index = inSection.findIndex((item) => item.slug === article.slug);
@@ -35,7 +37,7 @@ export default function ArticleReader({ article }: { article: Article }) {
       {(older || newer) && (
         <nav className="article-pager" aria-label={`More posts in ${section.label}`}>
           {older ? (
-            <a href={articleUrl(older.slug, query)}>
+            <a href={articleUrl(older.slug, query, sort)}>
               <span>Previous post</span>
               <strong className="article-title">{older.title}</strong>
             </a>
@@ -43,7 +45,7 @@ export default function ArticleReader({ article }: { article: Article }) {
             <span />
           )}
           {newer ? (
-            <a className="pager-newer" href={articleUrl(newer.slug, query)}>
+            <a className="pager-newer" href={articleUrl(newer.slug, query, sort)}>
               <span>Next post</span>
               <strong className="article-title">{newer.title}</strong>
             </a>

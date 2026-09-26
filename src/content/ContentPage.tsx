@@ -3,6 +3,7 @@ import SiteLayout from '../components/layout/SiteLayout';
 import Icon from '../components/Icon';
 import { usePageMeta } from '../hooks/usePageMeta';
 import { listingUrl, queryFromSearch } from './urls';
+import { sortFromSearch } from './sort';
 import type { Article, ArticleBody, ArticleSummary } from './types';
 
 type Reader = ComponentType<{ article: Article }>;
@@ -53,7 +54,10 @@ export default function ContentPage({
           <p>It may have moved or may still be a draft.</p>
           <a
             className="button button-primary"
-            href={listingUrl(queryFromSearch(window.location.search))}
+            href={listingUrl(
+              queryFromSearch(window.location.search),
+              section === 'blog' ? sortFromSearch(window.location.search) : 'newest',
+            )}
           >
             Back to all {kind}s<Icon name="arrow" />
           </a>

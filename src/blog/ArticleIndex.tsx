@@ -7,17 +7,26 @@ import { articleSections } from '../config/sections.mjs';
 import ArticleMeta from '../content/ArticleMeta';
 import { articleUrl } from '../content/urls';
 import { useSearchQuery } from '../hooks/useSearchQuery';
+import { useArticleSort } from '../hooks/useArticleSort';
+import {
+  articleSortOptions,
+  parseArticleSort,
+  sortArticles,
+  type ArticleSort,
+} from '../content/sort';
 
 function JournalEntry({
   article,
   index,
   onTag,
   query,
+  sort,
 }: {
   article: ArticleSummary;
   index: number;
   onTag: (tag: string) => void;
   query: string;
+  sort: ArticleSort;
 }) {
   return (
     <article className="journal-entry">
@@ -28,14 +37,14 @@ function JournalEntry({
       <div className="journal-entry-content">
         <ArticleMeta article={article} showDetails />
         <h3 className="article-title">
-          <a href={articleUrl(article.slug, query)}>{article.title}</a>
+          <a href={articleUrl(article.slug, query, sort)}>{article.title}</a>
         </h3>
         <p>{article.description}</p>
         <ArticleTags article={article} onTag={onTag} showFormat />
       </div>
       <a
         className="journal-read"
-        href={articleUrl(article.slug, query)}
+        href={articleUrl(article.slug, query, sort)}
         aria-label={`Read: ${article.title}`}
       >
         <Icon name="arrow" />
@@ -48,21 +57,40 @@ const JournalEntries = memo(function JournalEntries({
   entries,
   onTag,
   query,
+  sort,
 }: {
   entries: ArticleSummary[];
   onTag: (tag: string) => void;
   query: string;
+  sort: ArticleSort;
 }) {
   return entries.map((article, index) => (
-    <JournalEntry article={article} index={index} key={article.slug} onTag={onTag} query={query} />
+    <JournalEntry
+      article={article}
+      index={index}
+      key={article.slug}
+      onTag={onTag}
+      query={query}
+      sort={sort}
+    />
   ));
 });
 
 export default function ArticleIndex() {
   const [query, setQuery] = useSearchQuery();
+  const [sort, setSort] = useArticleSort();
   const deferredQuery = useDeferredValue(query);
   const needle = deferredQuery.trim().toLowerCase();
-  const groups = useMemo(() => blogIndex.filter(deferredQuery), [deferredQuery]);
+  const groups = useMemo(
+    () =>
+      new Map(
+        [...blogIndex.filter(deferredQuery)].map(([id, entries]) => [
+          id,
+          sortArticles(entries, sort),
+        ]),
+      ),
+    [deferredQuery, sort],
+  );
   const hasResults = [...groups.values()].some((entries) => entries.length > 0);
 
   const clearQuery = () => setQuery('');
@@ -104,16 +132,31 @@ export default function ArticleIndex() {
               </span>
             </h2>
           </div>
-          <label className="article-search">
-            <span className="visually-hidden">Search post titles, summaries, or tags</span>
-            <Icon name="book" />
-            <input
-              type="search"
-              placeholder="Find a story…"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
+          <div className="article-list-controls">
+            <label className="article-search">
+              <span className="visually-hidden">Search post titles, summaries, or tags</span>
+              <Icon name="book" />
+              <input
+                type="search"
+                placeholder="Find a story…"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
+            <label className="article-sort">
+              <span>Sort by</span>
+              <select
+                value={sort}
+                onChange={(event) => setSort(parseArticleSort(event.target.value))}
+              >
+                {articleSortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
         <nav className="journal-section-nav" aria-label="Blog categories">
           {articleSections
@@ -158,7 +201,12 @@ export default function ArticleIndex() {
                     <p>{section.description}</p>
                   </div>
                   {entries.length ? (
-                    <JournalEntries entries={entries} onTag={setQuery} query={deferredQuery} />
+                    <JournalEntries
+                      entries={entries}
+                      onTag={setQuery}
+                      query={deferredQuery}
+                      sort={sort}
+                    />
                   ) : (
                     <div className="journal-shelf-empty">
                       <Icon name="cloud" />

@@ -4,6 +4,7 @@ import ThemeToggle from '../ThemeToggle';
 import { profile } from '../../config/profile';
 import { friendLinks, homepageLinks } from '../../config/links';
 import { listingUrl, queryFromSearch } from '../../content/urls';
+import { sortFromSearch } from '../../content/sort';
 import './site-header.css';
 
 const pages = [
@@ -110,7 +111,14 @@ export default function SiteHeader({ section }: { section: SiteSection }) {
           {pages.map((page) => (
             <a
               key={page.id}
-              href={page.id === section && reading ? listingUrl(query) : page.href}
+              href={
+                page.id === section && reading
+                  ? listingUrl(
+                      query,
+                      section === 'blog' ? sortFromSearch(window.location.search) : 'newest',
+                    )
+                  : page.href
+              }
               aria-current={page.id === section ? 'page' : undefined}
               onClick={() => setMenuOpen(false)}
             >

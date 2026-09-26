@@ -117,6 +117,7 @@
 }
 .journal-list-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
@@ -139,6 +140,32 @@
   padding: 2px 7px;
   border-radius: 5px;
   letter-spacing: 1px;
+}
+.article-list-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.article-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.article-sort select {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--section);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
 }
 .article-search {
   display: flex;
