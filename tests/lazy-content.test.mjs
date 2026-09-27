@@ -8,6 +8,7 @@ const article = {
   title: 'Title',
   date: '2026-09-19',
   updated: '2026-09-21',
+  pin: true,
   description: 'Summary',
   tags: [],
   html: '<p>PrivateBodyToken</p><img src="__ALICIA_ARTICLE_ASSET_1__">',
@@ -24,6 +25,7 @@ test('listing modules contain metadata and dynamic loaders without shipping arti
   assert.equal(module.default[0].slug, article.slug);
   assert.equal(module.default[0].date, article.date);
   assert.equal(module.default[0].updated, article.updated);
+  assert.equal(module.default[0].pin, true);
   await assert.rejects(module.loadArticle('__proto__'), /Unknown article/);
   await assert.rejects(module.loadArticle('absent'), /Unknown article/);
 });

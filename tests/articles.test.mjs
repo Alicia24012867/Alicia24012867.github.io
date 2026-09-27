@@ -103,6 +103,22 @@ test('footnotes stay out of code, and article sections are a fixed list', () => 
   assert.throws(() => compileArticle('---\nsection: travel\n---\nText', 'wrong.md'), /learn|生活/);
 });
 
+test('pin front matter accepts booleans, defaults to false and never publishes drafts', () => {
+  for (const extension of ['md', 'html']) {
+    const file = `pinned.${extension}`;
+    assert.equal(compileArticle('---\npin: true\n---\nBody', file).pin, true);
+    assert.equal(compileArticle('---\npin: false\n---\nBody', file).pin, false);
+    assert.equal(compileArticle('Body', file).pin, false);
+    assert.equal(compileArticle('---\npin: true\ndraft: true\n---\nBody', file), null);
+    for (const value of ['"true"', '"false"', '1', 'yes', 'null', '[]', '{}', '']) {
+      assert.throws(
+        () => compileArticle(`---\npin: ${value}\n---\nBody`, file),
+        /pin 必须是布尔值/,
+      );
+    }
+  }
+});
+
 test('drafts are excluded; invalid metadata and escaping paths fail clearly', () => {
   assert.equal(compileArticle('---\ndraft: true\n---\nPrivate draft', 'draft.md'), null);
   assert.throws(() => compileArticle('---\ndate: 2026-02-30\n---\nText', 'invalid.md'), /有效的/);

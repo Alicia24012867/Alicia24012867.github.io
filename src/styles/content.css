@@ -141,6 +141,18 @@
   border-radius: 5px;
   letter-spacing: 1px;
 }
+.article-pin {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: var(--light-blue);
+  color: var(--blue-strong);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
 .article-list-controls {
   display: flex;
   flex-wrap: wrap;

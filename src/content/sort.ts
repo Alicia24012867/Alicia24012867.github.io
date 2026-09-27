@@ -18,11 +18,12 @@ export const sortFromSearch = (search: string) =>
 
 const titles = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
 
-export function sortArticles<T extends Pick<ArticleSummary, 'slug' | 'title' | 'date' | 'updated'>>(
-  articles: readonly T[],
-  sort: ArticleSort,
-): T[] {
+export function sortArticles<
+  T extends Pick<ArticleSummary, 'slug' | 'title' | 'date' | 'updated' | 'pin'>,
+>(articles: readonly T[], sort: ArticleSort): T[] {
   return [...articles].sort((a, b) => {
+    const pinnedFirst = Number(b.pin === true) - Number(a.pin === true);
+    if (pinnedFirst) return pinnedFirst;
     let comparison: number;
     if (sort === 'title') comparison = titles.compare(a.title, b.title);
     else if (sort === 'updated')

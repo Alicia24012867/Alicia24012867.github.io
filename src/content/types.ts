@@ -5,6 +5,7 @@ export interface ArticleSummary {
   title: string;
   date: string;
   updated: string;
+  pin: boolean;
   description: string;
   author?: string;
   email?: string;

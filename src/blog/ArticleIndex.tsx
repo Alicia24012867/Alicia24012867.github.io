@@ -35,6 +35,7 @@ function JournalEntry({
         <span>/</span>
       </span>
       <div className="journal-entry-content">
+        {article.pin && <span className="article-pin">Pinned</span>}
         <ArticleMeta article={article} showDetails />
         <h3 className="article-title">
           <a href={articleUrl(article.slug, query, sort)}>{article.title}</a>

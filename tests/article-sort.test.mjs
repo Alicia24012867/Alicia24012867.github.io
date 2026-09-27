@@ -25,6 +25,35 @@ test('post sorting handles publication, update fallback and natural title order 
   }
 });
 
+test('pins take priority in every sort while each group keeps its chosen order', () => {
+  const pinned = articles.map((article) =>
+    Object.freeze({ ...article, slug: `pin-${article.slug}`, pin: true }),
+  );
+  const ordinary = articles.map((article) => Object.freeze({ ...article, pin: false }));
+  const entries = Object.freeze([
+    ordinary[0],
+    pinned[1],
+    ordinary[2],
+    pinned[0],
+    ordinary[1],
+    pinned[2],
+  ]);
+  for (const sort of ['newest', 'oldest', 'updated', 'title']) {
+    assert.deepEqual(sortArticles(entries, sort), [
+      ...sortArticles(pinned, sort),
+      ...sortArticles(ordinary, sort),
+    ]);
+    const unpinned = entries.map((article) => ({ ...article, pin: false }));
+    assert.deepEqual(
+      sortArticles(unpinned, sort).map((article) => article.slug),
+      sortArticles(
+        unpinned.map(({ pin, ...article }) => article),
+        sort,
+      ).map((article) => article.slug),
+    );
+  }
+});
+
 test('date sorting compares instants across time zones and breaks ties deterministically', () => {
   const entries = [
     { ...articles[0], slug: 'b', date: '2026-01-01T23:00:00-08:00' },
