@@ -5,6 +5,7 @@ email: Alicia24012867@gmail.com
 date: 2026-09-23
 section: learning
 description: The very first blog post.
+pin: true
 tags: [learning, life, journal]
 ---
 

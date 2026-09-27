@@ -39,6 +39,19 @@ test('HTML articles share metadata and headings, and remove document chrome and 
   );
 });
 
+test('article galleries preserve the allowed class and resolve full-size image links', () => {
+  const article = compileArticle(
+    '<div class="article-gallery arbitrary" style="display:none"><figure><a href="./assets/photo.jpeg" aria-label="View full size"><img src="./assets/photo.jpeg" alt="Photo"></a><figcaption>Caption</figcaption></figure></div>',
+    'gallery.md',
+    (asset) => `/built/${asset}`,
+  );
+  assert.match(article.html, /class="article-gallery"/);
+  assert.match(article.html, /href="\/built\/assets\/photo.jpeg"/);
+  assert.match(article.html, /src="\/built\/assets\/photo.jpeg"/);
+  assert.match(article.html, /<figcaption>Caption<\/figcaption>/);
+  assert.doesNotMatch(article.html, /arbitrary|display:none/);
+});
+
 test('nested article links and attachments resolve under the article directory', () => {
   const article = compileArticle(
     '# Example\n\n[下一篇](../test.md#section-intro)\n\n![图](../assets/sky.webp)\n\n[PDF](./notes.pdf)\n\n![公共图](/images/summer-sky.webp)',

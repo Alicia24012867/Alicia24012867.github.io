@@ -35,7 +35,7 @@ export function sanitizeArticleHtml(html, resolveReference) {
       code: ['language-*'],
       sup: ['footnote-ref'],
       a: ['footnote-back'],
-      div: ['footnote-content'],
+      div: ['footnote-content', 'article-gallery'],
       section: ['article-footnotes'],
     },
     allowedSchemes: ['http', 'https', 'mailto'],
