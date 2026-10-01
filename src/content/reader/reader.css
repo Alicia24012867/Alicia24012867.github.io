@@ -363,6 +363,11 @@
   margin-inline: auto;
   margin-bottom: 12px;
 }
+.article-body > figure img {
+  display: block;
+  max-height: min(360px, 60svh);
+  margin: 0 auto 12px;
+}
 .article-body figcaption {
   color: var(--muted);
   text-align: center;
