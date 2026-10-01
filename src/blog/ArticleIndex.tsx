@@ -1,9 +1,8 @@
 import { memo, useDeferredValue, useMemo } from 'react';
-import { blogIndex } from './catalog';
+import { articleSections, blogIndex } from './catalog';
 import ArticleTags from '../content/ArticleTags';
 import Icon from '../components/Icon';
 import type { ArticleSummary } from '../content/types';
-import { articleSections } from '../config/sections.mjs';
 import ArticleMeta from '../content/ArticleMeta';
 import { articleUrl } from '../content/urls';
 import { useSearchQuery } from '../hooks/useSearchQuery';
@@ -81,18 +80,14 @@ export default function ArticleIndex() {
   const [query, setQuery] = useSearchQuery();
   const [sort, setSort] = useArticleSort();
   const deferredQuery = useDeferredValue(query);
-  const needle = deferredQuery.trim().toLowerCase();
-  const groups = useMemo(
-    () =>
-      new Map(
-        [...blogIndex.filter(deferredQuery)].map(([id, entries]) => [
-          id,
-          sortArticles(entries, sort),
-        ]),
-      ),
-    [deferredQuery, sort],
-  );
-  const hasResults = [...groups.values()].some((entries) => entries.length > 0);
+  const hasQuery = deferredQuery.trim().length > 0;
+  const shelves = useMemo(() => {
+    const groups = blogIndex.filter(deferredQuery);
+    return articleSections.flatMap((section) => {
+      const entries = groups.get(section.id);
+      return entries?.length ? [{ section, entries: sortArticles(entries, sort) }] : [];
+    });
+  }, [deferredQuery, sort]);
 
   const clearQuery = () => setQuery('');
 
@@ -159,64 +154,59 @@ export default function ArticleIndex() {
             </label>
           </div>
         </div>
-        <nav className="journal-section-nav" aria-label="Blog categories">
-          {articleSections
-            .filter((section) => !needle || (groups.get(section.id)?.length ?? 0) > 0)
-            .map((section) => (
-              <a key={section.id} href={`#section-${section.id}`}>
+        {shelves.length > 0 && (
+          <nav className="journal-section-nav" aria-label="Blog categories">
+            {shelves.map(({ section }) => (
+              <a key={section.id} href={section.href}>
                 {section.label}
               </a>
             ))}
-        </nav>
+          </nav>
+        )}
         <div className="article-results" aria-live="polite">
-          {needle && !hasResults ? (
+          {!shelves.length ? (
             <div className="journal-empty">
               <Icon name="cloud" />
-              <h3>No posts found</h3>
-              <p>Try another keyword or browse all categories.</p>
-              <button className="button button-primary" onClick={clearQuery}>
-                View all posts
-              </button>
+              <h3>{hasQuery ? 'No posts found' : 'No posts yet'}</h3>
+              <p>
+                {hasQuery
+                  ? 'Try another keyword or browse all categories.'
+                  : 'Nothing here yet. A small question is enough to begin.'}
+              </p>
+              {hasQuery && (
+                <button className="button button-primary" onClick={clearQuery}>
+                  View all posts
+                </button>
+              )}
             </div>
           ) : (
-            articleSections.map((section) => {
-              const entries = groups.get(section.id) ?? [];
-              if (needle && !entries.length) return null;
-              return (
-                <section
-                  className="journal-shelf"
-                  id={`section-${section.id}`}
-                  key={section.id}
-                  aria-labelledby={`shelf-${section.id}`}
-                >
-                  <div className="journal-shelf-heading">
-                    <div>
-                      <p className="eyebrow">{section.english}</p>
-                      <h3 id={`shelf-${section.id}`}>
-                        {section.label}
-                        <span className="article-count">
-                          {String(entries.length).padStart(2, '0')}
-                        </span>
-                      </h3>
-                    </div>
-                    <p>{section.description}</p>
+            shelves.map(({ section, entries }) => (
+              <section
+                className="journal-shelf"
+                id={section.anchorId}
+                key={section.id}
+                aria-labelledby={`shelf-${section.anchorId}`}
+              >
+                <div className="journal-shelf-heading">
+                  <div>
+                    {section.english && <p className="eyebrow">{section.english}</p>}
+                    <h3 id={`shelf-${section.anchorId}`}>
+                      {section.label}
+                      <span className="article-count">
+                        {String(entries.length).padStart(2, '0')}
+                      </span>
+                    </h3>
                   </div>
-                  {entries.length ? (
-                    <JournalEntries
-                      entries={entries}
-                      onTag={setQuery}
-                      query={deferredQuery}
-                      sort={sort}
-                    />
-                  ) : (
-                    <div className="journal-shelf-empty">
-                      <Icon name="cloud" />
-                      <p>{section.empty}</p>
-                    </div>
-                  )}
-                </section>
-              );
-            })
+                  {section.description && <p>{section.description}</p>}
+                </div>
+                <JournalEntries
+                  entries={entries}
+                  onTag={setQuery}
+                  query={deferredQuery}
+                  sort={sort}
+                />
+              </section>
+            ))
           )}
         </div>
         <div className="journal-list-bottom">

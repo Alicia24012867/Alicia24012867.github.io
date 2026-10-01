@@ -1,4 +1,4 @@
-import { articleSectionById } from '../config/sections.mjs';
+import { blogSections } from '../config/sections.mjs';
 import type { ArticleSummary } from './types';
 
 export default function ArticleMeta({
@@ -10,11 +10,11 @@ export default function ArticleMeta({
   showDetails?: boolean;
   readingTime?: 'compact' | 'estimate' | false;
 }) {
-  const section = showDetails ? articleSectionById(article.section) : undefined;
+  const section = showDetails ? blogSections.byId(article.section) : undefined;
   return (
     <div className="article-meta">
       {section && (
-        <a className="article-section-mark" href={`./#section-${section.id}`}>
+        <a className="article-section-mark" href={`./${section.href}`}>
           {section.label}
         </a>
       )}

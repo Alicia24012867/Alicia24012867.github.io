@@ -9,7 +9,7 @@ test('Markdown fixture renders a unique title, code, tables, tasks and local ima
   assert.equal(article.slug, 'test');
   assert.equal(article.date, '2026-09-19');
   assert.equal(article.format, 'Markdown');
-  assert.equal(article.section, 'learn');
+  assert.equal(article.section, '学习');
   assert.match(article.html, /class="footnote-ref"/);
   assert.match(article.html, /class="article-footnotes"/);
   assert.ok(article.headings.length >= 6);
@@ -99,7 +99,7 @@ test('mermaid fences become diagrams with escaped source, not executable HTML', 
   assert.doesNotMatch(article.html, /<script|ALICIA_MATH_PLACEHOLDER/);
 });
 
-test('footnotes stay out of code, and article sections are a fixed list', () => {
+test('footnotes stay out of code', () => {
   const footnoted = compileArticle(
     'See this[^1] and `[^skip]`.\n\n```js\nconst mark = "[^skip]";\n```\n\n[^1]: Safe <script>alert(1)</script> note.\n[^skip]: unused\n',
     'notes.md',
@@ -108,12 +108,27 @@ test('footnotes stay out of code, and article sections are a fixed list', () => 
   assert.match(footnoted.html, /Safe/);
   assert.match(footnoted.html, /\[(?:\^|&caret;)?skip\]|\[\^skip\]/);
   assert.doesNotMatch(footnoted.html, /<script/);
-  assert.equal(
-    compileArticle('---\nsection: 生活\n---\n# Life\n\nHello.', 'sky.md').section,
-    'life',
-  );
-  assert.equal(compileArticle('# Default\n\nHello.', 'plain.md').section, 'learn');
-  assert.throws(() => compileArticle('---\nsection: travel\n---\nText', 'wrong.md'), /learn|生活/);
+});
+
+test('Markdown and HTML preserve trimmed section names for collection-specific grouping', () => {
+  for (const extension of ['md', 'html']) {
+    const file = `section.${extension}`;
+    const sectionOf = (value) => compileArticle(`---\nsection: ${value}\n---\nBody`, file).section;
+    for (const value of [
+      '学习',
+      'life',
+      'travel',
+      '读书笔记',
+      'AI Research',
+      'C++ / C# & Rust',
+      '__proto__',
+    ])
+      assert.equal(sectionOf(JSON.stringify(`  ${value}  `)), value);
+    for (const value of ['', 'null', '""', '"   "']) assert.equal(sectionOf(value), '');
+    assert.equal(compileArticle('Body', file).section, '');
+    for (const value of ['42', 'true', '[]', '{}', '[travel]'])
+      assert.throws(() => sectionOf(value), /section 必须是字符串/);
+  }
 });
 
 test('pin front matter accepts booleans, defaults to false and never publishes drafts', () => {

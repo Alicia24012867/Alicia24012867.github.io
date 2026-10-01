@@ -16,7 +16,9 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { buildArticleCatalog } from '../scripts/content/catalog.mjs';
-import { articleModule } from '../scripts/content/modules.mjs';
+import { articleModule, listingModule } from '../scripts/content/modules.mjs';
+import { blogSections, noteSections } from '../src/config/sections.mjs';
+import { createContentIndex } from '../src/content/search.ts';
 
 function fixture(t, files) {
   const root = mkdtempSync(path.join(tmpdir(), 'alicia-articles-test-'));
@@ -46,6 +48,160 @@ test('catalog discovers nested articles, excludes drafts/private files and sorts
   );
   assert.ok(watched.includes(path.join(root, 'draft.md')));
   assert.doesNotMatch(JSON.stringify(articles), /Secret|Private|Hidden|Docs/);
+});
+
+test('published sections drive listing navigation, labels and search without configuration', async (t) => {
+  const root = fixture(t, {
+    'one.md': '---\nsection: AI Research\ndate: 2026-01-01\n---\n# First\n\nBody.',
+    'nested/two.html': '---\nsection: " AI Research "\ndate: 2026-02-01\n---\n<h1>Second</h1>',
+    'book.md': '---\nsection: 读书笔记\n---\n# Third',
+    'life.md': '---\nsection: 生活\n---\n# Fourth',
+    'draft.md': '---\nsection: Draft only\ndraft: true\n---\n# Hidden',
+    '_private.md': '---\nsection: Private only\n---\n# Hidden',
+  });
+  const catalog = buildArticleCatalog(root);
+  const { default: summaries } = await import(
+    `data:text/javascript,${encodeURIComponent(listingModule(catalog, 'virtual:articles'))}`
+  );
+  const sections = blogSections.collect(summaries);
+  assert.deepEqual(
+    sections.map((section) => section.id),
+    ['life', 'AI Research', '读书笔记'],
+  );
+  assert.deepEqual(blogSections.collect([...summaries].reverse()), sections);
+  assert.deepEqual(
+    sections.map((section) => section.label),
+    ['Life', 'AI Research', '读书笔记'],
+  );
+  assert.deepEqual(blogSections.collect([]), []);
+  const index = createContentIndex(
+    summaries,
+    (article) => article.section,
+    new Map(sections.map((section) => [section.id, `${section.label} ${section.english}`])),
+  );
+  assert.deepEqual(
+    index.groups.get('AI Research').map((article) => article.slug),
+    ['nested/two', 'one'],
+  );
+  assert.equal(index.filter('  ai RESEARCH ').get('AI Research').length, 2);
+  assert.equal(index.filter('读书笔记').get('读书笔记').length, 1);
+  assert.equal(index.filter('life').get('life').length, 1);
+  assert.equal(index.filter('absent').get('AI Research').length, 0);
+  writeFileSync(path.join(root, 'one.md'), '---\nsection: Travel\n---\n# First');
+  rmSync(path.join(root, 'nested/two.html'));
+  assert.deepEqual(
+    blogSections.collect(buildArticleCatalog(root).articles).map((section) => section.id),
+    ['life', 'Travel', '读书笔记'],
+  );
+});
+
+test('section links target unique whitespace-free IDs for Chinese, punctuation and encoded names', () => {
+  const ids = [
+    'learn',
+    'life',
+    '读书笔记',
+    'AI Research',
+    'AI%20Research',
+    'AI_20Research',
+    'a/b',
+    'a#b',
+    'a%b',
+    'a?b',
+    'a-b',
+    '__proto__',
+  ];
+  for (const [collection, rules] of [
+    ['blog', blogSections],
+    ['notes', noteSections],
+  ]) {
+    const sections = rules.collect(ids.map((section) => ({ section })));
+    const targets = new Set(sections.map((section) => section.anchorId));
+    assert.equal(targets.size, ids.length);
+    for (const section of sections) {
+      assert.doesNotMatch(section.anchorId, /\s/);
+      const url = new URL(section.href, `https://example.com/${collection}/`);
+      const fragment = url.hash.slice(1);
+      assert.equal(
+        targets.has(fragment) ? fragment : decodeURIComponent(fragment),
+        section.anchorId,
+      );
+      assert.equal(url.pathname, `/${collection}/`);
+      assert.equal(url.search, '');
+    }
+  }
+  assert.equal(blogSections.byId('learn').href, '#section-learn');
+  assert.equal(blogSections.byId('life').href, '#section-life');
+  assert.equal(noteSections.byId('cuda').href, '#topic-cuda');
+});
+
+test('Blog normalizes legacy section aliases and empty values when building the catalog', (t) => {
+  const values = [
+    'learn',
+    'learning',
+    'STUDY',
+    '学习',
+    'life',
+    'living',
+    'DAILY',
+    '生活',
+    '',
+    '   ',
+  ];
+  const root = fixture(
+    t,
+    Object.fromEntries(
+      values.map((value, index) => [
+        `${index}.md`,
+        `---\nsection: ${JSON.stringify(value)}\n---\nBody`,
+      ]),
+    ),
+  );
+  const sections = new Map(
+    buildArticleCatalog(root).articles.map((article) => [article.slug, article.section]),
+  );
+  for (const [index] of values.entries())
+    assert.equal(sections.get(String(index)), index >= 4 && index < 8 ? 'life' : 'learn');
+});
+
+test('Notes derive sections from top-level folders regardless of YAML and refresh after moves', (t) => {
+  const root = fixture(t, {
+    'cuda/api.md': '---\nsection: life\n---\n# API',
+    'AI Research/one.md': '---\nsection: ignored\n---\n# First',
+    'AI Research/deep/two.html': '<h1>Second</h1>',
+    '读书笔记/book.md': '# Third',
+    'root.md': '---\nsection: ignored\n---\n# Root',
+    'drafts/draft.md': '---\ndraft: true\n---\n# Hidden',
+    '_private/secret.md': '# Hidden',
+  });
+  const cache = new Map();
+  const build = () => buildArticleCatalog(root, undefined, { basePath: '/notes/', cache });
+  let catalog = build();
+  const bySlug = new Map(catalog.articles.map((note) => [note.slug, note]));
+  assert.equal(bySlug.get('cuda/api').section, 'cuda');
+  assert.equal(bySlug.get('AI Research/one').section, 'AI Research');
+  assert.equal(bySlug.get('AI Research/deep/two').section, 'AI Research');
+  assert.equal(bySlug.get('root').section, 'other');
+  const topics = noteSections.collect(catalog.articles);
+  assert.deepEqual(
+    topics.map((topic) => topic.label),
+    ['CUDA API', 'Other notes', 'AI Research', '读书笔记'],
+  );
+  const index = createContentIndex(
+    catalog.articles,
+    (note) => note.section,
+    new Map(topics.map((topic) => [topic.id, topic.label])),
+  );
+  assert.equal(index.filter('ai research').get('AI Research').length, 2);
+  assert.equal(index.filter('读书笔记').get('读书笔记').length, 1);
+  assert.equal(index.filter('ignored').get('AI Research').length, 0);
+  assert.deepEqual(noteSections.collect([]), []);
+  renameSync(path.join(root, 'AI Research'), path.join(root, 'New Topic'));
+  catalog = build();
+  assert.equal(
+    noteSections.collect(catalog.articles).some((topic) => topic.id === 'AI Research'),
+    false,
+  );
+  assert.equal(catalog.articles.filter((note) => note.section === 'New Topic').length, 2);
 });
 
 test('catalog validates article links, missing targets and unpublished targets', (t) => {

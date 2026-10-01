@@ -3,6 +3,7 @@ import path from 'node:path';
 import { decodeHTML } from 'entities';
 import { compileArticle } from './compile.mjs';
 import { createArticleDateResolver } from './metadata.mjs';
+import { blogSections, noteSections } from '../../src/config/sections.mjs';
 
 function linkedSlugs(html, basePath) {
   const targets = new Set();
@@ -26,6 +27,7 @@ export function buildArticleCatalog(
   { basePath = '/blog/', cache = new Map(), changedFiles } = {},
 ) {
   const root = fs.realpathSync.native(articleRoot);
+  const sections = basePath === '/notes/' ? noteSections : blogSections;
   const resolveDates = createArticleDateResolver(root);
   const articles = [];
   const assets = new Map();
@@ -109,6 +111,7 @@ export function buildArticleCatalog(
     links.push(...compiled.localLinks);
     const article = compiled.article && {
       ...compiled.article,
+      section: sections.resolve(compiled.article.section, file),
       html: replacements.size
         ? compiled.article.html.replace(
             /__ALICIA_ARTICLE_ASSET_\d+__/g,

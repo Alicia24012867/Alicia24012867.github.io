@@ -1,5 +1,3 @@
-export type ArticleSectionId = 'learn' | 'life';
-
 export interface ArticleSummary {
   slug: string;
   title: string;
@@ -10,7 +8,7 @@ export interface ArticleSummary {
   author?: string;
   email?: string;
   tags: string[];
-  section: ArticleSectionId;
+  section: string;
   format: 'Markdown' | 'HTML';
   readingMinutes: number;
   hasMath: boolean;

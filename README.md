@@ -24,7 +24,7 @@ src/
   notes/             Notes 入口、列表、阅读页与全文搜索
   not-found.tsx      独立 404 入口，复用首页主图与全站导航
   components/        全站布局、导航、图标与主题切换
-  config/            个人资料、Blog 分区、Notes 主题
+  config/            个人资料、Blog / Notes 分区预设
   content/           共享内容路由、标签、搜索索引、类型与 URL 工具
     reader/          正文、目录、代码复制与图表渲染
   hooks/             搜索状态与页面元信息
@@ -44,7 +44,10 @@ docs/               撰写说明
 
 - 个人资料：`src/config/profile.ts`；研究方向：`src/config/interests.ts`。
 - 首页底部外链：`src/config/links.ts`，在 `homepageLinks` 中填写自己的主页（Elsewhere），在 `friendLinks` 中填写朋友网站（Friends · 友情链接）。每项填写 `name` 和 `url`；各组独立按数量和屏幕宽度自动换行，空条目和空分组不显示，两组均为空时隐藏整个区域。
-- Blog 分区：`src/config/sections.mjs`；Notes 主题：`src/config/noteTopics.ts`。
+- Blog 分区：根据文章 YAML 中的 `section` 自动生成，支持自定义中文或英文名称，无需改配置；省略或留空时默认 Learning。
+- 例如填写 `section: 读书笔记` 即可创建同名分区；同名文章自动归组，支持按分区名称搜索与同分区文章翻页。分区导航和文章列表复用筛选、排序结果。
+- Notes 分区：根据 `content/notes/` 下的第一层文件夹名自动生成，例如 `机器学习/入门.md` 归入「机器学习」，更深层子目录归入同一分区；根目录笔记归入 Other notes，YAML 的 `section` 不影响 Notes 归类。
+- Blog / Notes 共用 `src/config/sections.mjs` 中的分区逻辑与展示预设，保留已有分区的名称、介绍和顺序；新分区按名称排序。仅展示有已发布内容的分区，草稿与空文件夹不会创建分区。
 - 新文章放入 `content/blog/`，新笔记放入 `content/notes/`，支持 `.md` 和 `.html`。
 - 文件路径决定地址：`content/blog/test.md` → `/blog/?post=test`。目录迁移不改变现有线上地址。
 - `draft: true` 排除发布；本地附件和文章互链在构建时校验。

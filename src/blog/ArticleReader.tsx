@@ -3,7 +3,7 @@ import ArticleBody from '../content/reader/ArticleBody';
 import ArticleTags from '../content/ArticleTags';
 import Icon from '../components/Icon';
 import type { Article } from '../content/types';
-import { articleSectionById } from '../config/sections.mjs';
+import { blogSections } from '../config/sections.mjs';
 import ArticleMeta from '../content/ArticleMeta';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
 import { sortFromSearch } from '../content/sort';
@@ -12,7 +12,7 @@ export default function ArticleReader({ article }: { article: Article }) {
   const query = queryFromSearch(window.location.search);
   const sort = sortFromSearch(window.location.search);
   const backUrl = listingUrl(query, sort);
-  const section = articleSectionById(article.section);
+  const section = blogSections.byId(article.section);
   const inSection = blogIndex.groups.get(article.section) ?? [];
   const index = inSection.findIndex((item) => item.slug === article.slug);
   const newer = index > 0 ? inSection[index - 1] : undefined;
@@ -26,7 +26,8 @@ export default function ArticleReader({ article }: { article: Article }) {
       </a>
       <header className="reading-header">
         <p className="eyebrow">
-          {section.english} / {section.label}
+          {section.english && `${section.english} / `}
+          {section.label}
         </p>
         <h1 className="article-title">{article.title}</h1>
         <p className="reading-description">{article.description}</p>

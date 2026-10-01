@@ -4,15 +4,11 @@ import { useNoteSearch } from './useNoteSearch';
 import Icon from '../components/Icon';
 import ArticleTags from '../content/ArticleTags';
 import ArticleMeta from '../content/ArticleMeta';
-import { noteTopics } from '../config/noteTopics';
 import { articleUrl } from '../content/urls';
 import { useSearchQuery } from '../hooks/useSearchQuery';
-import { noteIndex } from './catalog';
+import { noteIndex, noteTopics } from './catalog';
 
 const noteCount = (count: number) => `${count} ${count === 1 ? 'note' : 'notes'}`;
-const visibleTopics = noteTopics.filter(
-  (topic) => topic.id !== 'other' || noteIndex.groups.has(topic.id),
-);
 
 function NoteEntry({
   note,
@@ -62,11 +58,14 @@ export default function NotesIndex() {
   const [query, setQuery] = useSearchQuery();
   const deferredQuery = useDeferredValue(query);
   const { index, pending, failed, retry } = useNoteSearch(deferredQuery);
-  const groups = useMemo(
-    () => (pending || failed ? index.groups : index.filter(deferredQuery)),
-    [index, deferredQuery, pending, failed],
-  );
-  const count = [...groups.values()].reduce((total, entries) => total + entries.length, 0);
+  const shelves = useMemo(() => {
+    const groups = pending || failed ? index.groups : index.filter(deferredQuery);
+    return noteTopics.flatMap((topic) => {
+      const entries = groups.get(topic.id);
+      return entries?.length ? [{ topic, entries }] : [];
+    });
+  }, [index, deferredQuery, pending, failed]);
+  const count = shelves.reduce((total, { entries }) => total + entries.length, 0);
   const searching = !!deferredQuery.trim();
 
   return (
@@ -106,15 +105,17 @@ export default function NotesIndex() {
             />
           </label>
         </div>
-        <nav className="note-topics" aria-label="Knowledge topics">
-          {visibleTopics.map((topic) => (
-            <a key={topic.id} href={`./#topic-${topic.id}`}>
-              <strong>{topic.label}</strong>
-              <span>{topic.description}</span>
-              <small>{noteCount(noteIndex.groups.get(topic.id)?.length ?? 0)} ↗</small>
-            </a>
-          ))}
-        </nav>
+        {shelves.length > 0 && (
+          <nav className="note-topics" aria-label="Knowledge topics">
+            {shelves.map(({ topic, entries }) => (
+              <a key={topic.id} href={topic.href}>
+                <strong>{topic.label}</strong>
+                {topic.description && <span>{topic.description}</span>}
+                <small>{noteCount(entries.length)} ↗</small>
+              </a>
+            ))}
+          </nav>
+        )}
         <div aria-live="polite" aria-busy={pending || query !== deferredQuery}>
           <p className="note-results">
             {pending
@@ -130,44 +131,40 @@ export default function NotesIndex() {
               Reload search
             </button>
           )}
-          {!pending && !failed && count === 0 && searching && (
+          {!pending && !failed && count === 0 && (
             <div className="journal-empty">
-              <h3>No matching notes</h3>
-              <p>Try another keyword or clear your search.</p>
-              <button className="button button-primary" onClick={() => setQuery('')}>
-                View all notes
-              </button>
+              <h3>{searching ? 'No matching notes' : 'No notes yet'}</h3>
+              <p>
+                {searching
+                  ? 'Try another keyword or clear your search.'
+                  : 'Room for the next discovery.'}
+              </p>
+              {searching && (
+                <button className="button button-primary" onClick={() => setQuery('')}>
+                  View all notes
+                </button>
+              )}
             </div>
           )}
           {!pending &&
             !failed &&
-            visibleTopics.map((topic) => {
-              const entries = groups.get(topic.id) ?? [];
-              if (searching && !entries.length) return null;
-              return (
-                <section
-                  className="journal-shelf"
-                  id={`topic-${topic.id}`}
-                  key={topic.id}
-                  aria-labelledby={`topic-title-${topic.id}`}
-                >
-                  <div className="journal-shelf-heading">
-                    <h3 id={`topic-title-${topic.id}`}>
-                      {topic.label}
-                      <span className="article-count">{entries.length}</span>
-                    </h3>
-                    <p>{topic.description}</p>
-                  </div>
-                  {entries.length ? (
-                    <NoteEntries entries={entries} onTag={setQuery} query={deferredQuery} />
-                  ) : (
-                    <div className="journal-shelf-empty">
-                      <p>No notes yet. Room for the next discovery.</p>
-                    </div>
-                  )}
-                </section>
-              );
-            })}
+            shelves.map(({ topic, entries }) => (
+              <section
+                className="journal-shelf"
+                id={topic.anchorId}
+                key={topic.id}
+                aria-labelledby={`title-${topic.anchorId}`}
+              >
+                <div className="journal-shelf-heading">
+                  <h3 id={`title-${topic.anchorId}`}>
+                    {topic.label}
+                    <span className="article-count">{entries.length}</span>
+                  </h3>
+                  {topic.description && <p>{topic.description}</p>}
+                </div>
+                <NoteEntries entries={entries} onTag={setQuery} query={deferredQuery} />
+              </section>
+            ))}
         </div>
       </div>
     </>

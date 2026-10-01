@@ -72,7 +72,7 @@ test('Notes and Blog stay isolated while note links and math compile within Note
   }
 });
 
-test('cached lazy modules refresh bodies and search text after a watched edit', async (t) => {
+test('watched edits refresh section metadata, lazy bodies and search text', async (t) => {
   const root = realpathSync(mkdtempSync(path.join(tmpdir(), 'alicia-lazy-edit-')));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const directory = path.join(root, 'content/blog');
@@ -94,8 +94,12 @@ test('cached lazy modules refresh bodies and search text after a watched edit', 
       (await server.transformRequest('virtual:articles/entry/note')).code,
       /Before edit/,
     );
-    writeFileSync(file, '---\ndescription: Fixed summary\n---\n# Title\n\nAfter edit.');
+    writeFileSync(
+      file,
+      '---\nsection: 读书笔记\ndescription: Fixed summary\n---\n# Title\n\nAfter edit.',
+    );
     server.watcher.emit('change', file);
+    assert.match((await server.transformRequest('virtual:articles')).code, /"section":"读书笔记"/);
     assert.match((await server.transformRequest('virtual:articles/entry/note')).code, /After edit/);
     assert.match((await server.transformRequest('virtual:articles/search')).code, /after edit/);
     await assert.rejects(
@@ -103,13 +107,15 @@ test('cached lazy modules refresh bodies and search text after a watched edit', 
       /Unknown article/,
     );
     const added = path.join(directory, 'added.md');
-    writeFileSync(added, '# Added document\n\n[Original](note.md)');
+    writeFileSync(added, '---\nsection: AI Research\n---\n# Added document\n\n[Original](note.md)');
     writeFileSync(file, '# Revised original\n\n[Added](added.md)');
     server.watcher.emit('add', added);
     server.watcher.emit('change', file);
     const updatedListing = (await server.transformRequest('virtual:articles')).code;
     assert.match(updatedListing, /Added document/);
     assert.match(updatedListing, /Revised original/);
+    assert.match(updatedListing, /"section":"AI Research"/);
+    assert.doesNotMatch(updatedListing, /读书笔记/);
     const revised = (await server.transformRequest('virtual:articles/entry/note')).code;
     assert.match(revised, /post=added/);
     assert.match(revised, /backlinks.*added/);
@@ -117,7 +123,10 @@ test('cached lazy modules refresh bodies and search text after a watched edit', 
     writeFileSync(file, '# Original without link');
     server.watcher.emit('unlink', added);
     server.watcher.emit('change', file);
-    assert.doesNotMatch((await server.transformRequest('virtual:articles')).code, /Added document/);
+    assert.doesNotMatch(
+      (await server.transformRequest('virtual:articles')).code,
+      /Added document|AI Research/,
+    );
     await assert.rejects(
       server.transformRequest('virtual:articles/entry/added'),
       /Unknown article/,

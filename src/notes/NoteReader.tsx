@@ -2,7 +2,7 @@ import Icon from '../components/Icon';
 import ArticleTags from '../content/ArticleTags';
 import ArticleMeta from '../content/ArticleMeta';
 import ArticleBody from '../content/reader/ArticleBody';
-import { topicOf } from '../config/noteTopics';
+import { noteSections } from '../config/sections.mjs';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
 import type { Article, ArticleSummary } from '../content/types';
 import { noteIndex } from './catalog';
@@ -20,7 +20,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
         {query ? 'Back to results' : 'All notes'}
       </a>
       <header className="reading-header">
-        <p className="eyebrow">KNOWLEDGE BASE / {topicOf(note).label}</p>
+        <p className="eyebrow">KNOWLEDGE BASE / {noteSections.byId(note.section).label}</p>
         <h1 className="article-title">{note.title}</h1>
         <p className="reading-description">{note.description}</p>
         <ArticleMeta article={note} readingTime="estimate" />

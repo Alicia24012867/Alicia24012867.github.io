@@ -266,23 +266,6 @@
 .journal-shelf .journal-entry:first-of-type {
   border-top: 0;
 }
-.journal-shelf-empty {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 28px 4px 8px;
-  color: #8aa4bb;
-}
-.journal-shelf-empty .icon {
-  width: 22px;
-  height: 22px;
-  color: #93b9d7;
-  stroke-width: 1;
-}
-.journal-shelf-empty p {
-  font-size: 12px;
-  line-height: 1.9;
-}
 .article-section-mark {
   color: var(--blue-strong);
 }
