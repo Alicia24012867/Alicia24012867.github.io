@@ -5,7 +5,7 @@ email: Alicia24012867@gmail.com
 date: 2026-10-02
 section: life
 description: Just as the title indicates. To summarize the past, and to make plans of the future.
-tags: [life, journal, plans]
+tags: [life, journal, plans, summary]
 ---
 
 > 现在是10月2日，早上的0点11，星期五。...(以下略去原文)[^1]
