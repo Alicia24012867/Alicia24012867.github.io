@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
+import { feedFormats } from '../src/config/feeds.mjs';
 
 const report = process.argv.includes('--report');
 const root = path.resolve(process.argv.slice(2).find((arg) => arg !== '--report') || 'dist');
@@ -34,6 +35,15 @@ for (const page of ['index.html', 'blog/index.html', 'notes/index.html', '404.ht
       total[`${type}Gzip`] += gzipSync(data).length;
     }
     sizes[page] = total;
+  }
+}
+for (const { path: pathname, type } of feedFormats) {
+  const xml = fs.readFileSync(path.join(root, pathname), 'utf8');
+  assert.ok(xml.startsWith('<?xml version="1.0"'), `Missing XML declaration: ${pathname}`);
+  for (const page of ['index.html', 'blog/index.html', 'notes/index.html', '404.html']) {
+    const html = fs.readFileSync(path.join(root, page), 'utf8');
+    assert.ok(html.includes(`type="${type}"`), `${page} does not discover ${type}`);
+    assert.ok(html.includes(`href="${pathname}"`), `${page} does not link to ${pathname}`);
   }
 }
 const notFound = fs.readFileSync(path.join(root, '404.html'), 'utf8');

@@ -311,13 +311,20 @@ h2 {
 .site-footer > p > span {
   font-size: 17px;
 }
-.site-footer > a {
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px 16px;
+}
+.footer-links a {
   font-size: var(--text-xs);
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.site-footer > a:hover {
+.footer-links a:hover {
   color: var(--blue);
 }
 .up-arrow {
@@ -428,7 +435,10 @@ h2 {
     align-items: flex-start;
     gap: 9px;
   }
-  .site-footer > a {
+  .footer-links {
+    max-width: 150px;
+  }
+  .footer-links a {
     font-size: var(--text-xs);
     margin-top: 5px;
   }

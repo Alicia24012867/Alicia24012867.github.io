@@ -70,6 +70,17 @@ docs/               撰写说明与性能记录
 - 搜索 `q` 与 Blog 排序 `sort` 保存在 URL，正文返回、翻页和反向链接保留筛选条件；刷新和新标签页打开同样有效。
 - Blog / Notes 正文末尾自动显示 Alicia 手写签名：逐笔书写、停留、逆序擦除。屏外或隐藏页签暂停；减少动态效果或打印时显示完整笔画。
 
+## RSS / Atom 订阅
+
+- RSS 2.0：[`/rss.xml`](https://alicia24012867.github.io/rss.xml)
+- Atom 1.0：[`/atom.xml`](https://alicia24012867.github.io/atom.xml)
+
+两种订阅源均包含所有已发布 Blog 文章的标题、纯文本摘要、作者、标签、发布时间和原文链接，按发布时间倒序排列，不受置顶影响；不包含草稿和 Notes。页脚提供订阅入口，所有页面的 HTML 头部都有自动发现链接。
+
+每次构建复用内容目录生成 XML，开发服务也提供相同地址并随内容修改刷新。Atom 保留文章更新时间；文章地址作为稳定 ID，改标题不会产生新条目。日期继承正文的 YAML / Git 规则，不以构建时间伪造更新；空集合仍生成有效订阅源，更新时间使用 Unix epoch。
+
+站点正式域名与订阅元信息在 `src/config/feeds.mjs` 配置，本地预览也使用正式原文地址。摘要订阅无需解析正文附件，公式和图表可通过原文链接阅读。格式依据 [RSS 2.0](https://www.rssboard.org/rss-specification) 和 [Atom RFC 4287](https://www.rfc-editor.org/rfc/rfc4287.html)。
+
 ## 运行与维护
 
 - `ContentPage` 共用查询路由、页面元信息、正文加载及错误状态；`ArticleHeader` 共用阅读页和加载状态的标题区。

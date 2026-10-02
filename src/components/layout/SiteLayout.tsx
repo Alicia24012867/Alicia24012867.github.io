@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import Icon from '../Icon';
 import SiteHeader, { type SiteSection } from './SiteHeader';
+import { feedFormats } from '../../config/feeds.mjs';
 import { profile } from '../../config/profile';
 
 const siteClasses: Record<SiteSection, string | undefined> = {
@@ -39,10 +40,17 @@ export default function SiteLayout({
         <p>
           Logic in code. Poetry in life.<span>✧</span>
         </p>
-        <a href={homeUrl}>
-          {home ? 'Back to top' : 'Back to home'}
-          <Icon name="arrow" className={home ? 'up-arrow' : undefined} />
-        </a>
+        <nav className="footer-links" aria-label="Subscribe and navigate">
+          {feedFormats.map(({ path, label, type }) => (
+            <a key={path} href={path} type={type} aria-label={`Subscribe to Blog via ${label}`}>
+              {label}
+            </a>
+          ))}
+          <a href={homeUrl}>
+            {home ? 'Back to top' : 'Back to home'}
+            <Icon name="arrow" className={home ? 'up-arrow' : undefined} />
+          </a>
+        </nav>
       </footer>
     </div>
   );

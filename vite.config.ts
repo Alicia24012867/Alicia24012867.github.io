@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
+import { blogFeed } from './src/config/feeds.mjs';
 import { articlesPlugin } from './scripts/content/plugin.mjs';
 import { notFoundPlugin } from './scripts/not-found.mjs';
 
@@ -9,7 +10,7 @@ export default defineConfig({
   plugins: [
     react(),
     notFoundPlugin(),
-    articlesPlugin(),
+    articlesPlugin({ feed: blogFeed }),
     articlesPlugin({ directory: 'content/notes', moduleId: 'virtual:notes', basePath: '/notes/' }),
   ],
   base: '/',
