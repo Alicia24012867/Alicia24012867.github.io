@@ -429,3 +429,17 @@ test('reading time preserves escaped code and ignores sanitized attributes and h
     1,
   );
 });
+
+test('word counts add Chinese characters and English words without markup', () => {
+  const count = (body, file = 'count.md') => compileArticle(body, file).wordCount;
+  assert.equal(count(''), 0);
+  assert.equal(count('。！ —'), 0);
+  assert.equal(count('字'.repeat(350)), 350);
+  assert.equal(count('𠮷'.repeat(3)), 3);
+  assert.equal(count('word '.repeat(220)), 220);
+  assert.equal(count('字'.repeat(175) + ' word'.repeat(110)), 285);
+  assert.equal(count('<p title="attribute word">word</p>', 'count.html'), 1);
+  assert.equal(count('~~~text\nword word\n~~~'), 2);
+  assert.equal(count('word[^a]\n\n[^a]: two words'), 3);
+  assert.equal(count('---\ntitle: ' + 'title '.repeat(50) + '\n---\n\nword'), 1);
+});

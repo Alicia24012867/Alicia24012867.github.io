@@ -67,6 +67,7 @@ docs/               撰写说明与性能记录
 - 路径决定地址：`content/blog/test.md` → `/blog/test/`，同时保留 `?post=test` 兼容旧链接；重命名或移动文件后需更新互链，旧地址没有自动重定向。新增或修改文章后运行 `npm run share:cards` 更新分享图。
 - `draft: true` 排除发布。元信息、附件和文章互链在构建时校验；删除文章前需检查引用。
 - 日期优先使用 YAML 的 `date` / `updated`，否则读取 Git 历史。统一显示 `Posted on`，后续编辑显示 `Edited on`。
+- 每篇自动统计字数并估算阅读时间，列表和阅读页统一显示 `x words / About x minutes' read`：中文按汉字、英文按单词，中英混排相加；规则见 [文章撰写](docs/writing.md)。
 - 专属附件放在内容目录内并使用相对路径；共享资源使用 `/images/文件名`。
 - 搜索 `q` 与 Blog 排序 `sort` 保存在 URL，正文返回、翻页和反向链接保留筛选条件；刷新和新标签页打开同样有效。
 - Blog / Notes 正文末尾自动显示 Alicia 手写签名：逐笔书写、停留、逆序擦除。屏外或隐藏页签暂停；减少动态效果或打印时显示完整笔画。

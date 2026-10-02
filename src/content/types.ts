@@ -11,6 +11,8 @@ export interface ArticleSummary {
   section: string;
   format: 'Markdown' | 'HTML';
   readingMinutes: number;
+  /** Chinese characters plus English words, as shown next to the reading estimate. */
+  wordCount: number;
   hasMath: boolean;
   /** Static share address and card, added by the content plugin when enabled. */
   share?: { path: string; image: string };

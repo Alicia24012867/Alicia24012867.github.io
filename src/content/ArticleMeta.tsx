@@ -5,12 +5,12 @@ import type { ArticleSummary } from './types';
 export default function ArticleMeta({
   article,
   showDetails = false,
-  readingTime = showDetails ? 'compact' : false,
+  readingTime = showDetails,
   collection = 'blog',
 }: {
   article: ArticleSummary;
   showDetails?: boolean;
-  readingTime?: 'compact' | 'estimate' | false;
+  readingTime?: boolean;
   collection?: Collection;
 }) {
   const section = showDetails ? blogSections.byId(article.section) : undefined;
@@ -35,12 +35,8 @@ export default function ArticleMeta({
       </span>
       {readingTime && (
         <span className="reading-time">
-          {readingTime === 'estimate'
-            ? 'About ' +
-              article.readingMinutes +
-              (article.readingMinutes === 1 ? " minute's" : " minutes'") +
-              ' read'
-            : article.readingMinutes + ' min read'}
+          {article.wordCount} {article.wordCount === 1 ? 'word' : 'words'} / About{' '}
+          {article.readingMinutes} {article.readingMinutes === 1 ? "minute's" : "minutes'"} read
         </span>
       )}
       {article.updated && (

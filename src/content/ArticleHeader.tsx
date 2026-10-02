@@ -27,7 +27,7 @@ export default function ArticleHeader({
           <ArticleMeta
             article={article}
             showDetails={showDetails}
-            readingTime="estimate"
+            readingTime
             collection={collection}
           />
           <ArticleTags article={article} collection={collection} />

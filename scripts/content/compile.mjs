@@ -3,7 +3,7 @@ import { parseArticleSource } from './metadata.mjs';
 import { renderMarkdown, restoreMath } from './markdown.mjs';
 import { createReferenceResolver } from './references.mjs';
 import { sanitizeArticleHtml, extractHeadings, decorateRichHtml } from './html.mjs';
-import { estimateReadingMinutes, plainText, slugFromFile } from './text.mjs';
+import { measureArticle, plainText, slugFromFile } from './text.mjs';
 
 /** Build-time pipeline; no Markdown parser or sanitizer is shipped to the homepage. */
 export function compileArticle(
@@ -34,7 +34,7 @@ export function compileArticle(
   const description = metadata.description || plainText(paragraph).slice(0, 140);
   // Count the complete body before code controls and duplicated math markup are added.
   html += footnotes;
-  const readingMinutes = estimateReadingMinutes(html);
+  const { wordCount, readingMinutes } = measureArticle(html);
   html = restoreMath(decorateRichHtml(html), rendered.mathHtml);
 
   return {
@@ -44,6 +44,7 @@ export function compileArticle(
     description,
     format,
     readingMinutes,
+    wordCount,
     html,
     hasMath: rendered.mathHtml.length > 0,
     headings: extracted.headings,
