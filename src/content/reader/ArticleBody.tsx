@@ -2,7 +2,7 @@ import './reader.css';
 import { useMemo, useRef } from 'react';
 import type { Article } from '../types';
 import ArticleToc from './ArticleToc';
-import ArticleSignature from './ArticleSignature';
+import HandwrittenSignature from '../../components/signature/HandwrittenSignature';
 import { useArticleReader } from './useArticleReader';
 
 export default function ArticleBody({
@@ -26,7 +26,7 @@ export default function ArticleBody({
           aria-label={label}
           dangerouslySetInnerHTML={markup}
         />
-        <ArticleSignature />
+        <HandwrittenSignature />
       </div>
       <ArticleToc headings={article.headings} activeHeading={activeHeading} />
     </div>

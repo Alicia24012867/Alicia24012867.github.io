@@ -1,0 +1,33 @@
+.handwritten-signature {
+  display: flex;
+  justify-content: flex-end;
+  width: min(100%, 145px);
+  margin: 12px 0 0 auto;
+  color: var(--heading);
+}
+
+.handwritten-signature svg {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.handwritten-signature [data-pen] {
+  stroke-dasharray: 1 2;
+  stroke-dashoffset: 1;
+  visibility: hidden;
+}
+
+.signature-static {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce), print {
+  .signature-animated {
+    display: none;
+  }
+  .signature-static {
+    display: block;
+  }
+}
