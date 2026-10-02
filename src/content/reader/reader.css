@@ -91,6 +91,8 @@
 .article-body h4,
 .article-body h5,
 .article-body h6 {
+  font-family: 'Playfair Display', 'STXingkai', 'Xingkai SC', '华文行楷', serif;
+  font-style: italic;
   color: var(--heading);
   line-height: 1.65;
   font-weight: 500;
@@ -251,7 +253,8 @@
   left: 18px;
   color: #8da5b8;
   font:
-    9px 'Outfit',
+    9px 'Avenir Next',
+    Avenir,
     sans-serif;
   letter-spacing: 1.5px;
 }

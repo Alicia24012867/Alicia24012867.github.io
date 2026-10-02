@@ -24,8 +24,9 @@
 
 /* Native text keeps titles searchable, selectable, and accessible. */
 .article-title {
-  font-family: 'Courgette', 'Ma Shan Zheng', 'Kaiti SC', STKaiti, KaiTi, cursive;
+  font-family: 'Playfair Display', 'STXingkai', 'Xingkai SC', '华文行楷', serif;
   font-weight: 400;
+  font-style: italic;
   line-height: 1.65;
   letter-spacing: normal;
   color: var(--heading);

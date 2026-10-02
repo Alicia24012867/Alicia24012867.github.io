@@ -1,7 +1,7 @@
 import mermaid from 'mermaid';
 
 const dayVariables = {
-  fontFamily: "Outfit, 'Noto Sans SC', sans-serif",
+  fontFamily: "'Avenir Next', Avenir, 'Noto Sans SC', sans-serif",
   primaryColor: '#e7f3fc',
   primaryTextColor: '#203b58',
   primaryBorderColor: '#8bbbe0',
@@ -18,7 +18,7 @@ const dayVariables = {
 };
 
 const nightVariables = {
-  fontFamily: "Outfit, 'Noto Sans SC', sans-serif",
+  fontFamily: "'Avenir Next', Avenir, 'Noto Sans SC', sans-serif",
   primaryColor: '#1d3652',
   primaryTextColor: '#dceafa',
   primaryBorderColor: '#4d79a0',
@@ -68,7 +68,7 @@ async function drawDiagrams(
     logLevel: 'error',
     theme: theme === 'night' ? 'dark' : 'base',
     themeVariables: theme === 'night' ? nightVariables : dayVariables,
-    fontFamily: "Outfit, 'Noto Sans SC', sans-serif",
+    fontFamily: "'Avenir Next', Avenir, 'Noto Sans SC', sans-serif",
     flowchart: { curve: 'basis', useMaxWidth: true },
     sequence: { useMaxWidth: true },
     suppressErrorRendering: true,
