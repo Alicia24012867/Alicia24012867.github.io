@@ -1,0 +1,28 @@
+/* Match the site's body type, spacing and controls inside the giscus iframe. */
+main {
+  font-family: 'Noto Sans SC', 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+  --color-btn-shadow: 0 0 transparent;
+  --color-btn-inset-shadow: 0 0 transparent;
+  --color-btn-primary-shadow: 0 0 transparent;
+  --color-btn-primary-inset-shadow: 0 0 transparent;
+  --color-primer-shadow-inset: 0 0 transparent;
+}
+.gsc-main {
+  background: transparent;
+}
+.gsc-comment-box-textarea {
+  border-radius: 8px;
+  line-height: 1.7;
+}
+.gsc-comment-box-buttons .btn {
+  border-radius: 8px;
+}
+.gsc-comment,
+.gsc-comment-box {
+  border-radius: 12px;
+}
+::selection {
+  background: var(--color-accent-muted);
+}

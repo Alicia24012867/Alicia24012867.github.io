@@ -1,0 +1,37 @@
+@import url('https://giscus.app/themes/dark_dimmed.css');
+@import url('./shared.css');
+
+/* Keep these aligned with the night tokens in src/styles/global.css. */
+main {
+  color-scheme: dark;
+  --color-fg-default: #b8cee2;
+  --color-fg-muted: #93abc2;
+  --color-fg-subtle: #93abc2;
+  --color-canvas-default: #111e33;
+  --color-canvas-overlay: #192b43;
+  --color-canvas-inset: #142338;
+  --color-canvas-subtle: #192b43;
+  --color-border-default: #2a3d55;
+  --color-border-muted: #2a3d55;
+  --color-accent-fg: #95cafa;
+  --color-accent-emphasis: #95cafa;
+  --color-accent-muted: #2c4967;
+  --color-accent-subtle: #1d3652;
+  --color-btn-text: #bbd3e8;
+  --color-btn-bg: #192b43;
+  --color-btn-border: #4b6c8b;
+  --color-btn-hover-bg: #2c4967;
+  --color-btn-hover-border: #95cafa;
+  --color-btn-active-bg: #2c4967;
+  --color-btn-active-border: #95cafa;
+  --color-btn-selected-bg: #1d3652;
+  --color-btn-primary-text: #142338;
+  --color-btn-primary-bg: #95cafa;
+  --color-btn-primary-border: #95cafa;
+  --color-btn-primary-hover-bg: #b8ddff;
+  --color-btn-primary-hover-border: #b8ddff;
+  --color-btn-primary-selected-bg: #b8ddff;
+  --color-btn-primary-disabled-text: #142338;
+  --color-btn-primary-disabled-bg: #6388ac;
+  --color-btn-primary-disabled-border: #6388ac;
+}

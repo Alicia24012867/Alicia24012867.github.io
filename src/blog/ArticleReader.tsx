@@ -1,5 +1,6 @@
 import { blogIndex } from './catalog';
 import ArticleBody from '../content/reader/ArticleBody';
+import ArticleComments from '../content/reader/ArticleComments';
 import ArticleHeader from '../content/ArticleHeader';
 import Icon from '../components/Icon';
 import type { Article } from '../content/types';
@@ -50,6 +51,7 @@ export default function ArticleReader({ article }: { article: Article }) {
           )}
         </nav>
       )}
+      <ArticleComments collection="blog" slug={article.slug} />
       <div className="reading-end">
         <span>✧</span>
         <p>Thanks for reading.</p>

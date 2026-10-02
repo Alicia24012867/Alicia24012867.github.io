@@ -1,6 +1,7 @@
 import Icon from '../components/Icon';
 import ArticleHeader from '../content/ArticleHeader';
 import ArticleBody from '../content/reader/ArticleBody';
+import ArticleComments from '../content/reader/ArticleComments';
 import { noteSections } from '../config/sections.mjs';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
 import type { Article, ArticleSummary } from '../content/types';
@@ -42,6 +43,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
           <p>No other notes link here yet.</p>
         )}
       </section>
+      <ArticleComments collection="notes" slug={note.slug} />
     </div>
   );
 }

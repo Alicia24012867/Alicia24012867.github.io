@@ -9,7 +9,8 @@ const report = process.argv.includes('--report');
 const root = path.resolve(process.argv.slice(2).find((arg) => arg !== '--report') || 'dist');
 const sizes = {};
 const manifest = JSON.parse(fs.readFileSync(path.join(root, '.vite/manifest.json'), 'utf8'));
-const deferred = /virtual:|ArticleReader|NoteReader|ArticleBody|renderMermaid|katex/i;
+const deferred =
+  /virtual:|ArticleReader|NoteReader|ArticleBody|ArticleComments|giscus|renderMermaid|katex/i;
 for (const page of ['index.html', 'blog/index.html', 'notes/index.html', '404.html']) {
   const visited = new Set();
   const files = new Set();
@@ -53,6 +54,11 @@ assert.doesNotMatch(sitemap, /404\.html|[?&](?:q|sort)=/);
 const robots = fs.readFileSync(path.join(root, 'robots.txt'), 'utf8');
 assert.ok(robots.includes(`Sitemap: ${new URL('/sitemap.xml', blogFeed.siteUrl).href}`));
 const notFound = fs.readFileSync(path.join(root, '404.html'), 'utf8');
+for (const theme of ['day', 'night', 'shared'])
+  assert.ok(
+    fs.existsSync(path.join(root, 'giscus', theme + '.css')),
+    'Missing comment theme: ' + theme,
+  );
 assert.match(notFound, /<meta name="robots" content="noindex"/);
 for (const match of notFound.matchAll(/(?:src|href)="([^"]+)"/g)) {
   const url = match[1];
