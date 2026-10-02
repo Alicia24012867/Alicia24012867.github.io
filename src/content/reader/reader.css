@@ -118,6 +118,21 @@
   font-size: 15px;
   margin: 23px 0 12px;
 }
+.article-body blockquote,
+.article-body a,
+.article-body summary,
+.article-body figcaption,
+.article-body th,
+.article-body td,
+.article-body mark,
+.article-body ins,
+.article-body del,
+.article-body abbr,
+.article-body .footnote-ref,
+.article-footnotes {
+  font-family: 'Playfair Display', 'STXingkai', 'Xingkai SC', '华文行楷', serif;
+  font-style: italic;
+}
 .article-body strong {
   color: var(--heading);
   font-weight: 600;
@@ -170,6 +185,7 @@
 }
 .article-body code {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-style: normal;
   font-size: 0.85em;
   background: var(--light-blue);
   color: #487aa6;

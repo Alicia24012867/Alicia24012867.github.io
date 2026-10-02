@@ -76,7 +76,7 @@ export default function NotesIndex() {
           <h1>
             Connecting the pieces<span>.</span>
           </h1>
-          <p>
+          <p className="journal-description">
             Formulas, source code, APIs, and algorithms. Learn, record, revisit.
             <br />
             The blog holds complete stories. These notes keep knowledge close at hand.

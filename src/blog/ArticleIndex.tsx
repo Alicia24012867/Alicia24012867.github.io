@@ -102,7 +102,7 @@ export default function ArticleIndex() {
             Stories of <br className="journal-mobile-break" />
             discovery<span>.</span>
           </h1>
-          <p>
+          <p className="journal-description">
             Ideas from code, moments of understanding,
             <br />
             and everyday memories worth keeping.

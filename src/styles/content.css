@@ -33,6 +33,26 @@
   overflow-wrap: anywhere;
 }
 
+.journal-hero h1,
+.journal-list-heading h2,
+.journal-shelf-heading h3,
+.journal-entry h3,
+.note-entry h3,
+.journal-empty h3,
+.missing-article h1,
+.reading-header h1 {
+  font-family: 'Playfair Display', 'STXingkai', 'Xingkai SC', '华文行楷', serif;
+  font-style: italic;
+}
+.reading-description {
+  font-family: 'Playfair Display', 'STXingkai', 'Xingkai SC', '华文行楷', serif;
+  font-style: italic;
+}
+.journal-description {
+  font-family: 'Playfair Display', 'STXingkai', 'Xingkai SC', '华文行楷', serif;
+  font-style: italic;
+}
+
 .back-arrow {
   transform: rotate(180deg);
 }
