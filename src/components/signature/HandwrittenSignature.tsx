@@ -1,6 +1,5 @@
 import { memo, useEffect, useId, useRef } from 'react';
 import { strokes } from './signature-strokes';
-import { allura } from './allura-paths';
 import { strokeKeyframes } from './signature-motion';
 import './signature.css';
 
@@ -76,7 +75,7 @@ function HandwrittenSignature() {
               maskUnits="userSpaceOnUse"
               x="-50"
               y="-120"
-              width="1050"
+              width="1400"
               height="800"
             >
               <path
@@ -103,8 +102,12 @@ function HandwrittenSignature() {
           ))}
         </g>
         <g className="signature-static" transform="scale(1 -1)" fill="currentColor">
-          {(['A', 'l', 'i', 'c', 'i', 'a', 'dot', 'dot'] as const).map((glyph, index) => (
-            <path key={index} d={allura[glyph]} transform={`translate(${positions[index]} 0)`} />
+          {strokes.map((stroke, index) => (
+            <path
+              key={index}
+              d={stroke.outline}
+              transform={`translate(${positions[stroke.letter]} 0)`}
+            />
           ))}
         </g>
       </svg>

@@ -1,17 +1,21 @@
-// Original Allura contours split into physical pen strokes.
+// Allura contours split into physical pen strokes, with a smooth A/l join.
 // Crossing strokes share intersection ink without exposing neighbouring branches.
 // The letter bodies flow A → l → i → c → i → a; the A crossbar and i dots
 // are added after lifting the pen. Fine c/a entry strokes stay inside Allura ink.
 // Small overlaps follow shared joins, rather than restarting behind the pen.
-// Durations and endpoint slopes follow physical pen speed in font units.
+// Large A/l strokes take a measured pace; the smaller letters flow faster.
+// Turns ease down, while the crossbar and quick dots follow brief pen lifts.
+// Endpoint slopes match physical pen speed in font units across joined strokes.
 // signature-motion turns these slopes into acceleration-continuous quintic motion.
 // Keep the a bowl and returning diagonal separate to avoid a stray upper dot.
+// A's downstroke and l's ascent share one outline and mask so the join never
+// acquires a fresh round cap or jumps ahead when crossing the letter boundary.
 export const strokes = [
   {
     letter: 0,
-    start: 0.3,
-    end: 0.9088,
-    easing: [0.333333, 0.0, 0.666667, 0.798247],
+    start: 0.35,
+    end: 1.17,
+    easing: [0.333333, 0, 0.666667, 0.787335],
     width: 100,
     d: 'M22 38 C-5 -88 184 -94 298 -12 C470 104 653 366 826 585',
     outline:
@@ -19,29 +23,19 @@ export const strokes = [
   },
   {
     letter: 0,
-    start: 0.9088,
-    end: 1.3865,
-    easing: [0.333333, 0.201754, 0.666667, 0.649124],
+    start: 1.17,
+    end: 2.1,
+    easing: [0.333333, 0.196905, 0.666667, 0.704643],
     width: 100,
-    d: 'M826 585 C768 480 700 312 663 124 C634 -35 718 -33 810 61 Q868 111 907 157',
+    d: 'M826 585 C768 480 700 312 663 124 C634 -35 718 -33 810 61 C856 110 907 130 943 160 C1051 250 1181 376 1251 523',
     outline:
-      'M857 579Q807 494 771.5 405.0Q736 316 709 222L703 197Q688 142 682 83Q681 78 681.0 73.5Q681 69 681 64Q681 7 712 7Q732 7 759.5 25.0Q787 43 815.5 69.0Q844 95 867.0 120.5Q890 146 901 161Q903 163 907 163Q917 163 913 152Q911 149 896.0 128.5Q881 108 855.0 79.5Q829 51 794 23Q766 1 738.5 -5.5Q711 -12 697 -12Q669 -12 652.5 13.5Q636 39 636 79Q636 108 642.0 139.0Q648 170 656 201L660 220Q678 290 702.5 360.5Q727 431 751 489L756 501L794 580Q795 583 798 584Q800 586 801 586Q812 592 829.0 596.5Q846 601 852 601Q862 601 862 590Q862 587 857 579Z',
+      'M857 579Q807 494 771.5 405.0Q736 316 709 222L703 197Q688 142 682 83Q681 78 681.0 73.5Q681 69 681 64Q681 7 712 7Q732 7 759.5 25.0Q787 43 815.5 69.0Q844 95 867.0 120.5C890 146 912 154 950 180Q988 206 1029 247.5Q1070 289 1109.5 338Q1149 387 1181.5 435Q1214 483 1234 522L1260 503Q1199 397 1114.5 307Q1030 217 936 140C899 110 882 108 855 79.5Q829 51 794 23Q766 1 738.5 -5.5Q711 -12 697 -12Q669 -12 652.5 13.5Q636 39 636 79Q636 108 642.0 139.0Q648 170 656 201L660 220Q678 290 702.5 360.5Q727 431 751 489L756 501L794 580Q795 583 798 584Q800 586 801 586Q812 592 829.0 596.5Q846 601 852 601Q862 601 862 590Q862 587 857 579Z',
   },
   {
     letter: 1,
-    start: 1.3865,
-    end: 1.6189,
-    easing: [0.333333, 0.303087, 0.666667, 0.742375],
-    width: 100,
-    d: 'M60 157 C177 208 325 357 404 523',
-    outline:
-      'M60 150 L89 140 Q183 217 267.5 307 Q352 397 413 503 L387 522 Q367 483 334.5 435 Q302 387 262.5 338 Q223 289 182 247.5 Q141 206 103 180 L60 163 Z',
-  },
-  {
-    letter: 1,
-    start: 1.6189,
-    end: 2.1611,
-    easing: [0.333333, 0.276404, 0.666667, 0.658559],
+    start: 2.1,
+    end: 2.77,
+    easing: [0.333333, 0.271227, 0.666667, 0.618273],
     width: 100,
     d: 'M404 523 C467 645 317 603 235 489 C153 382 71 195 55 87 C35 -50 139 -14 211 63 Q259 107 295 156',
     outline:
@@ -49,9 +43,9 @@ export const strokes = [
   },
   {
     letter: 2,
-    start: 2.1361,
-    end: 2.206,
-    easing: [0.333333, 0.318225, 0.666667, 0.749966],
+    start: 2.745,
+    end: 2.82,
+    easing: [0.333333, 0.308924, 0.666667, 0.780501],
     width: 36,
     d: 'M18 104 Q61 154 101 233',
     outline:
@@ -59,9 +53,9 @@ export const strokes = [
   },
   {
     letter: 2,
-    start: 2.206,
-    end: 2.4742,
-    easing: [0.333333, 0.261949, 0.666667, 0.66661],
+    start: 2.82,
+    end: 3.12,
+    easing: [0.333333, 0.239729, 0.666667, 0.662604],
     width: 100,
     d: 'M137 275 C115 215 65 118 60 63 C46 -45 153 3 215 71 Q262 120 284 156',
     outline:
@@ -69,9 +63,9 @@ export const strokes = [
   },
   {
     letter: 3,
-    start: 2.4542,
-    end: 2.5898,
-    easing: [0.333333, 0.269188, 0.666667, 0.83336],
+    start: 3.1,
+    end: 3.26,
+    easing: [0.333333, 0.287374, 0.666667, 0.841188],
     width: 22,
     d: 'M58 156 Q150 260 237 282 Q300 309 308 268 Q301 239 299 224',
     outline:
@@ -79,9 +73,9 @@ export const strokes = [
   },
   {
     letter: 3,
-    start: 2.5898,
-    end: 3.011,
-    easing: [0.333333, 0.206356, 0.666667, 0.666655],
+    start: 3.26,
+    end: 3.74,
+    easing: [0.333333, 0.18993, 0.666667, 0.656318],
     width: 100,
     d: 'M299 224 C352 365 144 255 60 130 C-55 -52 203 -41 303 79 Q345 118 375 157',
     outline:
@@ -89,9 +83,9 @@ export const strokes = [
   },
   {
     letter: 4,
-    start: 2.986,
-    end: 3.0559,
-    easing: [0.333333, 0.318225, 0.666667, 0.749966],
+    start: 3.715,
+    end: 3.79,
+    easing: [0.333333, 0.308924, 0.666667, 0.780501],
     width: 36,
     d: 'M18 104 Q61 154 101 233',
     outline:
@@ -99,9 +93,9 @@ export const strokes = [
   },
   {
     letter: 4,
-    start: 3.0559,
-    end: 3.3241,
-    easing: [0.333333, 0.261949, 0.666667, 0.66661],
+    start: 3.79,
+    end: 4.09,
+    easing: [0.333333, 0.239729, 0.666667, 0.662604],
     width: 100,
     d: 'M137 275 C115 215 65 118 60 63 C46 -45 153 3 215 71 Q262 120 284 156',
     outline:
@@ -109,9 +103,9 @@ export const strokes = [
   },
   {
     letter: 5,
-    start: 3.3041,
-    end: 3.4424,
-    easing: [0.333333, 0.269242, 0.666667, 0.826916],
+    start: 4.07,
+    end: 4.235,
+    easing: [0.333333, 0.290627, 0.666667, 0.83939],
     width: 22,
     d: 'M59 156 Q156 260 264 289 Q335 306 365 262',
     outline:
@@ -119,9 +113,9 @@ export const strokes = [
   },
   {
     letter: 5,
-    start: 3.4424,
-    end: 3.711,
-    easing: [0.333333, 0.214254, 0.666667, 0.714328],
+    start: 4.235,
+    end: 4.545,
+    easing: [0.333333, 0.192321, 0.666667, 0.725256],
     width: 100,
     d: 'M365 262 C310 351 123 237 50 132 C-19.120 22.560 23.734 -1.344 79.279 14.752',
     outline:
@@ -129,9 +123,9 @@ export const strokes = [
   },
   {
     letter: 5,
-    start: 3.711,
-    end: 3.8618,
-    easing: [0.333333, 0.266636, 0.666667, 0.80743],
+    start: 4.545,
+    end: 4.725,
+    easing: [0.333333, 0.265221, 0.666667, 0.823186],
     width: 100,
     d: 'M79.279 14.752 C100.880 21.011 124.400 33.320 144 49 Q246 137 343 225',
     outline:
@@ -139,9 +133,9 @@ export const strokes = [
   },
   {
     letter: 5,
-    start: 3.8618,
-    end: 4.1297,
-    easing: [0.333333, 0.22809, 0.666667, 1.0],
+    start: 4.725,
+    end: 5.065,
+    easing: [0.333333, 0.222668, 0.666667, 1],
     width: 100,
     d: 'M350 228 C305 155 275 75 293 31 C323 -49 437 51 516 157',
     outline:
@@ -149,9 +143,9 @@ export const strokes = [
   },
   {
     letter: 0,
-    start: 4.3097,
-    end: 4.6949,
-    easing: [0.333333, 0.0, 0.666667, 1.0],
+    start: 5.315,
+    end: 5.775,
+    easing: [0.333333, 0, 0.666667, 1],
     width: 100,
     d: 'M143 110 C84 250 213 282 337 256 C490 239 715 162 808 214 Q830 222 841 244',
     outline:
@@ -159,9 +153,9 @@ export const strokes = [
   },
   {
     letter: 6,
-    start: 4.8149,
-    end: 4.94,
-    easing: [0.333333, 0.0, 0.666667, 1.0],
+    start: 5.955,
+    end: 6.05,
+    easing: [0.333333, 0, 0.666667, 1],
     width: 60,
     d: 'M234 421 Q208 383 176 365',
     outline:
@@ -169,9 +163,9 @@ export const strokes = [
   },
   {
     letter: 7,
-    start: 5.06,
-    end: 5.1851,
-    easing: [0.333333, 0.0, 0.666667, 1.0],
+    start: 6.18,
+    end: 6.275,
+    easing: [0.333333, 0, 0.666667, 1],
     width: 60,
     d: 'M234 421 Q208 383 176 365',
     outline:
