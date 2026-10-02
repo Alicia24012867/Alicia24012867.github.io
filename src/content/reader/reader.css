@@ -1,4 +1,6 @@
 .article-toc {
+  font-family: 'Playfair Display', 'STXingkai', 'Xingkai SC', '华文行楷', serif;
+  font-style: italic;
   position: sticky;
   top: 112px;
   min-width: 0;
