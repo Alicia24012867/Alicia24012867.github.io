@@ -115,6 +115,14 @@ export function articleCard(
   };
 }
 
+/** Listing entries carry their card so client-rendered routes can update their own preview. */
+export function summaryShare(article, basePath, { publicRoot, sky = skyDigest(publicRoot) } = {}) {
+  return {
+    path: sharePath(basePath, article.slug),
+    image: articleCard(article, basePath, { publicRoot, sky }).url,
+  };
+}
+
 export function requireCard(article, basePath, options) {
   const card = articleCard(article, basePath, options);
   if (!fs.existsSync(card.file))

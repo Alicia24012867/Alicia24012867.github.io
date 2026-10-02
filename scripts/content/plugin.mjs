@@ -3,16 +3,20 @@ import { buildArticleCatalog } from './catalog.mjs';
 import { articleModule, listingModule, searchModule } from './modules.mjs';
 import { renderFeeds } from './feeds.mjs';
 import { feedFormats } from '../../src/config/feeds.mjs';
+import { summaryShare, skyDigest } from '../share/spec.mjs';
 
-/** @param {{ directory?: string, moduleId?: string, basePath?: string, feed?: typeof import('../../src/config/feeds.mjs').blogFeed }} options */
+/** @param {{ directory?: string, moduleId?: string, basePath?: string, feed?: typeof import('../../src/config/feeds.mjs').blogFeed, share?: boolean }} options */
 export function articlesPlugin({
   directory = 'content/blog',
   moduleId = 'virtual:articles',
   basePath = '/blog/',
   feed,
+  share = false,
 } = {}) {
   const resolvedId = `\0${moduleId}`;
+  let root;
   let articleRoot;
+  let shareCards;
   let catalog;
   let feeds;
   let bySlug;
@@ -38,6 +42,16 @@ export function articlesPlugin({
         cache: compiled,
         changedFiles,
       });
+      // Static share pages are built by site-share; listing entries carry the same
+      // card so a client-rendered route can update its own preview.
+      if (share) {
+        shareCards ??= {
+          publicRoot: path.resolve(root, 'public'),
+          sky: skyDigest(path.resolve(root, 'public')),
+        };
+        for (const article of catalog.articles)
+          article.share = summaryShare(article, basePath, shareCards);
+      }
       changedFiles = new Set();
       bySlug = new Map(catalog.articles.map((article) => [article.slug, article]));
       assetsByMarker = new Map([...catalog.assets].map(([file, marker]) => [marker, file]));
@@ -50,6 +64,7 @@ export function articlesPlugin({
     name: `local-${directory}`,
     api: { basePath, readCatalog },
     configResolved(config) {
+      root = config.root;
       articleRoot = path.resolve(config.root, directory);
     },
     buildStart() {

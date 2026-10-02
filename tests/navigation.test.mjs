@@ -8,6 +8,7 @@ import {
   queryFromSearch,
   slugFromLocation,
 } from '../src/content/urls.ts';
+import { contentPageMeta } from '../src/content/meta.ts';
 
 test('articles use their own static address while list filters stay in the query string', () => {
   assert.equal(articlePath('blog', 'test'), '/blog/test/');
@@ -78,5 +79,82 @@ test('the static path decides the document while ?post= links keep working', () 
   assert.equal(
     absoluteUrl('/blog/moments/', 'https://alicia24012867.github.io'),
     'https://alicia24012867.github.io/blog/moments/',
+  );
+});
+test('both addresses of one document share its canonical and card', () => {
+  const summary = {
+    slug: 'nested/中文 note',
+    title: 'A < B',
+    description: 'Summary',
+    date: '2026-01-02',
+    updated: '',
+    pin: false,
+    author: 'Alicia',
+    tags: [],
+    section: 'life',
+    format: 'Markdown',
+    readingMinutes: 2,
+    hasMath: false,
+    share: {
+      path: '/blog/nested/中文 note/',
+      image: '/images/share/blog/nested/中文 note.abc.jpg',
+    },
+  };
+  const titles = {
+    listing: 'Blog · Alicia',
+    missing: 'Post not found · Alicia Blog',
+    suffix: ' · Alicia Blog',
+  };
+  const options = {
+    section: 'blog',
+    slug: 'nested/中文 note',
+    summary,
+    titles,
+    description: 'List description',
+    origin: 'https://example.com',
+  };
+  const meta = contentPageMeta(options);
+  assert.deepEqual(meta, {
+    title: 'A < B · Alicia Blog',
+    description: 'Summary',
+    canonical: 'https://example.com/blog/nested/%E4%B8%AD%E6%96%87%20note/',
+    image: 'https://example.com/images/share/blog/nested/%E4%B8%AD%E6%96%87%20note.abc.jpg',
+    imageAlt: 'Share card for A < B',
+  });
+  assert.deepEqual(
+    contentPageMeta({ ...options, slug: 'nested/中文 note' }),
+    meta,
+    'a ?post= address keeps the same head',
+  );
+  assert.deepEqual(
+    contentPageMeta({
+      section: 'notes',
+      titles,
+      description: 'List description',
+      origin: 'https://example.com',
+    }),
+    {
+      title: 'Blog · Alicia',
+      description: 'List description',
+      canonical: 'https://example.com/notes/',
+    },
+  );
+  assert.deepEqual(
+    contentPageMeta({
+      section: 'blog',
+      slug: 'gone',
+      titles,
+      description: 'List description',
+      origin: 'https://example.com',
+    }),
+    {
+      title: 'Post not found · Alicia Blog',
+      description: 'List description',
+      canonical: 'https://example.com/blog/',
+    },
+  );
+  assert.equal(
+    contentPageMeta({ ...options, summary: { ...summary, share: undefined } }).image,
+    undefined,
   );
 });

@@ -9,10 +9,14 @@ export function usePageMeta({
   title,
   description,
   canonical,
+  image,
+  imageAlt,
 }: {
   title: string;
   description: string;
   canonical?: string;
+  image?: string;
+  imageAlt?: string;
 }) {
   useEffect(() => {
     document.title = title;
@@ -25,5 +29,13 @@ export function usePageMeta({
       setMeta('meta[property="og:url"]', canonical);
       document.querySelector('link[rel="canonical"]')?.setAttribute('href', canonical);
     }
-  }, [title, description, canonical]);
+    if (image) {
+      setMeta('meta[property="og:image"]', image);
+      setMeta('meta[name="twitter:image"]', image);
+      if (imageAlt) {
+        setMeta('meta[property="og:image:alt"]', imageAlt);
+        setMeta('meta[name="twitter:image:alt"]', imageAlt);
+      }
+    }
+  }, [title, description, canonical, image, imageAlt]);
 }

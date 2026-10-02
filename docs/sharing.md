@@ -14,6 +14,7 @@
 - `src/config/sharing.mjs` 是唯一的地址生成规则，站点导航、构建期静态页、sitemap、订阅源和正文互链共用它；三个使用方的实现不会各自漂移。
 - 构建为每篇文档输出真实的 `<集合>/<地址>/index.html`；开发服务器提供相同地址并随内容修改刷新，未知地址返回 `dist/404.html`。
 - 旧的 `/blog/?post=<地址>` 与 `/notes/?post=<地址>` 继续可用，`canonical` 指向静态地址，页脚链接、订阅源和旧书签不会失效；`q`、`sort` 仍保留列表筛选。
+- 两种地址的头部一致：列表条目带有该篇的静态地址与卡片路径（`share: { path, image }`），客户端渲染时更新 `canonical`、`og:url`、`og:image`、`og:image:alt`、`twitter:image` 与 `twitter:image:alt`；条目缺少卡片信息时保留入口 HTML 里的首页分享图。
 
 ## 静态页内容
 

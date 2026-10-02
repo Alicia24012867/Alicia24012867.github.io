@@ -325,3 +325,30 @@ for (const mode of ['development', 'preview']) {
     assert.doesNotMatch(await post.text(), /<h1>404/);
   });
 }
+
+test('listing entries expose their static address and card when sharing is enabled', async (t) => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), 'alicia-share-meta-')));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(path.join(root, 'content/blog'), { recursive: true });
+  mkdirSync(path.join(root, 'public/images'), { recursive: true });
+  writeFileSync(path.join(root, 'public/images/summer-sky.webp'), 'sky bytes');
+  writeFileSync(path.join(root, 'content/blog/post.md'), '---\ntitle: Card post\n---\n\nBody');
+  const listing = async (plugin) => {
+    const server = await createServer({
+      root,
+      configFile: false,
+      plugins: [plugin],
+      server: { middlewareMode: true, hmr: false, ws: false, watch: null },
+      optimizeDeps: { noDiscovery: true, include: [] },
+    });
+    t.after(() => server.close());
+    return (await server.transformRequest('virtual:articles')).code;
+  };
+  const shared = await listing(articlesPlugin({ share: true }));
+  assert.match(
+    shared,
+    /"share":\{"path":"\/blog\/post\/","image":"\/images\/share\/blog\/post\.[0-9a-f]{10}\.jpg"\}/,
+  );
+  assert.doesNotMatch(shared, /ALICIA_ARTICLE_ASSET|begin edit/);
+  assert.doesNotMatch(await listing(articlesPlugin()), /"share"/);
+});

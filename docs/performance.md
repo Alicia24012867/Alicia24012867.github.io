@@ -146,13 +146,13 @@ node --experimental-strip-types scripts/benchmark-search.mjs --compare-ref 716af
 
 - 静态分享页由入口 HTML 外壳克隆后替换标题、摘要、`canonical`、`og:*`、`twitter:*` 与 `article:*` 标签：生产构建中每页约 3.7 KB，比列表入口（3.1 KB）只多几百字节；客户端不新增请求，也不下载分享图。
 - 生成逻辑不引入运行时依赖：地址规则复用 `src/config/sharing.mjs`，构建插件在 `generateBundle` 中产出静态文件，开发服务器用同一函数返回相同 HTML。
-- 初始 JavaScript gzip 比上一轮增加约 400–500 字节（Blog 68,541 → 69,090，Home 67,976 → 68,340），来自静态路由判断与页面元信息更新；CSS 与按需加载边界不变。
+- 初始 JavaScript gzip 比上一轮增加约 400–700 字节（Blog 68,541 → 69,266，Home 67,976 → 68,340），来自静态路由判断、页面元信息更新，以及列表条目携带的静态地址与卡片路径（每篇约 90 字节）；CSS 与按需加载边界不变。
 
 | 页面  | JavaScript |   CSS |
 | ----- | ---------: | ----: |
 | Home  |     68,340 | 8,342 |
-| Blog  |     69,090 | 5,318 |
-| Notes |     69,031 | 5,318 |
+| Blog  |     69,266 | 5,318 |
+| Notes |     69,177 | 5,318 |
 | 404   |     63,900 | 3,453 |
 
 ### 验证

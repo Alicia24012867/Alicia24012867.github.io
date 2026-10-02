@@ -12,6 +12,8 @@ export interface ArticleSummary {
   format: 'Markdown' | 'HTML';
   readingMinutes: number;
   hasMath: boolean;
+  /** Static share address and card, added by the content plugin when enabled. */
+  share?: { path: string; image: string };
 }
 
 export interface ArticleBody {

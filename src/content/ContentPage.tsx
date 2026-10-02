@@ -3,15 +3,8 @@ import SiteLayout from '../components/layout/SiteLayout';
 import Icon from '../components/Icon';
 import ArticleHeader from './ArticleHeader';
 import { usePageMeta } from '../hooks/usePageMeta';
-import {
-  absoluteUrl,
-  articlePath,
-  collectionBase,
-  listingUrl,
-  queryFromSearch,
-  slugFromLocation,
-  type Collection,
-} from './urls';
+import { contentPageMeta } from './meta';
+import { listingUrl, queryFromSearch, slugFromLocation, type Collection } from './urls';
 import { sortFromSearch } from './sort';
 import type { Article, ArticleBody, ArticleSummary } from './types';
 
@@ -39,11 +32,8 @@ export default function ContentPage({
 }) {
   const slug = slugFromLocation(section);
   const summary = slug ? bySlug.get(slug) : undefined;
-  usePageMeta({
-    title: summary ? summary.title + titles.suffix : slug ? titles.missing : titles.listing,
-    description: summary?.description || description,
-    canonical: absoluteUrl(summary ? articlePath(section, summary.slug) : collectionBase[section]),
-  });
+  // Both addresses of one document share the same title, canonical and share card.
+  usePageMeta(contentPageMeta({ section, slug, summary, titles, description }));
   const kind = section === 'blog' ? 'post' : 'note';
   return (
     <SiteLayout section={section}>

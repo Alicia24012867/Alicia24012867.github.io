@@ -81,7 +81,7 @@ content/blog/2026/note.md                    → /blog/2026/note/
 content/notes/source/ta_timestep_control.md  → /notes/source/ta_timestep_control/
 ```
 
-静态页复制入口外壳（同一份脚本、样式、订阅发现与主题设置），并逐篇写入 `canonical`、`og:title`、`og:description`、`og:type=article`、`og:url`、`og:image`、`twitter:card=summary_large_image` 以及 `article:published_time`、`article:modified_time`、`article:author`、`article:section`、`article:tag`；`<noscript>` 显示标题、摘要与原文链接。首页与两个列表页使用首页分享图，并写入各自的 `canonical` 与 `og:url`。
+静态页复制入口外壳（同一份脚本、样式、订阅发现与主题设置），并逐篇写入 `canonical`、`og:title`、`og:description`、`og:type=article`、`og:url`、`og:image`、`twitter:card=summary_large_image` 以及 `article:published_time`、`article:modified_time`、`article:author`、`article:section`、`article:tag`；`<noscript>` 显示标题、摘要与原文链接。首页与两个列表页使用首页分享图，并写入各自的 `canonical` 与 `og:url`。旧的 `?post=` 地址同样会带上这篇文章的卡片：列表数据里带有该篇的静态地址与卡片路径，客户端渲染时同步 `canonical`、`og:image`、`twitter:image` 与对应 `alt`，所以两种地址的分享预览保持一致。
 
 分享图沿用蓝天主视觉：`public/images/summer-sky.webp` 顶部对齐裁切后叠加首页同款渐变与配色，标题使用站点的衬线字体回退链。文件位于 `public/images/share/<集合>/<地址>.<摘要>.jpg`，摘要由标题、摘要、日期、编辑时间、分区、卡片版本和蓝天图片内容决定，任何一项变化都会生成新文件名。
 

@@ -7,11 +7,12 @@ import { notFoundPlugin } from './scripts/not-found.mjs';
 import { sitemapPlugin } from './scripts/content/sitemap.mjs';
 import { sharePlugin } from './scripts/content/share.mjs';
 
-const blog = articlesPlugin({ feed: blogFeed });
+const blog = articlesPlugin({ feed: blogFeed, share: true });
 const notes = articlesPlugin({
   directory: 'content/notes',
   moduleId: 'virtual:notes',
   basePath: '/notes/',
+  share: true,
 });
 
 // This repository is deployed as a GitHub User Page at the domain root.
