@@ -3,7 +3,7 @@ import Icon from '../Icon';
 import ThemeToggle from '../ThemeToggle';
 import { profile } from '../../config/profile';
 import { friendLinks, homepageLinks } from '../../config/links';
-import { listingUrl, queryFromSearch } from '../../content/urls';
+import { listingUrl, queryFromSearch, slugFromLocation } from '../../content/urls';
 import { sortFromSearch } from '../../content/sort';
 import './site-header.css';
 
@@ -28,7 +28,16 @@ export default function SiteHeader({ section }: { section: SiteSection }) {
   const header = useRef<HTMLElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const query = queryFromSearch(window.location.search);
-  const reading = new URLSearchParams(window.location.search).has('post');
+  // A document page returns to its own list, keeping the active filters.
+  const collection = section === 'blog' || section === 'notes' ? section : undefined;
+  const sectionList = collection
+    ? listingUrl(
+        collection,
+        query,
+        collection === 'blog' ? sortFromSearch(window.location.search) : 'newest',
+      )
+    : undefined;
+  const reading = collection ? !!slugFromLocation(collection) : false;
 
   useEffect(() => {
     if (section !== 'home') return;
@@ -111,14 +120,7 @@ export default function SiteHeader({ section }: { section: SiteSection }) {
           {pages.map((page) => (
             <a
               key={page.id}
-              href={
-                page.id === section && reading
-                  ? listingUrl(
-                      query,
-                      section === 'blog' ? sortFromSearch(window.location.search) : 'newest',
-                    )
-                  : page.href
-              }
+              href={page.id === section && reading && sectionList ? sectionList : page.href}
               aria-current={page.id === section ? 'page' : undefined}
               onClick={() => setMenuOpen(false)}
             >

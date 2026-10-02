@@ -1,33 +1,82 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { articleUrl, listingUrl, queryFromSearch } from '../src/content/urls.ts';
+import {
+  absoluteUrl,
+  articlePath,
+  articleUrl,
+  listingUrl,
+  queryFromSearch,
+  slugFromLocation,
+} from '../src/content/urls.ts';
 
-test('article and return links preserve exact filters across collections and reloads', () => {
+test('articles use their own static address while list filters stay in the query string', () => {
+  assert.equal(articlePath('blog', 'test'), '/blog/test/');
+  assert.equal(
+    articlePath('notes', 'nested/中文 note'),
+    '/notes/nested/%E4%B8%AD%E6%96%87%20note/',
+  );
   for (const collection of ['blog', 'notes']) {
     for (const query of ['stream', '站点记录', ' C++ & GPU? #1 / 100% ', '']) {
-      const list = `https://example.com/${collection}/`;
-      const reader = new URL(articleUrl('nested/中文 note', query), list);
-      assert.equal(reader.searchParams.get('post'), 'nested/中文 note');
+      const reader = new URL(
+        articleUrl(collection, 'nested/中文 note', query),
+        'https://example.com/' + collection + '/',
+      );
+      assert.equal(reader.pathname, '/' + collection + '/nested/%E4%B8%AD%E6%96%87%20note/');
       assert.equal(queryFromSearch(reader.search), query);
+      assert.equal(reader.searchParams.has('post'), false);
       reader.hash = '#section-heading';
-      const back = new URL(listingUrl(queryFromSearch(reader.search)), reader);
-      assert.equal(back.pathname, `/${collection}/`);
+      const back = new URL(listingUrl(collection, queryFromSearch(reader.search)), reader);
+      assert.equal(back.pathname, '/' + collection + '/');
       assert.equal(queryFromSearch(back.search), query);
-      assert.equal(back.searchParams.has('post'), false);
       assert.equal(back.hash, '');
-      const next = new URL(articleUrl('another', queryFromSearch(reader.search)), reader);
+      const next = new URL(
+        articleUrl(collection, 'another', queryFromSearch(reader.search)),
+        reader,
+      );
+      assert.equal(next.pathname, '/' + collection + '/another/');
       assert.equal(queryFromSearch(next.search), query);
     }
   }
 });
 
-test('direct article links return to the collection and never trust external return URLs', () => {
-  assert.equal(articleUrl('test'), '?post=test');
-  assert.equal(listingUrl(queryFromSearch('?post=test&returnTo=https://external.invalid/')), './');
+test('filters and sorting stay in the address without trusting external return URLs', () => {
+  assert.equal(articleUrl('blog', 'test', '', 'oldest'), '/blog/test/?sort=oldest');
+  assert.equal(listingUrl('blog', 'gpu'), '/blog/?q=gpu');
+  assert.equal(
+    listingUrl('notes', queryFromSearch('?post=test&returnTo=https://external.invalid/')),
+    '/notes/',
+  );
   const query = 'https://external.invalid/?post=other#fragment';
-  const back = new URL(listingUrl(query), 'https://example.com/notes/?post=test');
-  assert.equal(back.origin, 'https://example.com');
-  assert.equal(back.pathname, '/notes/');
-  assert.equal(queryFromSearch(back.search), query);
-  assert.equal(back.hash, '');
+  const kept = new URL(listingUrl('notes', query), 'https://example.com/notes/test/');
+  assert.equal(kept.origin, 'https://example.com');
+  assert.equal(kept.pathname, '/notes/');
+  assert.equal(queryFromSearch(kept.search), query);
+  assert.equal(kept.hash, '');
+});
+
+test('the static path decides the document while ?post= links keep working', () => {
+  assert.equal(slugFromLocation('blog', { pathname: '/blog/moments/', search: '' }), 'moments');
+  assert.equal(
+    slugFromLocation('notes', { pathname: '/notes/source/ta_timestep_control/', search: '' }),
+    'source/ta_timestep_control',
+  );
+  assert.equal(
+    slugFromLocation('notes', { pathname: '/notes/source/%E4%B8%AD%E6%96%87/', search: '' }),
+    'source/中文',
+  );
+  assert.equal(slugFromLocation('blog', { pathname: '/blog/', search: '' }), undefined);
+  assert.equal(
+    slugFromLocation('blog', { pathname: '/blog/', search: '?post=legacy&q=gpu' }),
+    'legacy',
+  );
+  assert.equal(
+    slugFromLocation('blog', { pathname: '/blog/moments/', search: '?post=other' }),
+    'moments',
+  );
+  assert.equal(slugFromLocation('notes', { pathname: '/blog/moments/', search: '' }), undefined);
+  assert.equal(slugFromLocation('blog', { pathname: '/blog/%E0%A4%A/', search: '' }), undefined);
+  assert.equal(
+    absoluteUrl('/blog/moments/', 'https://alicia24012867.github.io'),
+    'https://alicia24012867.github.io/blog/moments/',
+  );
 });

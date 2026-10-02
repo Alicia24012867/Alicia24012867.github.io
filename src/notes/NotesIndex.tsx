@@ -23,7 +23,7 @@ function NoteEntry({
     <article className="note-entry">
       <div>
         <h3 className="article-title">
-          <a href={articleUrl(note.slug, query)}>{note.title}</a>
+          <a href={articleUrl('notes', note.slug, query)}>{note.title}</a>
         </h3>
         <p>{note.description}</p>
         <ArticleMeta article={note} />
@@ -31,7 +31,7 @@ function NoteEntry({
       </div>
       <a
         className="journal-read"
-        href={articleUrl(note.slug, query)}
+        href={articleUrl('notes', note.slug, query)}
         aria-label={`Read: ${note.title}`}
       >
         <Icon name="arrow" />

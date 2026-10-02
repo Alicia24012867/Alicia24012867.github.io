@@ -10,7 +10,7 @@ import { sortFromSearch } from '../content/sort';
 export default function ArticleReader({ article }: { article: Article }) {
   const query = queryFromSearch(window.location.search);
   const sort = sortFromSearch(window.location.search);
-  const backUrl = listingUrl(query, sort);
+  const backUrl = listingUrl('blog', query, sort);
   const section = blogSections.byId(article.section);
   const inSection = blogIndex.groups.get(article.section) ?? [];
   const index = inSection.findIndex((item) => item.slug === article.slug);
@@ -26,13 +26,14 @@ export default function ArticleReader({ article }: { article: Article }) {
       <ArticleHeader
         article={article}
         eyebrow={[section.english, section.label].filter(Boolean).join(' / ')}
+        collection="blog"
         showDetails
       />
       <ArticleBody article={article} />
       {(older || newer) && (
         <nav className="article-pager" aria-label={`More posts in ${section.label}`}>
           {older ? (
-            <a href={articleUrl(older.slug, query, sort)}>
+            <a href={articleUrl('blog', older.slug, query, sort)}>
               <span>Previous post</span>
               <strong className="article-title">{older.title}</strong>
             </a>
@@ -40,7 +41,7 @@ export default function ArticleReader({ article }: { article: Article }) {
             <span />
           )}
           {newer ? (
-            <a className="pager-newer" href={articleUrl(newer.slug, query, sort)}>
+            <a className="pager-newer" href={articleUrl('blog', newer.slug, query, sort)}>
               <span>Next post</span>
               <strong className="article-title">{newer.title}</strong>
             </a>
@@ -56,7 +57,7 @@ export default function ArticleReader({ article }: { article: Article }) {
           <Icon name="book" />
           {query ? 'Back to results' : 'Back to blog'}
         </a>
-        <a className="reading-home" href="../#home">
+        <a className="reading-home" href="/#home">
           Visit my homepage
           <Icon name="arrow" />
         </a>

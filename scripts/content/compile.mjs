@@ -11,6 +11,7 @@ export function compileArticle(
   filename,
   resolveAsset = (file) => `../articles/${file}`,
   onArticleLink,
+  { basePath = '/blog/' } = {},
 ) {
   const parsed = parseArticleSource(source, filename);
   if (!parsed) return null;
@@ -18,7 +19,7 @@ export function compileArticle(
   const format = filename.toLowerCase().endsWith('.md') ? 'Markdown' : 'HTML';
   const rendered =
     format === 'Markdown' ? renderMarkdown(body) : { html: body, footnotes: '', mathHtml: [] };
-  const resolveReference = createReferenceResolver(filename, resolveAsset, onArticleLink);
+  const resolveReference = createReferenceResolver(filename, resolveAsset, onArticleLink, basePath);
   let html = sanitizeArticleHtml(rendered.html, resolveReference);
   const firstTitle = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
   const headingTitle = firstTitle ? plainText(firstTitle[1]) : '';

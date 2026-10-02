@@ -7,6 +7,8 @@ import { build, createServer, preview } from 'vite';
 import { articlesPlugin } from '../scripts/content/plugin.mjs';
 import { notFoundPlugin } from '../scripts/not-found.mjs';
 import { renderSitemap, renderRobots, sitemapPlugin } from '../scripts/content/sitemap.mjs';
+import { sharePath } from '../src/config/sharing.mjs';
+import { xml } from '../scripts/content/xml.mjs';
 
 const siteUrl = 'https://example.com/';
 test('sitemap contains canonical pages and escaped article URLs with real modification dates', () => {
@@ -19,11 +21,9 @@ test('sitemap contains canonical pages and escaped article URLs with real modifi
   ];
   const sitemap = renderSitemap(collections, siteUrl);
   assert.equal((sitemap.match(/<url>/g) ?? []).length, 5);
-  assert.ok(
-    sitemap.includes(
-      `<loc>https://example.com/blog/?post=${encodeURIComponent("中文/a&'b").replaceAll("'", '%27')}</loc>`,
-    ),
-  );
+  const shared = new URL(sharePath('/blog/', "中文/a&'b"), siteUrl).href;
+  assert.ok(sitemap.includes(`<loc>${xml(shared)}</loc>`));
+  assert.doesNotMatch(sitemap, /\?post=/);
   assert.match(sitemap, /<lastmod>2026-02-01T04:00:00.000Z<\/lastmod>/);
   assert.match(sitemap, /<lastmod>2026-01-02T00:00:00.000Z<\/lastmod>/);
   assert.doesNotMatch(sitemap, /404|q=|sort=|<priority>|<changefreq>/);
@@ -91,8 +91,8 @@ for (const mode of ['development', 'preview']) {
     assert.equal(response.status, 200);
     assert.match(response.headers.get('content-type'), /xml/);
     const sitemap = await response.text();
-    assert.match(sitemap, /https:\/\/example.com\/blog\/\?post=post/);
-    assert.match(sitemap, /https:\/\/example.com\/notes\/\?post=note/);
+    assert.match(sitemap, /<loc>https:\/\/example.com\/blog\/post\/<\/loc>/);
+    assert.match(sitemap, /<loc>https:\/\/example.com\/notes\/note\/<\/loc>/);
     assert.doesNotMatch(sitemap, /draft|404|localhost/);
     const robots = await fetch(origin + '/robots.txt');
     assert.equal(robots.status, 200);
@@ -109,7 +109,7 @@ for (const mode of ['development', 'preview']) {
       assert.match(await (await fetch(origin + '/sitemap.xml')).text(), /2026-02-01T00:00:00.000Z/);
       rmSync(post);
       server.watcher.emit('unlink', post);
-      assert.doesNotMatch(await (await fetch(origin + '/sitemap.xml')).text(), /post=post/);
+      assert.doesNotMatch(await (await fetch(origin + '/sitemap.xml')).text(), /blog\/post\//);
     }
   });
 }

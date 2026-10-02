@@ -5,14 +5,33 @@ import { compileArticle } from './compile.mjs';
 import { createArticleDateResolver } from './metadata.mjs';
 import { blogSections, noteSections } from '../../src/config/sections.mjs';
 
+/** Links written before static addresses existed still count as backlinks. */
+function pathTarget(pathname, basePath) {
+  if (!pathname.startsWith(basePath)) return undefined;
+  const rest = pathname.slice(basePath.length).replace(/\/+$/, '');
+  if (!rest) return undefined;
+  try {
+    return rest
+      .split('/')
+      .map((segment) => decodeURIComponent(segment))
+      .join('/');
+  } catch {
+    return undefined;
+  }
+}
+
 function linkedSlugs(html, basePath) {
   const targets = new Set();
   const origin = 'https://content.invalid';
   for (const match of html.matchAll(/<a\b[^>]*\bhref="([^"]*)"/g)) {
     try {
       const url = new URL(decodeHTML(match[1]), origin + basePath);
-      const target = url.searchParams.get('post');
-      if (target && url.origin === origin && url.pathname === basePath) targets.add(target);
+      if (url.origin !== origin) continue;
+      const target =
+        url.pathname === basePath
+          ? url.searchParams.get('post')
+          : pathTarget(url.pathname, basePath);
+      if (target) targets.add(target);
     } catch {
       // A malformed URL cannot contribute a backlink.
     }
@@ -85,7 +104,7 @@ export function buildArticleCatalog(
       compiled && changedFiles && !changedFiles.has(file)
         ? compiled.source
         : fs.readFileSync(absolute, 'utf8');
-    if (!compiled || compiled.source !== source) {
+    if (!compiled || compiled.source !== source || compiled.basePath !== basePath) {
       const localAssets = new Map();
       const localLinks = [];
       const article = compileArticle(
@@ -99,9 +118,11 @@ export function buildArticleCatalog(
           return localAssets.get(asset);
         },
         (slug, link) => localLinks.push({ owner: file, slug, link }),
+        { basePath },
       );
       compiled = {
         source,
+        basePath,
         article,
         localAssets,
         localLinks,

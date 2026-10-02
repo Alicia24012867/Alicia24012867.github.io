@@ -8,7 +8,7 @@ import { noteIndex } from './catalog';
 
 export default function NoteReader({ article: note }: { article: Article }) {
   const query = queryFromSearch(window.location.search);
-  const backUrl = listingUrl(query);
+  const backUrl = listingUrl('notes', query);
   const backlinks = note.backlinks
     .map((slug) => noteIndex.bySlug.get(slug))
     .filter((item): item is ArticleSummary => !!item);
@@ -21,6 +21,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
       <ArticleHeader
         article={note}
         eyebrow={`KNOWLEDGE BASE / ${noteSections.byId(note.section).label}`}
+        collection="notes"
       />
       <ArticleBody article={note} label="Note content" />
       <section className="note-backlinks" aria-labelledby="backlinks-title">
@@ -30,7 +31,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
           <ul>
             {backlinks.map((item) => (
               <li key={item.slug}>
-                <a className="article-title" href={articleUrl(item.slug, query)}>
+                <a className="article-title" href={articleUrl('notes', item.slug, query)}>
                   {item.title}
                   <Icon name="arrow" />
                 </a>

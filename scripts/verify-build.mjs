@@ -59,6 +59,60 @@ for (const match of notFound.matchAll(/(?:src|href)="([^"]+)"/g)) {
   assert.ok(url.startsWith('/') && !url.startsWith('//'), `404 URL is not root-relative: ${url}`);
   assert.ok(fs.existsSync(path.join(root, url)), `404 target is missing: ${url}`);
 }
+// Every published document ships a static share page with its own title card.
+const jpegSize = (buffer) => {
+  assert.equal(buffer.readUInt16BE(0), 0xffd8, 'Share card is not a JPEG file');
+  let offset = 2;
+  while (offset < buffer.length - 9) {
+    if (buffer[offset] !== 0xff) {
+      offset++;
+      continue;
+    }
+    const marker = buffer[offset + 1];
+    const length = buffer.readUInt16BE(offset + 2);
+    if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker))
+      return { height: buffer.readUInt16BE(offset + 5), width: buffer.readUInt16BE(offset + 7) };
+    offset += 2 + length;
+  }
+  return undefined;
+};
+const assertCard = (url, label) => {
+  assert.ok(url, label + ' has no share card');
+  const pathname = new URL(url).pathname;
+  assert.ok(pathname.startsWith('/images/share/'), label + ' uses an unexpected image: ' + url);
+  const file = path.join(root, decodeURIComponent(pathname).slice(1));
+  assert.ok(fs.existsSync(file), 'Missing share card: ' + url);
+  assert.deepEqual(jpegSize(fs.readFileSync(file)), { width: 1200, height: 630 }, url);
+};
+const sharePages = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)]
+  .map((match) => new URL(match[1]))
+  .filter((url) => url.origin === new URL(blogFeed.siteUrl).origin)
+  .map((url) => url.pathname)
+  .filter((pathname) => /^\/(?:blog|notes)\/.+\/$/.test(pathname));
+assert.ok(sharePages.length, 'No static article addresses were published');
+for (const pathname of sharePages) {
+  const file = path.join(root, decodeURIComponent(pathname).slice(1), 'index.html');
+  assert.ok(fs.existsSync(file), 'Missing static share page: ' + pathname);
+  const html = fs.readFileSync(file, 'utf8');
+  const canonical = new URL(pathname, blogFeed.siteUrl).href;
+  assert.match(
+    html,
+    /<link rel="canonical" href="[^"]+"\s*\/?>/,
+    pathname + ' has no canonical link',
+  );
+  assert.ok(html.includes(canonical), pathname + ' canonical link is not absolute and stable');
+  assert.match(html, /<meta property="og:type" content="article"\s*\/?>/, pathname);
+  assert.match(html, /<meta name="twitter:card" content="summary_large_image"\s*\/?>/, pathname);
+  assert.match(html, /<meta property="article:published_time" content="[^"]+"\s*\/?>/, pathname);
+  assert.match(html, /<script type="module"/, pathname + ' does not boot the site');
+  assert.doesNotMatch(html, /\?post=/, pathname + ' still links a query address');
+  assertCard(html.match(/<meta property="og:image" content="([^"]+)"\s*\/?>/)?.[1], pathname);
+}
+for (const page of ['index.html', 'blog/index.html', 'notes/index.html']) {
+  const html = fs.readFileSync(path.join(root, page), 'utf8');
+  assert.match(html, /<link rel="canonical" href="[^"]+"\s*\/?>/, page + ' has no canonical link');
+  assertCard(html.match(/<meta property="og:image" content="([^"]+)"\s*\/?>/)?.[1], page);
+}
 for (const [key, chunk] of Object.entries(manifest)) {
   if (!/virtual:.*\/entry\//.test(key)) continue;
   assert.ok(chunk.isDynamicEntry, `${key} is not lazy`);

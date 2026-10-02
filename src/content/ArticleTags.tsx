@@ -1,15 +1,16 @@
+import { listingUrl, type Collection } from './urls';
 import type { ArticleSummary } from './types';
-
-const searchUrl = (tag: string) => `./?q=${encodeURIComponent(tag)}`;
 
 export default function ArticleTags({
   article,
   onTag,
   showFormat = false,
+  collection = 'blog',
 }: {
   article: ArticleSummary;
   onTag?: (tag: string) => void;
   showFormat?: boolean;
+  collection?: Collection;
 }) {
   return (
     <div className="article-tags">
@@ -19,7 +20,7 @@ export default function ArticleTags({
             {tag}
           </button>
         ) : (
-          <a key={tag} href={searchUrl(tag)}>
+          <a key={tag} href={listingUrl(collection, tag)}>
             {tag}
           </a>
         ),

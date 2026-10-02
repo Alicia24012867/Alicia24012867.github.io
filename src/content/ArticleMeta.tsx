@@ -1,26 +1,29 @@
 import { blogSections } from '../config/sections.mjs';
+import { collectionBase, type Collection } from './urls';
 import type { ArticleSummary } from './types';
 
 export default function ArticleMeta({
   article,
   showDetails = false,
   readingTime = showDetails ? 'compact' : false,
+  collection = 'blog',
 }: {
   article: ArticleSummary;
   showDetails?: boolean;
   readingTime?: 'compact' | 'estimate' | false;
+  collection?: Collection;
 }) {
   const section = showDetails ? blogSections.byId(article.section) : undefined;
   return (
     <div className="article-meta">
       {section && (
-        <a className="article-section-mark" href={`./${section.href}`}>
+        <a className="article-section-mark" href={collectionBase[collection] + section.href}>
           {section.label}
         </a>
       )}
       {article.author && <span className="article-author">{article.author}</span>}
       {article.email && (
-        <a className="article-email" href={`mailto:${encodeURIComponent(article.email)}`}>
+        <a className="article-email" href={'mailto:' + encodeURIComponent(article.email)}>
           {article.email}
         </a>
       )}
@@ -33,8 +36,11 @@ export default function ArticleMeta({
       {readingTime && (
         <span className="reading-time">
           {readingTime === 'estimate'
-            ? `About ${article.readingMinutes} ${article.readingMinutes === 1 ? "minute's" : "minutes'"} read`
-            : `${article.readingMinutes} min read`}
+            ? 'About ' +
+              article.readingMinutes +
+              (article.readingMinutes === 1 ? " minute's" : " minutes'") +
+              ' read'
+            : article.readingMinutes + ' min read'}
         </span>
       )}
       {article.updated && (

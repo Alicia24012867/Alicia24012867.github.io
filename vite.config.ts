@@ -5,6 +5,7 @@ import { blogFeed } from './src/config/feeds.mjs';
 import { articlesPlugin } from './scripts/content/plugin.mjs';
 import { notFoundPlugin } from './scripts/not-found.mjs';
 import { sitemapPlugin } from './scripts/content/sitemap.mjs';
+import { sharePlugin } from './scripts/content/share.mjs';
 
 const blog = articlesPlugin({ feed: blogFeed });
 const notes = articlesPlugin({
@@ -20,6 +21,7 @@ export default defineConfig({
     notFoundPlugin(),
     blog,
     notes,
+    sharePlugin([blog.api, notes.api], { siteUrl: blogFeed.siteUrl }),
     sitemapPlugin([blog.api, notes.api], blogFeed.siteUrl),
   ],
   base: '/',

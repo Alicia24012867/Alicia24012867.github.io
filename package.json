@@ -15,7 +15,9 @@
     "check": "npm test && npm run build",
     "format": "prettier --write src scripts tests *.ts *.json *.html blog/index.html notes/index.html",
     "format:check": "prettier --check src scripts tests *.ts *.json *.html blog/index.html notes/index.html",
-    "bundle:report": "node scripts/verify-build.mjs --report"
+    "bundle:report": "node scripts/verify-build.mjs --report",
+    "share:cards": "node scripts/share/cards.mjs",
+    "share:check": "node scripts/share/cards.mjs --check"
   },
   "dependencies": {
     "entities": "8.1.0",

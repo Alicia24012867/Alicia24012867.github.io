@@ -3,7 +3,15 @@ import SiteLayout from '../components/layout/SiteLayout';
 import Icon from '../components/Icon';
 import ArticleHeader from './ArticleHeader';
 import { usePageMeta } from '../hooks/usePageMeta';
-import { listingUrl, queryFromSearch } from './urls';
+import {
+  absoluteUrl,
+  articlePath,
+  collectionBase,
+  listingUrl,
+  queryFromSearch,
+  slugFromLocation,
+  type Collection,
+} from './urls';
 import { sortFromSearch } from './sort';
 import type { Article, ArticleBody, ArticleSummary } from './types';
 
@@ -13,7 +21,7 @@ type Loaders = {
   loadReader: () => Promise<{ default: Reader }>;
 };
 
-/** Shared query routing; collection-specific lists and readers keep their own presentation. */
+/** Shared static routing; collection-specific lists and readers keep their own presentation. */
 export default function ContentPage({
   section,
   bySlug,
@@ -23,18 +31,19 @@ export default function ContentPage({
   loadBody,
   loadReader,
 }: Loaders & {
-  section: 'blog' | 'notes';
+  section: Collection;
   bySlug: ReadonlyMap<string, ArticleSummary>;
   titles: { listing: string; missing: string; suffix: string };
   description: string;
   Listing: ComponentType;
 }) {
-  const slug = new URLSearchParams(window.location.search).get('post');
+  const slug = slugFromLocation(section);
   const summary = slug ? bySlug.get(slug) : undefined;
-  usePageMeta(
-    summary ? `${summary.title}${titles.suffix}` : slug ? titles.missing : titles.listing,
-    summary?.description || description,
-  );
+  usePageMeta({
+    title: summary ? summary.title + titles.suffix : slug ? titles.missing : titles.listing,
+    description: summary?.description || description,
+    canonical: absoluteUrl(summary ? articlePath(section, summary.slug) : collectionBase[section]),
+  });
   const kind = section === 'blog' ? 'post' : 'note';
   return (
     <SiteLayout section={section}>
@@ -44,6 +53,7 @@ export default function ContentPage({
         <ArticlePage
           key={summary.slug}
           summary={summary}
+          section={section}
           loadBody={loadBody}
           loadReader={loadReader}
         />
@@ -56,6 +66,7 @@ export default function ContentPage({
           <a
             className="button button-primary"
             href={listingUrl(
+              section,
               queryFromSearch(window.location.search),
               section === 'blog' ? sortFromSearch(window.location.search) : 'newest',
             )}
@@ -69,7 +80,12 @@ export default function ContentPage({
 }
 
 /** Fetch the selected body, reader and optional formula styles concurrently. */
-function ArticlePage({ summary, loadBody, loadReader }: Loaders & { summary: ArticleSummary }) {
+function ArticlePage({
+  summary,
+  section,
+  loadBody,
+  loadReader,
+}: Loaders & { summary: ArticleSummary; section: Collection }) {
   const [page, setPage] = useState<{ article: Article; Reader: Reader }>();
   const [failed, setFailed] = useState(false);
 
@@ -96,7 +112,7 @@ function ArticlePage({ summary, loadBody, loadReader }: Loaders & { summary: Art
   if (page) return <page.Reader article={page.article} />;
   return (
     <div className="journal-width reading-page" aria-busy={!failed}>
-      <ArticleHeader article={summary} metadata={false} />
+      <ArticleHeader article={summary} metadata={false} collection={section} />
       {failed ? (
         <div role="alert">
           <p>This page could not be loaded. Please try again.</p>

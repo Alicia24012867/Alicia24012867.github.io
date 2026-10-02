@@ -104,10 +104,20 @@ test('nested article links and attachments resolve under the article directory',
     '2026/note.md',
     (asset) => `../bundled/${asset}`,
   );
-  assert.match(article.html, /href="\?post=test#section-intro"/);
+  assert.match(article.html, /href="\/blog\/test\/#section-intro"/);
   assert.match(article.html, /src="\.\.\/bundled\/assets\/sky.webp"/);
   assert.match(article.html, /href="\.\.\/bundled\/2026\/notes.pdf"/);
-  assert.match(article.html, /src="\.\.\/images\/summer-sky.webp"/);
+  assert.match(article.html, /src="\/images\/summer-sky.webp"/);
+});
+
+test('links use the static address of their own collection and ?post= links stay reachable', () => {
+  const note = compileArticle('[Next](./other.md#top)', 'source/first.md', undefined, undefined, {
+    basePath: '/notes/',
+  });
+  assert.match(note.html, /href="\/notes\/source\/other\/#top"/);
+  const legacy = compileArticle('[Old](?post=nested%2Fold#intro)\n\n[Keep](?q=sky)', 'note.md');
+  assert.match(legacy.html, /href="\/blog\/nested\/old\/#intro"/);
+  assert.match(legacy.html, /href="\?q=sky"/);
 });
 
 test('headings have stable unique anchors and metadata falls back to normal article content', () => {

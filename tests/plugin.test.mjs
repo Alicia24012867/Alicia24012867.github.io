@@ -103,7 +103,7 @@ test('Notes and Blog stay isolated while note links and math compile within Note
     assert.doesNotMatch(notes.code, /<p>|<span|katex/);
     const first = await server.transformRequest('virtual:notes/entry/formulas%2Ffirst');
     const second = await server.transformRequest('virtual:notes/entry/formulas%2Fsecond');
-    assert.match(first.code, /\?post=formulas%2Fsecond/);
+    assert.match(first.code, /\/notes\/formulas\/second\//);
     assert.match(second.code, /katex/);
     assert.doesNotMatch(first.code, /katex/);
   } finally {
@@ -156,7 +156,7 @@ test('watched edits refresh section metadata, lazy bodies and search text', asyn
     assert.match(updatedListing, /"section":"AI Research"/);
     assert.doesNotMatch(updatedListing, /读书笔记/);
     const revised = (await server.transformRequest('virtual:articles/entry/note')).code;
-    assert.match(revised, /post=added/);
+    assert.match(revised, /\/blog\/added\//);
     assert.match(revised, /backlinks.*added/);
     rmSync(added);
     writeFileSync(file, '# Original without link');

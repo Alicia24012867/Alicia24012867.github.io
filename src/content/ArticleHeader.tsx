@@ -1,5 +1,6 @@
 import ArticleMeta from './ArticleMeta';
 import ArticleTags from './ArticleTags';
+import type { Collection } from './urls';
 import type { ArticleSummary } from './types';
 
 /** Shared title layout, including the shell shown while a reader loads. */
@@ -8,11 +9,13 @@ export default function ArticleHeader({
   eyebrow,
   metadata = true,
   showDetails = false,
+  collection = 'blog',
 }: {
   article: ArticleSummary;
   eyebrow?: string;
   metadata?: boolean;
   showDetails?: boolean;
+  collection?: Collection;
 }) {
   return (
     <header className="reading-header">
@@ -21,8 +24,13 @@ export default function ArticleHeader({
       <p className="reading-description">{article.description}</p>
       {metadata && (
         <>
-          <ArticleMeta article={article} showDetails={showDetails} readingTime="estimate" />
-          <ArticleTags article={article} />
+          <ArticleMeta
+            article={article}
+            showDetails={showDetails}
+            readingTime="estimate"
+            collection={collection}
+          />
+          <ArticleTags article={article} collection={collection} />
         </>
       )}
     </header>

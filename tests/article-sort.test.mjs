@@ -73,16 +73,22 @@ test('date sorting compares instants across time zones and breaks ties determini
 test('sort and search survive reading, paging and returning while unknown sort values use newest', () => {
   for (const sort of ['newest', 'oldest', 'updated', 'title']) {
     const query = ' C++ & 中文 ';
-    const reader = new URL(articleUrl('nested/post', query, sort), 'https://example.com/blog/');
+    const reader = new URL(
+      articleUrl('blog', 'nested/post', query, sort),
+      'https://example.com/blog/',
+    );
+    assert.equal(reader.pathname, '/blog/nested/post/');
     assert.equal(sortFromSearch(reader.search), sort);
     const next = new URL(
-      articleUrl('another', queryFromSearch(reader.search), sortFromSearch(reader.search)),
+      articleUrl('blog', 'another', queryFromSearch(reader.search), sortFromSearch(reader.search)),
       reader,
     );
+    assert.equal(next.pathname, '/blog/another/');
     const back = new URL(
-      listingUrl(queryFromSearch(next.search), sortFromSearch(next.search)),
+      listingUrl('blog', queryFromSearch(next.search), sortFromSearch(next.search)),
       next,
     );
+    assert.equal(back.pathname, '/blog/');
     assert.equal(sortFromSearch(back.search), sort);
     assert.equal(queryFromSearch(back.search), query);
     assert.equal(back.searchParams.has('post'), false);

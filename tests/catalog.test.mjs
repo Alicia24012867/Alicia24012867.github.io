@@ -233,7 +233,7 @@ test('catalog validates article links, missing targets and unpublished targets',
     'a.md': '[Next](./nested/b.html#intro)',
     'nested/b.html': '<h2 id="intro">B</h2>',
   });
-  assert.match(buildArticleCatalog(good).articles[0].html, /post=nested%2Fb#intro/);
+  assert.match(buildArticleCatalog(good).articles[0].html, /href="\/blog\/nested\/b\/#intro"/);
   const missing = fixture(t, { 'a.md': '[Missing](./missing.md)' });
   assert.throws(() => buildArticleCatalog(missing), /不存在或未发布/);
   const draft = fixture(t, {

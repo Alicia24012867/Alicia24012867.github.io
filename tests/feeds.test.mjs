@@ -8,6 +8,7 @@ import { renderFeeds } from '../scripts/content/feeds.mjs';
 import { articlesPlugin } from '../scripts/content/plugin.mjs';
 import { notFoundPlugin } from '../scripts/not-found.mjs';
 import { blogFeed, feedFormats } from '../src/config/feeds.mjs';
+import { sharePath } from '../src/config/sharing.mjs';
 
 const article = {
   slug: 'nested/中文 & API',
@@ -20,14 +21,16 @@ const article = {
 };
 const config = { ...blogFeed, siteUrl: 'https://example.com/' };
 
-test('feeds escape XML, keep summaries inert, and encode canonical article URLs', () => {
+test('feeds escape XML, keep summaries inert, and link to static article addresses', () => {
   const feeds = renderFeeds([article], config);
-  const url = `https://example.com/blog/?post=${encodeURIComponent(article.slug)}`;
+  const url = new URL(sharePath('/blog/', article.slug), 'https://example.com/').href;
+  const id = `https://example.com/blog/?post=${encodeURIComponent(article.slug)}`;
   const rss = feeds['/rss.xml'];
   const atom = feeds['/atom.xml'];
   for (const source of Object.values(feeds)) {
     assert.ok(source.startsWith('<?xml version="1.0" encoding="UTF-8"?>'));
     assert.ok(source.includes(url));
+    assert.ok(source.includes(id));
     assert.match(source, /A &lt; B &amp; &quot;C&quot;/);
     assert.match(source, /A &amp; B/);
     assert.match(source, /😀/);
@@ -35,7 +38,8 @@ test('feeds escape XML, keep summaries inert, and encode canonical article URLs'
   }
   assert.match(rss, /&amp;lt;strong&amp;gt;not markup&amp;lt;\/strong&amp;gt;/);
   assert.match(atom, /<summary type="text">Text &lt;strong&gt;not markup&lt;\/strong&gt;/);
-  assert.match(rss, /<guid isPermaLink="true">https:\/\/example.com\/blog\/\?post=/);
+  assert.match(rss, /<link>https:\/\/example.com\/blog\/nested\//);
+  assert.match(rss, /<guid isPermaLink="false">https:\/\/example.com\/blog\/\?post=/);
   assert.match(atom, /<published>2026-01-02T00:00:00.000Z<\/published>/);
   assert.match(atom, /<updated>2026-02-03T04:00:00.000Z<\/updated>/);
   assert.match(rss, /<pubDate>Fri, 02 Jan 2026 00:00:00 GMT<\/pubDate>/);
@@ -141,6 +145,7 @@ for (const mode of ['development', 'preview']) {
       if (mode === 'development') assert.ok(response.headers.get('content-type').startsWith(type));
       const xml = await response.text();
       assert.match(xml, /Published/);
+      assert.match(xml, /https:\/\/example.com\/blog\/post\//);
       assert.match(xml, /https:\/\/example.com\/blog\/\?post=post/);
       assert.doesNotMatch(xml, /Secret draft|Note exclusive|localhost/);
       if (mode === 'preview')

@@ -1,3 +1,4 @@
+import { sharePath } from '../../src/config/sharing.mjs';
 import { xml, declaration } from './xml.mjs';
 
 /** Catalogs already exclude drafts/private files and resolve authored or Git dates. */
@@ -6,7 +7,7 @@ export function renderSitemap(collections, siteUrl) {
   for (const { basePath, articles } of collections) {
     urls.set(new URL(basePath, siteUrl).href, '');
     for (const article of articles) {
-      const url = new URL(`${basePath}?post=${encodeURIComponent(article.slug)}`, siteUrl).href;
+      const url = new URL(sharePath(basePath, article.slug), siteUrl).href;
       const changed = new Date(
         Math.max(Date.parse(article.date), Date.parse(article.updated || article.date)),
       ).toISOString();

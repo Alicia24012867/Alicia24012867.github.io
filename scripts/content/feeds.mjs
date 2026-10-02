@@ -1,4 +1,5 @@
 import { feedFormats } from '../../src/config/feeds.mjs';
+import { sharePath } from '../../src/config/sharing.mjs';
 
 import { xml, declaration } from './xml.mjs';
 
@@ -15,7 +16,9 @@ export function renderFeeds(
   const entries = articles
     .map((article) => ({
       ...article,
-      url: xml(absolute(`${basePath}?post=${encodeURIComponent(article.slug)}`)),
+      // ?post= stays the stable entry id; the link points at the static address.
+      id: xml(absolute(`${basePath}?post=${encodeURIComponent(article.slug)}`)),
+      url: xml(absolute(sharePath(basePath, article.slug))),
       published: new Date(article.date),
       edited: new Date(article.updated || article.date),
     }))
@@ -30,7 +33,7 @@ export function renderFeeds(
       (entry) => `    <item>
       <title>${xml(entry.title)}</title>
       <link>${entry.url}</link>
-      <guid isPermaLink="true">${entry.url}</guid>
+      <guid isPermaLink="false">${entry.id}</guid>
       <pubDate>${entry.published.toUTCString()}</pubDate>
       <dc:creator>${xml(entry.author || author)}</dc:creator>
       <description>${xml(xml(entry.description))}</description>
@@ -41,7 +44,7 @@ ${entry.tags.map((tag) => `      <category>${xml(tag)}</category>`).join('\n')}
   const atomEntries = entries
     .map(
       (entry) => `  <entry>
-    <id>${entry.url}</id>
+    <id>${entry.id}</id>
     <title type="text">${xml(entry.title)}</title>
     <link rel="alternate" type="text/html" href="${entry.url}"/>
     <published>${entry.published.toISOString()}</published>

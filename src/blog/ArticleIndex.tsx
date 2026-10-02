@@ -36,14 +36,14 @@ function JournalEntry({
         {article.pin && <span className="article-pin">Pinned</span>}
         <ArticleMeta article={article} showDetails />
         <h3 className="article-title">
-          <a href={articleUrl(article.slug, query, sort)}>{article.title}</a>
+          <a href={articleUrl('blog', article.slug, query, sort)}>{article.title}</a>
         </h3>
         <p>{article.description}</p>
         <ArticleTags article={article} onTag={onTag} showFormat />
       </div>
       <a
         className="journal-read"
-        href={articleUrl(article.slug, query, sort)}
+        href={articleUrl('blog', article.slug, query, sort)}
         aria-label={`Read: ${article.title}`}
       >
         <Icon name="arrow" />
