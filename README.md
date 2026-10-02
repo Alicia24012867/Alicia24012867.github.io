@@ -67,7 +67,7 @@ docs/               撰写说明与性能记录
 - 路径决定地址：`content/blog/test.md` → `/blog/test/`，同时保留 `?post=test` 兼容旧链接；重命名或移动文件后需更新互链，旧地址没有自动重定向。新增或修改文章后运行 `npm run share:cards` 更新分享图。
 - `draft: true` 排除发布。元信息、附件和文章互链在构建时校验；删除文章前需检查引用。
 - 日期优先使用 YAML 的 `date` / `updated`，否则读取 Git 历史。统一显示 `Posted on`，后续编辑显示 `Edited on`。
-- 每篇自动统计字数并估算阅读时间，列表和阅读页统一显示 `x words / About x minutes' read`：中文按汉字、英文按单词，中英混排相加；规则见 [文章撰写](docs/writing.md)。
+- 每篇自动统计字数并估算阅读时间，列表和阅读页统一显示 `1,234 words · 5 min read`（沿用正文元信息样式，窄屏可换行）：中文按汉字、英文按单词，中英混排相加；规则见 [文章撰写](docs/writing.md)。
 - 专属附件放在内容目录内并使用相对路径；共享资源使用 `/images/文件名`。
 - 搜索 `q` 与 Blog 排序 `sort` 保存在 URL，正文返回、翻页和反向链接保留筛选条件；刷新和新标签页打开同样有效。
 - Blog / Notes 正文末尾自动显示 Alicia 手写签名：逐笔书写、停留、逆序擦除。屏外或隐藏页签暂停；减少动态效果或打印时显示完整笔画。
@@ -82,9 +82,9 @@ content/blog/2026/note.md                    → /blog/2026/note/
 content/notes/source/ta_timestep_control.md  → /notes/source/ta_timestep_control/
 ```
 
-静态页复制入口外壳（同一份脚本、样式、订阅发现与主题设置），并逐篇写入 `canonical`、`og:title`、`og:description`、`og:type=article`、`og:url`、`og:image`、`twitter:card=summary_large_image` 以及 `article:published_time`、`article:modified_time`、`article:author`、`article:section`、`article:tag`；`<noscript>` 显示标题、摘要与原文链接。首页与两个列表页使用首页分享图，并写入各自的 `canonical` 与 `og:url`。旧的 `?post=` 地址同样会带上这篇文章的卡片：列表数据里带有该篇的静态地址与卡片路径，客户端渲染时同步 `canonical`、`og:image`、`twitter:image` 与对应 `alt`，所以两种地址的分享预览保持一致。
+静态页复制入口外壳（同一份脚本、样式、订阅发现与主题设置），并逐篇写入 `canonical`、`og:title`、`og:description`、`og:type=article`、`og:url`、`og:image`、`twitter:card=summary_large_image` 以及 `article:published_time`、`article:modified_time`、`author`、`article:section`、`article:tag`；`<noscript>` 显示标题、摘要与原文链接。首页与两个列表页使用首页分享图，并写入各自的 `canonical` 与 `og:url`。旧的 `?post=` 地址仍可阅读；浏览器执行 JavaScript 后同步标题、`og:type`、`canonical`、分享图与对应 `alt`。分享给社交平台时应使用静态地址：不执行 JavaScript 的爬虫访问查询参数地址时仍会读到列表页的元信息。所有公开链接与图片绝对地址统一使用 `https://nymphilia.com/`，本地预览也保持该正式域名。
 
-分享图沿用蓝天主视觉：`public/images/summer-sky.webp` 顶部对齐裁切后叠加首页同款渐变与配色，标题使用站点的衬线字体回退链。文件位于 `public/images/share/<集合>/<地址>.<摘要>.jpg`，摘要由标题、摘要、日期、编辑时间、分区、卡片版本和蓝天图片内容决定，任何一项变化都会生成新文件名。
+分享图沿用蓝天主视觉：`public/images/summer-sky.webp` 顶部对齐裁切后叠加柔和的左向渐变与底部淡出，沿用首页蓝色配色、衬线斜体标题、细线与花体署名；摘要使用常规字重无衬线字体。文件位于 `public/images/share/<集合>/<地址>.<摘要>.jpg`，摘要由标题、摘要、作者、分区、域名、卡片版本和蓝天图片内容决定。卡片不绘制 Git 日期，避免提交文章后图片立即过期；文章页和元信息仍保留发布时间与编辑时间。
 
 ```sh
 npm run share:cards   # 重新渲染全部分享图并删除过期文件（需要 Python 3 与 Pillow）
@@ -95,20 +95,20 @@ npm run share:check   # 只检查缺失或过期，CI 不需要 Python
 
 ## RSS / Atom 订阅
 
-- RSS 2.0：[`/rss.xml`](https://alicia24012867.github.io/rss.xml)
-- Atom 1.0：[`/atom.xml`](https://alicia24012867.github.io/atom.xml)
+- RSS 2.0：[`/rss.xml`](https://nymphilia.com/rss.xml)
+- Atom 1.0：[`/atom.xml`](https://nymphilia.com/atom.xml)
 
 两种订阅源均包含所有已发布 Blog 文章的标题、纯文本摘要、作者、标签、发布时间和原文链接，按发布时间倒序排列，不受置顶影响；不包含草稿和 Notes。页脚提供订阅入口，所有页面的 HTML 头部都有自动发现链接。
 
-每次构建复用内容目录生成 XML，开发服务也提供相同地址并随内容修改刷新。Atom 保留文章更新时间；条目的 `guid` / `id` 继续使用 `?post=` 旧地址作为稳定标识，因此改标题或改地址规则都不会让读者重复收到旧文章，条目链接则指向静态分享地址。日期继承正文的 YAML / Git 规则，不以构建时间伪造更新；空集合仍生成有效订阅源，更新时间使用 Unix epoch。
+每次构建复用内容目录生成 XML，开发服务也提供相同地址并随内容修改刷新。Atom 保留文章更新时间；条目的 `guid` / `id` 继续使用原域名下的 `?post=` 旧地址作为稳定标识，Atom feed ID 也保留原值（由 `idBaseUrl` 配置），因此改标题或改地址规则都不会让读者重复收到旧文章，条目链接则指向静态分享地址。日期继承正文的 YAML / Git 规则，不以构建时间伪造更新；空集合仍生成有效订阅源，更新时间使用 Unix epoch。
 
 站点正式域名与订阅元信息在 `src/config/feeds.mjs` 配置，本地预览也使用正式原文地址。摘要订阅无需解析正文附件，公式和图表可通过原文链接阅读。格式依据 [RSS 2.0](https://www.rssboard.org/rss-specification) 和 [Atom RFC 4287](https://www.rfc-editor.org/rfc/rfc4287.html)。
 
 ## 搜索引擎发现
 
-[`/sitemap.xml`](https://alicia24012867.github.io/sitemap.xml) 包含首页、Blog、Notes 列表和所有已发布文章、笔记的静态分享地址，与各页 `canonical` 保持一致。草稿、私有文件、404 和搜索排序参数不进入 sitemap。内容条目的 `lastmod` 取 YAML / Git 的实际发布时间或更新时间；首页和列表页不填写推测的日期，但会写入各自的 `canonical` 与首页分享图。
+[`/sitemap.xml`](https://nymphilia.com/sitemap.xml) 包含首页、Blog、Notes 列表和所有已发布文章、笔记的静态分享地址，与各页 `canonical` 保持一致。草稿、私有文件、404 和搜索排序参数不进入 sitemap。内容条目的 `lastmod` 取 YAML / Git 的实际发布时间或更新时间；首页和列表页不填写推测的日期，但会写入各自的 `canonical` 与首页分享图。
 
-[`/robots.txt`](https://alicia24012867.github.io/robots.txt) 允许公开页面抓取，并声明 sitemap 的绝对地址。两者在生产构建时生成，本地开发和预览也可直接访问；复用已有内容目录缓存，内容增删改后自动更新。格式遵循 [Sitemaps 协议](https://www.sitemaps.org/protocol.html)。
+[`/robots.txt`](https://nymphilia.com/robots.txt) 允许公开页面抓取，并声明 sitemap 的绝对地址。两者在生产构建时生成，本地开发和预览也可直接访问；复用已有内容目录缓存，内容增删改后自动更新。格式遵循 [Sitemaps 协议](https://www.sitemaps.org/protocol.html)。
 
 ## 运行与维护
 
@@ -126,6 +126,6 @@ npm run share:check   # 只检查缺失或过期，CI 不需要 Python
 
 GitHub 仓库 **Settings → Pages → Source** 选择 **GitHub Actions**。推送 `main` 或手动运行 `.github/workflows/deploy.yml` 后检查并部署；PR 只运行检查。构建成功与部署成功分别以 Actions 和 Pages 环境为准。
 
-构建产物为 `dist/`，发布到 [Alicia24012867.github.io](https://Alicia24012867.github.io/)。`base: '/'` 对应域名根目录；多入口与查询参数路由无需服务器 SPA 回退。
+构建产物为 `dist/`，发布到 [nymphilia.com](https://nymphilia.com/)。GitHub Pages 的自定义域名与 DNS 需配置为 `nymphilia.com`；仓库内的站点配置只负责生成公开链接，不会修改 DNS 或 Pages 设置。`base: '/'` 对应域名根目录；多入口与查询参数路由无需服务器 SPA 回退。
 
 未知路径返回 `dist/404.html`，保留原地址和 HTTP 404 状态，提供首页、Blog、Notes 入口；未发布的静态地址同样返回 404。开发与预览服务采用相同的 404 行为；不存在的 `?post=` 显示各自集合的内容缺失提示。

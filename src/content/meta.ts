@@ -1,4 +1,5 @@
 import type { ArticleSummary } from './types';
+import { blogFeed } from '../config/feeds.mjs';
 // The .ts extension keeps this module importable by the Node test runner.
 import { absoluteUrl, articlePath, collectionBase, type Collection } from './urls.ts';
 
@@ -6,6 +7,7 @@ export interface ContentPageMeta {
   title: string;
   description: string;
   canonical: string;
+  type: 'article' | 'website';
   image?: string;
   imageAlt?: string;
 }
@@ -17,7 +19,7 @@ export function contentPageMeta({
   summary,
   titles,
   description,
-  origin = window.location.origin,
+  origin = blogFeed.siteUrl,
 }: {
   section: Collection;
   slug?: string;
@@ -26,7 +28,8 @@ export function contentPageMeta({
   description: string;
   origin?: string;
 }): ContentPageMeta {
-  const meta = {
+  const meta: ContentPageMeta = {
+    type: summary ? 'article' : 'website',
     title: summary ? summary.title + titles.suffix : slug ? titles.missing : titles.listing,
     description: summary?.description || description,
     canonical: absoluteUrl(

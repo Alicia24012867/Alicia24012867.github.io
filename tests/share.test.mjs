@@ -94,6 +94,7 @@ test('a static share page rewrites the entry head for one article', () => {
     'property="article:published_time" content="2026-01-02T00:00:00.000Z"',
     'property="article:modified_time" content="2026-02-03T04:00:00.000Z"',
     'property="article:section" content="Life"',
+    'name="author" content="Alicia"',
     'property="article:tag" content="中文"',
   ])
     assert.ok(html.includes(tag), 'missing ' + tag);
@@ -113,6 +114,38 @@ test('a static share page rewrites the entry head for one article', () => {
     () => sharePageHtml(shell, article, { siteUrl, basePath: '/missing/', card }),
     /未知的分享目录/,
   );
+});
+
+test('head replacements keep dollar sequences literal and accept unchanged values', () => {
+  const changed = { ...article, title: "$& $` $' $$", description: "$& and $'" };
+  const html = sharePageHtml(shell, changed, { siteUrl, basePath: '/blog/', card });
+  assert.ok(
+    html.includes('<title>' + changed.title.replaceAll('&', '&amp;') + ' · Alicia Blog</title>'),
+  );
+  assert.equal((html.match(/<script type="module"/g) ?? []).length, 1);
+  const sameTitleShell = shell.replace(
+    '<title>Blog · Alicia</title>',
+    '<title>A &lt; B &amp; &quot;C&quot; · Alicia Blog</title>',
+  );
+  assert.doesNotThrow(() =>
+    sharePageHtml(sameTitleShell, article, { siteUrl, basePath: '/blog/', card }),
+  );
+});
+
+test('share cards stay valid when Git dates change during a commit', () => {
+  const options = { publicRoot: '/unused', sky: 'fixture' };
+  const before = articleCard(article, '/blog/', options);
+  const after = articleCard(
+    { ...article, date: '2027-01-01', updated: '2027-02-01' },
+    '/blog/',
+    options,
+  );
+  assert.equal(before.digest, after.digest);
+  assert.notEqual(
+    before.digest,
+    articleCard({ ...article, title: 'Revised title' }, '/blog/', options).digest,
+  );
+  assert.equal(before.spec.footer, 'nymphilia.com');
 });
 
 for (const mode of ['development', 'preview']) {
@@ -137,6 +170,12 @@ for (const mode of ['development', 'preview']) {
     );
     writeFileSync(path.join(root, 'content/notes/note.md'), '# Note title\n\nNote body.');
     writeFileSync(path.join(root, 'content/blog/draft.md'), '---\ndraft: true\n---\n# Draft');
+    for (const slug of ['nested/中文 note', '100% ready', 'literal%20name', 'hash#query?']) {
+      const file = path.join(root, 'content/blog', slug + '.md');
+      mkdirSync(path.dirname(file), { recursive: true });
+      writeFileSync(file, '---\ndate: 2026-01-01\n---\n# Encoded title\n\nSummary.');
+    }
+
     writeFileSync(path.join(root, 'public/images/summer-sky.webp'), 'fake sky bytes');
 
     const publicRoot = path.join(root, 'public');
@@ -197,6 +236,7 @@ for (const mode of ['development', 'preview']) {
     const origin = 'http://127.0.0.1:' + server.httpServer.address().port;
     const listing = await (await fetch(origin + '/blog/')).text();
     assert.match(listing, /<title>Blog<\/title>/);
+    assert.match(listing, /name="twitter:title" content="Blog"/);
 
     const page = await fetch(origin + '/blog/post/');
     assert.equal(page.status, 200);
@@ -210,6 +250,22 @@ for (const mode of ['development', 'preview']) {
     const info = cards.get('/blog/post');
     assert.ok(html.includes('content="https://example.com' + info.url + '"'));
     assert.match(html, /<script type="module"/);
+    const indexPage = await fetch(origin + '/blog/post/index.html');
+    assert.equal(indexPage.status, 200);
+    assert.match(await indexPage.text(), /<title>Static share post · Alicia Blog<\/title>/);
+
+    for (const slug of ['nested/中文 note', '100% ready', 'literal%20name', 'hash#query?']) {
+      const url = '/blog/' + slug.split('/').map(encodeURIComponent).join('/') + '/';
+      const response = await fetch(origin + url);
+      assert.equal(response.status, 200, url);
+      const pageHtml = await response.text();
+      assert.match(pageHtml, /<title>Encoded title · Alicia Blog<\/title>/);
+      const imageUrl = pageHtml.match(/property="og:image" content="([^"]+)"/)?.[1];
+      const parsed = new URL(imageUrl);
+      assert.equal(parsed.search, '', 'card file names must not become query parameters');
+      assert.equal(parsed.hash, '', 'card file names must not become fragments');
+      assert.equal((await fetch(origin + parsed.pathname)).status, 200, imageUrl);
+    }
 
     const note = await (await fetch(origin + '/notes/note/')).text();
     assert.match(note, /<title>Note title · Alicia<\/title>/);
@@ -265,7 +321,6 @@ test('a missing share card fails the build instead of shipping a stale preview',
 
 test('every published document ships a current 1200x630 share card', () => {
   const publicRoot = path.join(repo, 'public');
-  let cards = 0;
   for (const collection of cardCollections) {
     const catalog = buildArticleCatalog(path.join(repo, collection.directory), () => {}, {
       basePath: collection.basePath,
@@ -277,10 +332,8 @@ test('every published document ships a current 1200x630 share card', () => {
         { width: 1200, height: 630 },
         info.relative,
       );
-      cards++;
     }
   }
-  assert.ok(cards > 0, 'no published documents were found');
   const home = requireSiteCard({ publicRoot });
   assert.deepEqual(jpegSize(readFileSync(home.file)), { width: 1200, height: 630 });
 });

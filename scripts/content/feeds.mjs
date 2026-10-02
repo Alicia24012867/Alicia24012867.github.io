@@ -6,7 +6,7 @@ import { xml, declaration } from './xml.mjs';
 /** Summary feeds use the same published catalog as the website, with no runtime dependencies. */
 export function renderFeeds(
   articles,
-  { siteUrl, title, description, author, language, basePath = '/blog/' },
+  { siteUrl, idBaseUrl = siteUrl, title, description, author, language, basePath = '/blog/' },
 ) {
   const origin = new URL(siteUrl);
   if (!['http:', 'https:'].includes(origin.protocol) || origin.username || origin.password)
@@ -17,7 +17,7 @@ export function renderFeeds(
     .map((article) => ({
       ...article,
       // ?post= stays the stable entry id; the link points at the static address.
-      id: xml(absolute(`${basePath}?post=${encodeURIComponent(article.slug)}`)),
+      id: xml(new URL(`${basePath}?post=${encodeURIComponent(article.slug)}`, idBaseUrl).href),
       url: xml(absolute(sharePath(basePath, article.slug))),
       published: new Date(article.date),
       edited: new Date(article.updated || article.date),
@@ -68,7 +68,7 @@ ${rssItems}
   </channel>
 </rss>\n`,
     [atom.path]: `${declaration}<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="${xml(language)}">
-  <id>${xml(absolute(atom.path))}</id>
+  <id>${xml(new URL(atom.path, idBaseUrl).href)}</id>
   <title type="text">${xml(title)}</title>
   <subtitle type="text">${xml(description)}</subtitle>
   <link href="${xml(absolute(atom.path))}" rel="self" type="${atom.type}"/>

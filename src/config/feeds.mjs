@@ -1,6 +1,8 @@
 // Canonical production URLs stay stable in local previews and feed readers.
 export const blogFeed = {
-  siteUrl: 'https://alicia24012867.github.io/',
+  siteUrl: 'https://nymphilia.com/',
+  // Feed identities survive the domain migration; public links use siteUrl.
+  idBaseUrl: 'https://alicia24012867.github.io/',
   title: 'Alicia · Blog',
   description: 'Code, learning, and little discoveries worth sharing.',
   author: 'Alicia',

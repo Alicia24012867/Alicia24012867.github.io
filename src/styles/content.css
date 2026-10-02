@@ -342,8 +342,10 @@
   color: var(--blue-strong);
 }
 .article-date,
+.article-word-count,
 .reading-time {
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .journal-entry h3 {
   margin-top: 11px;

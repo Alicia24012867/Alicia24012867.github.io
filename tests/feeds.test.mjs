@@ -19,7 +19,22 @@ const article = {
   date: '2026-01-02',
   updated: '2026-02-03T12:00:00+08:00',
 };
-const config = { ...blogFeed, siteUrl: 'https://example.com/' };
+const config = { ...blogFeed, siteUrl: 'https://example.com/', idBaseUrl: undefined };
+
+test('moving the public domain preserves feed and entry identities', () => {
+  const before = renderFeeds([article], { ...blogFeed, siteUrl: blogFeed.idBaseUrl });
+  const after = renderFeeds([article], blogFeed);
+  for (const format of ['/rss.xml', '/atom.xml']) {
+    const identities = (xml) =>
+      [...xml.matchAll(/<(?:id|guid)[^>]*>([^<]+)<\/(?:id|guid)>/g)].map((match) => match[1]);
+    assert.deepEqual(identities(after[format]), identities(before[format]));
+    assert.ok(
+      after[format].includes(
+        new URL(sharePath('/blog/', article.slug), 'https://nymphilia.com/').href,
+      ),
+    );
+  }
+});
 
 test('feeds escape XML, keep summaries inert, and link to static article addresses', () => {
   const feeds = renderFeeds([article], config);

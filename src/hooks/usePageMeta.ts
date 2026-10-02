@@ -11,15 +11,18 @@ export function usePageMeta({
   canonical,
   image,
   imageAlt,
+  type = 'website',
 }: {
   title: string;
   description: string;
   canonical?: string;
   image?: string;
   imageAlt?: string;
+  type?: 'article' | 'website';
 }) {
   useEffect(() => {
     document.title = title;
+    setMeta('meta[property="og:type"]', type);
     setMeta('meta[name="description"]', description);
     setMeta('meta[property="og:title"]', title);
     setMeta('meta[property="og:description"]', description);
@@ -37,5 +40,5 @@ export function usePageMeta({
         setMeta('meta[name="twitter:image:alt"]', imageAlt);
       }
     }
-  }, [title, description, canonical, image, imageAlt]);
+  }, [title, description, canonical, image, imageAlt, type]);
 }

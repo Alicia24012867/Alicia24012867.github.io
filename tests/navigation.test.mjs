@@ -76,10 +76,7 @@ test('the static path decides the document while ?post= links keep working', () 
   );
   assert.equal(slugFromLocation('notes', { pathname: '/blog/moments/', search: '' }), undefined);
   assert.equal(slugFromLocation('blog', { pathname: '/blog/%E0%A4%A/', search: '' }), undefined);
-  assert.equal(
-    absoluteUrl('/blog/moments/', 'https://alicia24012867.github.io'),
-    'https://alicia24012867.github.io/blog/moments/',
-  );
+  assert.equal(absoluteUrl('/blog/moments/'), 'https://nymphilia.com/blog/moments/');
 });
 test('both addresses of one document share its canonical and card', () => {
   const summary = {
@@ -115,6 +112,7 @@ test('both addresses of one document share its canonical and card', () => {
   };
   const meta = contentPageMeta(options);
   assert.deepEqual(meta, {
+    type: 'article',
     title: 'A < B · Alicia Blog',
     description: 'Summary',
     canonical: 'https://example.com/blog/nested/%E4%B8%AD%E6%96%87%20note/',
@@ -134,6 +132,7 @@ test('both addresses of one document share its canonical and card', () => {
       origin: 'https://example.com',
     }),
     {
+      type: 'website',
       title: 'Blog · Alicia',
       description: 'List description',
       canonical: 'https://example.com/notes/',
@@ -148,13 +147,45 @@ test('both addresses of one document share its canonical and card', () => {
       origin: 'https://example.com',
     }),
     {
+      type: 'website',
       title: 'Post not found · Alicia Blog',
       description: 'List description',
       canonical: 'https://example.com/blog/',
     },
   );
   assert.equal(
+    contentPageMeta({ ...options, origin: undefined }).canonical,
+    'https://nymphilia.com/blog/nested/%E4%B8%AD%E6%96%87%20note/',
+  );
+  assert.equal(
     contentPageMeta({ ...options, summary: { ...summary, share: undefined } }).image,
     undefined,
   );
+});
+
+test('explicit index documents resolve like their directory addresses', () => {
+  for (const collection of ['blog', 'notes']) {
+    assert.equal(
+      slugFromLocation(collection, { pathname: `/${collection}/index.html`, search: '' }),
+      undefined,
+    );
+    assert.equal(
+      slugFromLocation(collection, {
+        pathname: `/${collection}/nested/post/index.html`,
+        search: '',
+      }),
+      'nested/post',
+    );
+    assert.equal(
+      slugFromLocation(collection, {
+        pathname: `/${collection}/index.html`,
+        search: '?post=legacy',
+      }),
+      'legacy',
+    );
+    assert.equal(
+      slugFromLocation(collection, { pathname: `/${collection}/literal%2520name/`, search: '' }),
+      'literal%20name',
+    );
+  }
 });

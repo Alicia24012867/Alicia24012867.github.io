@@ -1,4 +1,5 @@
 import { shareBases, sharePath } from '../config/sharing.mjs';
+import { blogFeed } from '../config/feeds.mjs';
 import type { ArticleSort } from './sort';
 
 export type Collection = keyof typeof shareBases;
@@ -40,7 +41,10 @@ export function slugFromLocation(
 ) {
   const base = collectionBase[collection];
   if (location.pathname.startsWith(base)) {
-    const rest = location.pathname.slice(base.length).replace(/\/+$/, '');
+    const rest = location.pathname
+      .slice(base.length)
+      .replace(/(^|\/)index\.html$/, '$1')
+      .replace(/\/+$/, '');
     if (rest) {
       try {
         return rest
@@ -55,6 +59,6 @@ export function slugFromLocation(
   return new URLSearchParams(location.search).get('post') ?? undefined;
 }
 
-/** Canonical links always describe the address the reader is actually on. */
-export const absoluteUrl = (path: string, origin: string = window.location.origin) =>
+/** Canonical links keep the production origin even in local previews. */
+export const absoluteUrl = (path: string, origin: string = blogFeed.siteUrl) =>
   new URL(path, origin).href;

@@ -7,7 +7,7 @@ The generator (scripts/share/cards.mjs) sends one JSON job on stdin:
      "format": "png",
      "jobs": [{"output": "/abs/card.png", "eyebrow": "ALICIA'S BLOG / LIFE",
                "title": "Written before 20", "description": "...",
-               "date": "Posted on 2026-10-02", "footer": "alicia24012867.github.io"}]}
+               "signature": "Alicia", "footer": "nymphilia.com"}]}
 
 Every card reuses the homepage wash colours and the same sky artwork, so a shared
 link looks like the site it points at. Requires Pillow 9+ and a CJK-capable font;
@@ -23,8 +23,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 WIDTH, HEIGHT = 1200, 630
 MARGIN = 72
-COLUMN = 664
-EYEBROW_TOP = 92
+COLUMN = 620
+EYEBROW_TOP = 88
 TITLE_TOP = 150
 DESCRIPTION_GAP = 26
 FOOTER_RULE_Y = 512
@@ -41,7 +41,7 @@ FOOTER_SOFT_INK = "#6493b6"
 RULE_INK = "#d6e6f4"
 
 # Fractions of the card width, mirroring the homepage hero wash.
-HORIZONTAL_WASH = [(0.0, 252), (0.18, 240), (0.34, 196), (0.48, 92), (0.62, 0), (1.0, 0)]
+HORIZONTAL_WASH = [(0.0, 255), (0.20, 248), (0.40, 232), (0.57, 188), (0.76, 0), (1.0, 0)]
 # Fraction of the card height, from the bottom edge upwards.
 VERTICAL_WASH = [(0.0, 204), (0.18, 0), (1.0, 0)]
 
@@ -57,7 +57,6 @@ FONT_FILES = {
         ("/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc", 0),
     ],
     "sans-latin": [
-        ("/System/Library/Fonts/HelveticaNeue.ttc", 10),
         ("/System/Library/Fonts/HelveticaNeue.ttc", 0),
     ],
     "sans-cjk": [
@@ -161,11 +160,12 @@ def trim(line):
 
 def ellipsize(line, max_width, spacing=0):
     characters = list(line)
-    while characters and measure(characters, spacing) > max_width:
+    ellipsis = ("…", characters[-1][1] if characters else font("sans-cjk", DESCRIPTION_SIZE))
+    while characters and measure(characters + [ellipsis], spacing) > max_width:
         characters.pop()
     while characters and characters[-1][0] == " ":
         characters.pop()
-    return characters + [("…", font("sans-cjk", DESCRIPTION_SIZE))]
+    return characters + [ellipsis]
 
 
 def fit_title(title, max_width):
@@ -175,7 +175,9 @@ def fit_title(title, max_width):
             return size, lines
     size = TITLE_SIZES[-1]
     lines = wrap(segment(title, "display-latin", "display-cjk", size), max_width)
-    return size, lines[:3]
+    lines = lines[:3]
+    lines[-1] = ellipsize(lines[-1], max_width)
+    return size, lines
 
 
 def draw_lines(draw, lines, x, y, line_height, fill, spacing=0):
@@ -195,6 +197,7 @@ def gradient_mask(stops, width, height):
 
 
 def vertical_gradient_mask(stops, width, height):
+    stops = sorted(stops)
     mask = Image.new("L", (1, height))
     mask.putdata([alpha_at(stops, index / max(1, height - 1)) for index in range(height)])
     return mask.resize((width, height), Image.NEAREST)
@@ -227,14 +230,19 @@ def draw_card(job, background):
         vertical_gradient_mask([(1 - position, alpha) for position, alpha in VERTICAL_WASH], WIDTH, HEIGHT),
     )
     draw = ImageDraw.Draw(card)
+    eyebrow = wrap(segment(job["eyebrow"], "sans-latin", "sans-cjk", EYEBROW_SIZE), COLUMN - 38, 2.6)
+    if len(eyebrow) > 1:
+        eyebrow = [ellipsize(eyebrow[0], COLUMN - 38, 2.6)]
+    # The fine blue rule echoes the homepage eyebrow without adding a badge.
+    draw.line((MARGIN, EYEBROW_TOP + 11, MARGIN + 22, EYEBROW_TOP + 11), fill=EYEBROW_INK, width=1)
     draw_lines(
         draw,
-        wrap(segment(job["eyebrow"], "sans-latin", "sans-cjk", EYEBROW_SIZE), COLUMN, 3.4),
-        MARGIN,
+        eyebrow,
+        MARGIN + 38,
         EYEBROW_TOP,
         EYEBROW_SIZE * 1.6,
         EYEBROW_INK,
-        3.4,
+        2.6,
     )
     size, title_lines = fit_title(job["title"], COLUMN)
     draw_lines(draw, title_lines, MARGIN, TITLE_TOP, size * TITLE_LINE_HEIGHT, TITLE_INK)
@@ -251,11 +259,15 @@ def draw_card(job, background):
         DESCRIPTION_SIZE * DESCRIPTION_LINE_HEIGHT,
         DESCRIPTION_INK,
     )
-    draw.line((MARGIN, FOOTER_RULE_Y, MARGIN + COLUMN, FOOTER_RULE_Y), fill=RULE_INK, width=2)
-    draw_lines(draw, [segment(job["date"], "sans-latin", "sans-cjk", FOOTER_SIZE)], MARGIN, FOOTER_TEXT_TOP, 0, FOOTER_INK)
+    draw.line((MARGIN, FOOTER_RULE_Y, MARGIN + COLUMN, FOOTER_RULE_Y), fill=RULE_INK, width=1)
     footer = segment(job["footer"], "sans-latin", "sans-cjk", FOOTER_SIZE)
     right = MARGIN + COLUMN - measure(footer)
-    draw_lines(draw, [footer], right, FOOTER_TEXT_TOP, 0, FOOTER_SOFT_INK)
+    signature_width = right - MARGIN - 32
+    signature = segment(job["signature"], "display-latin", "display-cjk", 26)
+    if measure(signature) > signature_width:
+        signature = ellipsize(signature, signature_width)
+    draw_lines(draw, [signature], MARGIN, FOOTER_TEXT_TOP - 5, 0, FOOTER_INK)
+    draw_lines(draw, [footer], right, FOOTER_TEXT_TOP + 4, 0, FOOTER_SOFT_INK)
     return card
 
 

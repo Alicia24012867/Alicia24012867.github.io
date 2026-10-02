@@ -34,10 +34,12 @@ export default function ArticleMeta({
         </time>
       </span>
       {readingTime && (
-        <span className="reading-time">
-          {article.wordCount} {article.wordCount === 1 ? 'word' : 'words'} / About{' '}
-          {article.readingMinutes} {article.readingMinutes === 1 ? "minute's" : "minutes'"} read
-        </span>
+        <>
+          <span className="article-word-count">
+            {article.wordCount.toLocaleString('en-US')} {article.wordCount === 1 ? 'word' : 'words'}
+          </span>
+          <span className="reading-time">{article.readingMinutes} min read</span>
+        </>
       )}
       {article.updated && (
         <span className="article-date">

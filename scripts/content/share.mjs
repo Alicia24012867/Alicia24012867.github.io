@@ -1,11 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { decodeHTML } from 'entities';
 import {
   cardCollections,
   collectionByBase,
   requireCard,
   requireSiteCard,
   sharePath,
+  shareSegments,
   skyDigest,
 } from '../share/spec.mjs';
 
@@ -24,10 +26,9 @@ export const escapeAttribute = (value) =>
     .replaceAll('"', '&quot;');
 
 function replaceOnce(html, pattern, replacement, label) {
-  const next = html.replace(pattern, replacement);
-  if (next === html)
+  if (!pattern.test(html))
     throw new Error('分享页模板缺少 ' + label + '，请检查对应的 HTML 入口是否仍然包含该标签');
-  return next;
+  return html.replace(pattern, () => replacement);
 }
 
 const metaTag = (attribute, key, content) =>
@@ -64,9 +65,11 @@ export function sharePageHtml(shell, article, { siteUrl, basePath, card }) {
     metaTag(
       'property',
       'article:modified_time',
-      new Date(article.updated || article.date).toISOString(),
+      new Date(
+        Math.max(Date.parse(article.date), Date.parse(article.updated || article.date)),
+      ).toISOString(),
     ),
-    metaTag('property', 'article:author', article.author || 'Alicia'),
+    metaTag('name', 'author', article.author || 'Alicia'),
     metaTag('property', 'article:section', section.label),
     ...article.tags.map((tag) => metaTag('property', 'article:tag', tag)),
   ].join('\n');
@@ -128,8 +131,14 @@ export function sharePlugin(collections, { siteUrl }) {
   const readSiteCard = () => (siteCard ??= requireSiteCard({ publicRoot, sky: readSky() }));
   const collectionFor = (basePath) => collections.find((item) => item.basePath === basePath);
 
-  const cardTags = () => {
+  const cardTags = (html) => {
     const image = new URL(readSiteCard().url, site).href;
+    const title = decodeHTML(
+      html.match(/<meta\s+property="og:title"\s+content="([^"]*)"/)?.[1] || SITE_TITLE,
+    );
+    const description = decodeHTML(
+      html.match(/<meta\s+property="og:description"\s+content="([^"]*)"/)?.[1] || SITE_DESCRIPTION,
+    );
     return [
       { tag: 'meta', attrs: { property: 'og:image', content: image } },
       { tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
@@ -137,8 +146,8 @@ export function sharePlugin(collections, { siteUrl }) {
       { tag: 'meta', attrs: { property: 'og:image:alt', content: SITE_TITLE } },
       { tag: 'meta', attrs: { property: 'og:site_name', content: 'Alicia' } },
       { tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
-      { tag: 'meta', attrs: { name: 'twitter:title', content: SITE_TITLE } },
-      { tag: 'meta', attrs: { name: 'twitter:description', content: SITE_DESCRIPTION } },
+      { tag: 'meta', attrs: { name: 'twitter:title', content: title } },
+      { tag: 'meta', attrs: { name: 'twitter:description', content: description } },
       { tag: 'meta', attrs: { name: 'twitter:image', content: image } },
       { tag: 'meta', attrs: { name: 'twitter:image:alt', content: SITE_TITLE } },
     ];
@@ -148,7 +157,7 @@ export function sharePlugin(collections, { siteUrl }) {
   const matchShare = (pathname) => {
     for (const { basePath } of collections) {
       if (!pathname.startsWith(basePath)) continue;
-      const rest = pathname.slice(basePath.length);
+      const rest = pathname.slice(basePath.length).replace(/(^|\/)index\.html$/, '$1');
       if (!rest.endsWith('/')) continue;
       const encoded = rest.slice(0, -1);
       if (!encoded) continue;
@@ -167,7 +176,7 @@ export function sharePlugin(collections, { siteUrl }) {
       .articles.find((article) => article.slug === match.slug);
 
   const pageFile = (basePath, slug) =>
-    basePath.slice(1) + sharePath(basePath, slug).slice(basePath.length) + 'index.html';
+    basePath.slice(1) + shareSegments(slug).join('/') + '/index.html';
 
   return {
     name: 'site-share',
@@ -187,7 +196,7 @@ export function sharePlugin(collections, { siteUrl }) {
           tags: [
             { tag: 'link', attrs: { rel: 'canonical', href: canonical }, injectTo: 'head' },
             { tag: 'meta', attrs: { property: 'og:url', content: canonical }, injectTo: 'head' },
-            ...cardTags().map((tag) => ({ ...tag, injectTo: 'head' })),
+            ...cardTags(html).map((tag) => ({ ...tag, injectTo: 'head' })),
           ],
         };
       },
@@ -212,15 +221,15 @@ export function sharePlugin(collections, { siteUrl }) {
         if (req.method !== 'GET' && req.method !== 'HEAD') return next();
         let pathname;
         try {
-          pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+          pathname = new URL(req.url, 'http://localhost').pathname;
         } catch {
           return next();
         }
         const match = matchShare(pathname);
         if (!match) return next();
-        const article = readArticle(match);
-        if (!article) return next();
         try {
+          const article = readArticle(match);
+          if (!article) return next();
           const shell = await fs.promises.readFile(
             path.join(server.config.root, match.basePath, 'index.html'),
             'utf8',

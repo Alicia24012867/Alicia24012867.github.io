@@ -3,14 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { blogSections, noteSections } from '../../src/config/sections.mjs';
 import { blogFeed } from '../../src/config/feeds.mjs';
-import { sharePath as encodeSharePath } from '../../src/config/sharing.mjs';
+import { encodeSlug, sharePath as encodeSharePath } from '../../src/config/sharing.mjs';
 
 /**
  * Share cards are rendered by scripts/share/render_card.py and committed under
  * public/images/share/. Bump CARD_VERSION whenever the layout, palette or copy
  * changes so every card is rendered again.
  */
-export const CARD_VERSION = 1;
+export const CARD_VERSION = 2;
 // JPEG keeps the photo background small while every link preview understands it.
 export const CARD_FORMAT = 'jpeg';
 export const cardExtension = (format = CARD_FORMAT) => (format === 'jpeg' ? 'jpg' : format);
@@ -59,7 +59,11 @@ export function sharePath(basePath, slug) {
 /** Path inside public/ that holds the rendered card. */
 export function cardRelative(basePath, slug, digest, format = CARD_FORMAT) {
   return (
-    [SHARE_DIRECTORY, collectionByBase.get(basePath).id, ...shareSegments(slug)].join('/') +
+    [
+      SHARE_DIRECTORY,
+      collectionByBase.get(basePath).id,
+      ...shareSegments(slug).map(encodeURIComponent),
+    ].join('/') +
     '.' +
     digest +
     '.' +
@@ -82,10 +86,8 @@ export function cardSpec(article, basePath, { host = siteHost } = {}) {
     eyebrow: collection.eyebrow + ' / ' + (section.english || section.label).toUpperCase(),
     title: article.title,
     description: article.description || collection.tagline,
-    date:
-      'Posted on ' +
-      article.date.slice(0, 10) +
-      (article.updated ? ' · Edited on ' + article.updated.slice(0, 10) : ''),
+    // Git dates change at commit time, after cards have already been rendered.
+    signature: article.author || 'Alicia',
     footer: host,
   };
 }
@@ -111,7 +113,7 @@ export function articleCard(
     digest,
     relative,
     file: path.join(publicRoot, relative),
-    url: '/' + relative,
+    url: '/' + encodeSlug(relative),
   };
 }
 
@@ -136,7 +138,7 @@ export function siteCardSpec({ host = siteHost } = {}) {
     title: 'Between code and blue skies',
     description:
       'Exploring high-performance computing, scientific computing, and machine learning.',
-    date: 'Blog · Notes · Everyday curiosity',
+    signature: 'Alicia',
     footer: host,
   };
 }
