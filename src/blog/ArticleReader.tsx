@@ -1,10 +1,9 @@
 import { blogIndex } from './catalog';
 import ArticleBody from '../content/reader/ArticleBody';
-import ArticleTags from '../content/ArticleTags';
+import ArticleHeader from '../content/ArticleHeader';
 import Icon from '../components/Icon';
 import type { Article } from '../content/types';
 import { blogSections } from '../config/sections.mjs';
-import ArticleMeta from '../content/ArticleMeta';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
 import { sortFromSearch } from '../content/sort';
 
@@ -24,16 +23,11 @@ export default function ArticleReader({ article }: { article: Article }) {
         <Icon name="arrow" />
         {query ? 'Back to results' : 'All posts'}
       </a>
-      <header className="reading-header">
-        <p className="eyebrow">
-          {section.english && `${section.english} / `}
-          {section.label}
-        </p>
-        <h1 className="article-title">{article.title}</h1>
-        <p className="reading-description">{article.description}</p>
-        <ArticleMeta article={article} showDetails readingTime="estimate" />
-        <ArticleTags article={article} />
-      </header>
+      <ArticleHeader
+        article={article}
+        eyebrow={[section.english, section.label].filter(Boolean).join(' / ')}
+        showDetails
+      />
       <ArticleBody article={article} />
       {(older || newer) && (
         <nav className="article-pager" aria-label={`More posts in ${section.label}`}>

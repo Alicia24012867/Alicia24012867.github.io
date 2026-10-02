@@ -1,80 +1,7 @@
-import { useEffect, useState, type RefObject } from 'react';
+import { useEffect, type RefObject } from 'react';
 import type { Article } from '../types';
-import { headingAt, type HeadingPosition } from './headingPosition';
 
 type BodyRef = RefObject<HTMLElement | null>;
-
-function useActiveHeading(bodyRef: BodyRef, article: Article) {
-  const [active, setActive] = useState(article.headings[0]?.id ?? '');
-  useEffect(() => {
-    const root = bodyRef.current;
-    if (!root) return;
-    const ids = new Set(article.headings.map((heading) => heading.id));
-    const headings = [...root.querySelectorAll<HTMLElement>('h2[id], h3[id]')].filter((node) =>
-      ids.has(node.id),
-    );
-    setActive(headings[0]?.id ?? '');
-    if (!headings.length) return;
-    let frame = 0;
-    let dirty = true;
-    let disposed = false;
-    let positions: HeadingPosition[] = [];
-    let offset = 0;
-    let bottom = 0;
-
-    const update = () => {
-      if (frame || disposed) return;
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        if (dirty) {
-          const visible = headings.filter((heading) => heading.getClientRects().length > 0);
-          positions = visible.map((heading) => ({
-            id: heading.id,
-            top: heading.getBoundingClientRect().top + window.scrollY,
-          }));
-          offset =
-            (Number.parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0) +
-            (visible[0]
-              ? Number.parseFloat(getComputedStyle(visible[0]).scrollMarginTop) || 0
-              : 0) +
-            1;
-          bottom = document.documentElement.scrollHeight - window.innerHeight;
-          dirty = false;
-        }
-        const atEnd = window.scrollY > 0 && Math.ceil(window.scrollY) >= bottom;
-        setActive(
-          atEnd ? (positions.at(-1)?.id ?? '') : headingAt(positions, window.scrollY + offset),
-        );
-      });
-    };
-    const invalidate = () => {
-      dirty = true;
-      update();
-    };
-    const observer = new ResizeObserver(invalidate);
-    observer.observe(root);
-    observer.observe(root.closest('.reading-page') ?? root);
-    observer.observe(document.body);
-    root.addEventListener('toggle', invalidate, true);
-    document.fonts?.ready.then(() => {
-      if (!disposed) invalidate();
-    });
-    window.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', invalidate);
-    window.addEventListener('hashchange', invalidate);
-    update();
-    return () => {
-      disposed = true;
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-      root.removeEventListener('toggle', invalidate, true);
-      window.removeEventListener('scroll', update);
-      window.removeEventListener('resize', invalidate);
-      window.removeEventListener('hashchange', invalidate);
-    };
-  }, [bodyRef, article]);
-  return active;
-}
 
 function useCodeCopy(bodyRef: BodyRef, slug: string) {
   useEffect(() => {
@@ -213,5 +140,4 @@ export function useArticleReader(bodyRef: BodyRef, article: Article) {
   }, [article.slug]);
   useCodeCopy(bodyRef, article.slug);
   useMermaid(bodyRef, article.slug);
-  return useActiveHeading(bodyRef, article);
 }

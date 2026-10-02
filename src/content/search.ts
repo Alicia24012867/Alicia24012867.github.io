@@ -9,7 +9,6 @@ export function createContentIndex(
 ) {
   const bySlug = new Map<string, ArticleSummary>();
   const groups = new Map<string, ArticleSummary[]>();
-  const search = new Map<string, string>();
 
   for (const article of articles) {
     bySlug.set(article.slug, article);
@@ -19,6 +18,16 @@ export function createContentIndex(
     else groups.set(group, [article]);
   }
 
+  return { bySlug, groups, filter: createContentFilter(groups, labels, bodyText) };
+}
+
+/** Attach independent search state to existing groups without rebuilding the catalog. */
+export function createContentFilter(
+  groups: ReadonlyMap<string, ArticleSummary[]>,
+  labels: ReadonlyMap<string, string>,
+  bodyText: Readonly<Record<string, string>> = {},
+) {
+  const search = new Map<string, string>();
   // Listings and readers need lookups, but only searches need normalized text.
   function matches(article: ArticleSummary, group: string, needle: string) {
     let text = search.get(article.slug);
@@ -40,23 +49,19 @@ export function createContentIndex(
   // Keep only the last result: extending a substring query can only remove matches.
   let previousNeedle = '';
   let previousGroups = groups;
-  return {
-    bySlug,
-    groups,
-    filter(query: string) {
-      const needle = query.trim().toLowerCase();
-      if (needle === previousNeedle) return previousGroups;
-      const candidates = needle.includes(previousNeedle) ? previousGroups : groups;
-      previousGroups = !needle
-        ? groups
-        : new Map(
-            [...candidates].map(([group, entries]) => [
-              group,
-              entries.filter((article) => matches(article, group, needle)),
-            ]),
-          );
-      previousNeedle = needle;
-      return previousGroups;
-    },
+  return (query: string) => {
+    const needle = query.trim().toLowerCase();
+    if (needle === previousNeedle) return previousGroups;
+    const candidates = needle.includes(previousNeedle) ? previousGroups : groups;
+    previousGroups = !needle
+      ? groups
+      : new Map(
+          [...candidates].map(([group, entries]) => [
+            group,
+            entries.filter((article) => matches(article, group, needle)),
+          ]),
+        );
+    previousNeedle = needle;
+    return previousGroups;
   };
 }

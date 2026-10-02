@@ -1,14 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
+import { useActiveHeading } from './useActiveHeading';
 import Icon from '../../components/Icon';
 import type { Article } from '../types';
 
 export default function ArticleToc({
   headings,
-  activeHeading,
+  bodyRef,
 }: {
   headings: Article['headings'];
-  activeHeading: string;
+  bodyRef: RefObject<HTMLElement | null>;
 }) {
+  const activeHeading = useActiveHeading(bodyRef, headings);
   const listRef = useRef<HTMLOListElement>(null);
 
   useEffect(() => {

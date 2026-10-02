@@ -45,7 +45,7 @@
   gap: 12px;
   color: #5286b4;
   letter-spacing: 3px;
-  font-size: 11px;
+  font-size: var(--text-sm);
   font-weight: 500;
   margin-bottom: 24px;
 }
@@ -67,7 +67,7 @@
 .homepage-links h2,
 .contact-copy h2,
 .interest-dialog h2 {
-  font-family: 'Playfair Display', 'STXingkai', 'Xingkai SC', '华文行楷', serif;
+  font-family: var(--font-display);
   font-style: italic;
 }
 .hero h1 {
@@ -121,8 +121,8 @@
   color: #426689;
 }
 .hero-description {
-  font-size: 13px;
-  color: #6c85a0;
+  font-size: var(--text-base);
+  color: var(--muted);
   line-height: 2;
   margin-top: 15px;
   letter-spacing: 0.4px;
@@ -142,8 +142,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
-  color: #6d8ca8;
+  font-size: var(--text-xs);
+  color: var(--muted);
   margin-top: 28px;
   letter-spacing: 0.6px;
 }
@@ -161,7 +161,7 @@
   margin-inline: 4px;
 }
 .small-japanese {
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 1px;
 }
 .sky-note {
@@ -175,7 +175,7 @@
   background: #ffffffbf;
   backdrop-filter: blur(12px);
   border: 1px solid #ffffffc9;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 8px 35px #446e9110;
   transform: rotate(-3deg);
   animation: drift 7s ease-in-out infinite;
@@ -258,7 +258,7 @@
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  font-size: 11px;
+  font-size: var(--text-sm);
   letter-spacing: 1px;
   color: #748a9e;
 }
@@ -275,7 +275,7 @@
 .introduction-strip .strip-ending {
   margin-left: auto;
   color: #8ea5b9;
-  font-size: 11px;
+  font-size: var(--text-sm);
   font-weight: 400;
   letter-spacing: 1px;
 }
@@ -297,8 +297,8 @@
   color: #7eb6df;
 }
 .section-aside {
-  font-size: 11px;
-  color: #8a9fb2;
+  font-size: var(--text-sm);
+  color: var(--muted);
   letter-spacing: 2px;
   display: flex;
   gap: 25px;
@@ -319,8 +319,8 @@
 .profile-card {
   position: relative;
   overflow: hidden;
-  border: 1px solid #e0ecf6;
-  border-radius: 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   padding: 28px 25px 18px;
   background: linear-gradient(135deg, #f1f8ff, #fafdff 50%, #f0f7fd);
   text-align: center;
@@ -361,7 +361,7 @@
   letter-spacing: 1px;
   padding: 4px 8px;
   border: 1px solid #dbeaf6;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transform: rotate(-9deg);
 }
 .profile-card h3 {
@@ -372,8 +372,8 @@
 }
 .profile-card > a {
   display: inline-block;
-  font-size: 10px;
-  color: #7d9ab3;
+  font-size: var(--text-xs);
+  color: var(--muted);
   margin-top: 6px;
 }
 .profile-card > a:hover {
@@ -389,8 +389,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
-  color: #6c869c;
+  font-size: var(--text-xs);
+  color: var(--muted);
   text-align: left;
   margin-top: 12px;
   letter-spacing: 0.2px;
@@ -416,8 +416,8 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #629ac9;
-  font-size: 12px;
+  color: var(--accent-ink);
+  font-size: var(--text-sm);
   letter-spacing: 0.4px;
   margin-bottom: 13px;
 }
@@ -433,7 +433,7 @@
 }
 .about-copy > p {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-base);
   line-height: 2.05;
   margin-top: 10px;
   letter-spacing: 0.15px;
@@ -446,25 +446,25 @@
 }
 .skill-list span {
   background: var(--light-blue);
-  color: #6585a4;
-  border: 1px solid #e4eef7;
+  color: var(--accent-ink);
+  border: 1px solid var(--line);
   padding: 5px 9px;
-  border-radius: 4px;
-  font-size: 9px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
 }
 .about-quote {
   display: flex;
   align-items: center;
   gap: 10px;
   padding-top: 24px;
-  color: #648dae;
+  color: var(--accent-ink);
 }
 .about-quote .icon {
   color: #91b5d1;
   width: 18px;
 }
 .about-quote p {
-  font-size: 11px;
+  font-size: var(--text-sm);
   line-height: 1.9;
   letter-spacing: 1px;
 }
@@ -475,7 +475,7 @@
   align-self: stretch;
   padding: 21px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   display: flex;
   flex-direction: column;
@@ -483,14 +483,14 @@
 .now-card-top {
   display: flex;
   align-items: center;
-  font-size: 11px;
-  color: #63819a;
+  font-size: var(--text-sm);
+  color: var(--muted);
   gap: 8px;
   padding-bottom: 22px;
 }
 .now-card-top > span:last-child {
   margin-left: auto;
-  font-size: 8px;
+  font-size: var(--text-xs);
   letter-spacing: 1.5px;
   color: #9ab0c1;
 }
@@ -503,7 +503,7 @@
 .now-icon {
   width: 33px;
   height: 33px;
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   display: grid;
   place-items: center;
   background: var(--light-blue);
@@ -514,11 +514,11 @@
   height: 17px;
 }
 .now-item > div > span {
-  font-size: 9px;
-  color: #9baebb;
+  font-size: var(--text-xs);
+  color: var(--muted);
 }
 .now-item p {
-  font-size: 11px;
+  font-size: var(--text-sm);
   margin-top: 5px;
   color: #62809a;
 }
@@ -537,7 +537,7 @@
   stroke-width: 1;
 }
 .now-card-bottom > p {
-  font-size: 10px;
+  font-size: var(--text-xs);
   line-height: 1.9;
   letter-spacing: 1px;
 }
@@ -552,9 +552,9 @@
   border-block: 1px solid var(--line);
 }
 .section-description {
-  font-size: 11px;
+  font-size: var(--text-sm);
   line-height: 1.9;
-  color: #8197aa;
+  color: var(--muted);
   letter-spacing: 1px;
   text-align: right;
   padding-bottom: 3px;
@@ -565,19 +565,22 @@
   gap: 23px;
 }
 .interest-card {
+  display: flex;
+  flex-direction: column;
   background: var(--surface);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  border: 1px solid #e1ebf4;
+  border: 1px solid var(--line);
   transition:
     transform 0.25s,
     box-shadow 0.25s;
 }
 .interest-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 30px #456c8c0c;
+  box-shadow: var(--shadow-card);
 }
 .interest-visual {
+  flex-shrink: 0;
   height: 182px;
   background-color: #eaf4fc;
   position: relative;
@@ -622,7 +625,7 @@
   transform: rotate(-23deg) skew(7deg, 7deg);
   padding: 9px;
   border: 1px solid #88b6d9;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: #d9eaf8;
   box-shadow:
     -5px 7px 0 #c6dff2,
@@ -671,10 +674,13 @@
   top: 9px;
 }
 .interest-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   padding: 26px 26px 0;
 }
 .card-eyebrow {
-  font-size: 8px;
+  font-size: var(--text-xs);
   color: #7c9fbd;
   letter-spacing: 1.7px;
   margin-bottom: 11px;
@@ -686,7 +692,8 @@
   letter-spacing: 1px;
 }
 .interest-description {
-  font-size: 11px;
+  flex: 1;
+  font-size: var(--text-base);
   color: var(--muted);
   line-height: 1.95;
   margin-top: 13px;
@@ -701,11 +708,11 @@
   min-height: 23px;
 }
 .interest-tags span {
-  font-size: 8px;
-  color: #708fa8;
+  font-size: var(--text-xs);
+  color: var(--accent-ink);
   background: var(--section);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 4px 7px;
 }
 .interest-link {
@@ -714,8 +721,8 @@
   justify-content: space-between;
   padding: 17px 0 19px;
   width: 100%;
-  font-size: 10px;
-  color: #6688a6;
+  font-size: var(--text-xs);
+  color: var(--accent-ink);
   background: transparent;
   border-top: 1px solid var(--line);
   margin-top: 23px;
@@ -737,8 +744,8 @@
   justify-content: center;
   align-items: center;
   gap: 9px;
-  font-size: 10px;
-  color: #8fa6ba;
+  font-size: var(--text-xs);
+  color: var(--muted);
   letter-spacing: 1px;
   margin-top: 27px;
 }
@@ -776,7 +783,7 @@
   gap: 8px;
   min-height: 44px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-base);
   line-height: 1.6;
   letter-spacing: 0;
 }
@@ -802,8 +809,8 @@
   align-items: center;
   position: relative;
   padding: 39px 42px;
-  border: 1px solid #dfeaf5;
-  border-radius: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   background: linear-gradient(110deg, #edf6ff, #f8fbff 70%, #f0f7ff);
   overflow: hidden;
   gap: 37px;
@@ -834,7 +841,7 @@
   color: #9dbfdc;
 }
 .contact-copy .eyebrow {
-  font-size: 8px;
+  font-size: var(--text-xs);
   margin-bottom: 9px;
 }
 .contact-copy h2 {
@@ -842,8 +849,8 @@
   letter-spacing: 0.5px;
 }
 .contact-copy > p:not(.eyebrow, .copy-status) {
-  font-size: 11px;
-  color: #8197ac;
+  font-size: var(--text-base);
+  color: var(--muted);
   margin-top: 10px;
   line-height: 1.8;
 }
@@ -854,8 +861,8 @@
   margin-top: 22px;
 }
 .contact-actions .button {
-  min-height: 40px;
-  font-size: 10px;
+  min-height: var(--control-height);
+  font-size: var(--text-sm);
   padding-inline: 17px;
   gap: 10px;
 }
@@ -868,8 +875,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #6c8ba6;
-  font-size: 11px;
+  color: var(--muted);
+  font-size: var(--text-sm);
   padding: 10px 0;
 }
 .email-copy .icon {
@@ -880,7 +887,7 @@
   color: var(--blue);
 }
 .copy-status {
-  font-size: 10px;
+  font-size: var(--text-xs);
   color: var(--blue-strong);
   line-height: 1.6;
   margin-top: 9px;
@@ -898,7 +905,7 @@
   border: 1px solid #c7ddeb;
   padding: 13px 10px;
   text-align: center;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .contact-stamp .icon {
   display: inline-block;
@@ -910,7 +917,7 @@
   width: min(540px, calc(100vw - 40px));
   max-height: calc(100dvh - 48px);
   padding: 43px;
-  border-radius: 18px;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink);
@@ -932,7 +939,7 @@
   font-size: 28px;
 }
 .interest-dialog > p:not(.eyebrow) {
-  font-size: 13px;
+  font-size: var(--text-base);
   color: var(--muted);
   line-height: 2;
   margin-top: 20px;
@@ -943,13 +950,13 @@
 }
 .interest-dialog h3 {
   color: var(--heading);
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 500;
   margin-top: 27px;
 }
 .interest-dialog ul {
   padding-left: 20px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--muted);
   line-height: 2.4;
 }
@@ -966,10 +973,10 @@
   align-items: center;
   justify-content: space-between;
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   padding: 12px 15px;
   color: var(--blue);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .resource-links a:hover {
   background: var(--light-blue);
@@ -1003,7 +1010,7 @@
 }
 [data-theme='night'] .hero-description,
 [data-theme='night'] .hero-status {
-  color: #9eb7ce;
+  color: var(--muted);
 }
 [data-theme='night'] .hero-eyebrow,
 [data-theme='night'] .hero-side-note,
@@ -1044,11 +1051,11 @@
 [data-theme='night'] .profile-card > a,
 [data-theme='night'] .now-item p,
 [data-theme='night'] .now-card-top {
-  color: #a7bed1;
+  color: var(--muted);
 }
 [data-theme='night'] .skill-list span {
   border-color: var(--line);
-  color: #a3c4df;
+  color: var(--accent-ink);
 }
 [data-theme='night'] .interest-card {
   border-color: var(--line);
@@ -1059,7 +1066,7 @@
 }
 [data-theme='night'] .interest-tags span,
 [data-theme='night'] .interest-link {
-  color: #acc6dc;
+  color: var(--accent-ink);
 }
 [data-theme='night'] .contact-card {
   background: linear-gradient(110deg, #1b3551, #1b2d43);
@@ -1073,7 +1080,7 @@
   border-color: #406280;
 }
 [data-theme='night'] .email-copy {
-  color: #aecbe3;
+  color: var(--muted);
 }
 
 @keyframes fade-in {
@@ -1115,7 +1122,7 @@
     font-size: 18px;
   }
   .hero-description {
-    font-size: 12px;
+    font-size: var(--text-base);
   }
   .about-layout {
     grid-template-columns: 235px 1fr;
@@ -1178,16 +1185,16 @@
     letter-spacing: 1px;
   }
   .hero-description {
-    font-size: 11px;
+    font-size: var(--text-base);
     letter-spacing: 0;
   }
   .hero-status {
     gap: 6px;
-    font-size: 9px;
+    font-size: var(--text-xs);
     letter-spacing: 0;
   }
   .small-japanese {
-    font-size: 9px;
+    font-size: var(--text-xs);
   }
   .hero-buttons {
     gap: 9px;
@@ -1196,7 +1203,7 @@
     padding-inline: 16px;
     gap: 10px;
     min-height: 43px;
-    font-size: 11px;
+    font-size: var(--text-sm);
   }
   .sky-note {
     padding: 12px;
@@ -1238,14 +1245,14 @@
     display: none;
   }
   .introduction-strip span {
-    font-size: 10px;
+    font-size: var(--text-xs);
     gap: 6px;
   }
   .section-space {
     padding-block: 62px;
   }
   .section-aside {
-    font-size: 10px;
+    font-size: var(--text-xs);
     gap: 12px;
   }
   .section-aside span {
@@ -1259,13 +1266,13 @@
     font-size: 18px;
   }
   .about-copy > p {
-    font-size: 11px;
+    font-size: var(--text-base);
   }
   .profile-card {
     padding-inline: 20px;
   }
   .about-quote p {
-    font-size: 10px;
+    font-size: var(--text-xs);
     letter-spacing: 0;
   }
   .interest-grid {
@@ -1282,11 +1289,11 @@
     letter-spacing: 0;
   }
   .card-eyebrow {
-    font-size: 6px;
+    font-size: var(--text-xs);
     letter-spacing: 1.1px;
   }
   .interest-description {
-    font-size: 10px;
+    font-size: var(--text-base);
     min-height: 64px;
   }
   .interest-tags {
@@ -1294,7 +1301,7 @@
     gap: 5px;
   }
   .interest-tags span {
-    font-size: 7px;
+    font-size: var(--text-xs);
     padding: 3px 5px;
   }
   .science-art > svg {
@@ -1322,7 +1329,7 @@
     gap: 16px;
   }
   .email-copy {
-    font-size: 10px;
+    font-size: var(--text-xs);
     gap: 8px;
   }
 }
@@ -1348,7 +1355,7 @@
     width: 100%;
   }
   .hero-eyebrow {
-    font-size: 8px;
+    font-size: var(--text-xs);
     letter-spacing: 2px;
     gap: 8px;
     margin-bottom: 15px;
@@ -1391,7 +1398,7 @@
   }
   .hero-description {
     margin-top: 12px;
-    font-size: 11px;
+    font-size: var(--text-base);
     line-height: 2;
   }
   .hero-buttons {
@@ -1400,11 +1407,11 @@
   }
   .hero-buttons .button {
     min-height: 45px;
-    font-size: 11px;
+    font-size: var(--text-sm);
     padding-inline: 20px;
   }
   .hero-status {
-    font-size: 9px;
+    font-size: var(--text-xs);
     margin-top: 23px;
     gap: 7px;
   }
@@ -1449,7 +1456,7 @@
     min-height: 56px;
   }
   .introduction-strip span {
-    font-size: 8px;
+    font-size: var(--text-xs);
     gap: 5px;
     letter-spacing: 0.2px;
   }
@@ -1458,7 +1465,7 @@
     width: 12px;
   }
   .introduction-strip i {
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
   .section-space {
     padding-block: 47px;
@@ -1500,14 +1507,14 @@
     font-size: 20px;
   }
   .profile-card > a {
-    font-size: 10px;
+    font-size: var(--text-xs);
     margin-top: 3px;
   }
   .profile-divider {
     margin-block: 12px 10px;
   }
   .profile-card > p {
-    font-size: 9px;
+    font-size: var(--text-xs);
     gap: 7px;
     margin-top: 10px;
   }
@@ -1519,7 +1526,7 @@
     display: none;
   }
   .about-hello {
-    font-size: 11px;
+    font-size: var(--text-sm);
     margin-bottom: 10px;
   }
   .about-copy h3 {
@@ -1527,20 +1534,20 @@
     margin-bottom: 15px;
   }
   .about-copy > p {
-    font-size: 12px;
+    font-size: var(--text-base);
   }
   .skill-list {
     gap: 7px;
   }
   .skill-list span {
     padding: 5px 8px;
-    font-size: 9px;
+    font-size: var(--text-xs);
   }
   .about-quote {
     padding-top: 23px;
   }
   .about-quote p {
-    font-size: 11px;
+    font-size: var(--text-sm);
     letter-spacing: 0.5px;
   }
   .section-description {
@@ -1557,7 +1564,7 @@
     padding: 24px 24px 0;
   }
   .card-eyebrow {
-    font-size: 8px;
+    font-size: var(--text-xs);
     letter-spacing: 1.5px;
     margin-bottom: 10px;
   }
@@ -1567,7 +1574,7 @@
   }
   .interest-description {
     min-height: auto;
-    font-size: 12px;
+    font-size: var(--text-base);
     margin-top: 12px;
   }
   .interest-tags {
@@ -1576,11 +1583,11 @@
     gap: 7px;
   }
   .interest-tags span {
-    font-size: 9px;
+    font-size: var(--text-xs);
     padding: 4px 8px;
   }
   .interest-link {
-    font-size: 11px;
+    font-size: var(--text-sm);
     padding-block: 17px;
     margin-top: 20px;
   }
@@ -1595,7 +1602,7 @@
     top: 10px;
   }
   .explore-footnote {
-    font-size: 9px;
+    font-size: var(--text-xs);
     letter-spacing: 0.5px;
     margin-top: 21px;
   }
@@ -1617,7 +1624,7 @@
     max-width: 280px;
   }
   .contact-copy > p:not(.eyebrow, .copy-status) {
-    font-size: 11px;
+    font-size: var(--text-base);
     line-height: 1.9;
   }
   .contact-actions {
@@ -1627,12 +1634,12 @@
     margin-top: 19px;
   }
   .contact-actions .button {
-    min-height: 42px;
-    font-size: 11px;
+    min-height: var(--control-height);
+    font-size: var(--text-sm);
     padding-inline: 19px;
   }
   .email-copy {
-    font-size: 11px;
+    font-size: var(--text-sm);
     padding-block: 10px;
   }
   .copy-status {
@@ -1684,7 +1691,7 @@
     font-size: 17px;
   }
   .profile-card > p {
-    font-size: 8px;
+    font-size: var(--text-xs);
   }
   .profile-sticker {
     left: 42px;

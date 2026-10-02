@@ -13,9 +13,9 @@ export default function ArticleBody({
   label?: string;
 }) {
   const bodyRef = useRef<HTMLElement>(null);
-  // Keep enhanced DOM nodes intact when the active TOC heading changes.
+  // Keep enhanced DOM nodes intact if the parent renders again.
   const markup = useMemo(() => ({ __html: article.html }), [article.html]);
-  const activeHeading = useArticleReader(bodyRef, article);
+  useArticleReader(bodyRef, article);
 
   return (
     <div className="reading-layout">
@@ -28,7 +28,7 @@ export default function ArticleBody({
         />
         <HandwrittenSignature />
       </div>
-      <ArticleToc headings={article.headings} activeHeading={activeHeading} />
+      <ArticleToc headings={article.headings} bodyRef={bodyRef} />
     </div>
   );
 }

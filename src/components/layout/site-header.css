@@ -1,16 +1,17 @@
 .site-navigation {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
   margin-left: auto;
 }
 .site-navigation a {
-  font-family: 'Playfair Display', 'STXingkai', 'Xingkai SC', '华文行楷', serif;
+  font-family: var(--font-display);
   font-style: italic;
+  font-weight: 400;
   position: relative;
   padding-block: 28px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-base);
   white-space: nowrap;
 }
 .site-navigation a:hover,
@@ -29,7 +30,7 @@
 }
 .site-navigation .site-section-start {
   border-left: 1px solid var(--line);
-  padding-left: 24px;
+  padding-left: 20px;
 }
 .icon-button.site-menu-toggle {
   display: none;

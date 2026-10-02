@@ -1,6 +1,5 @@
 import Icon from '../components/Icon';
-import ArticleTags from '../content/ArticleTags';
-import ArticleMeta from '../content/ArticleMeta';
+import ArticleHeader from '../content/ArticleHeader';
 import ArticleBody from '../content/reader/ArticleBody';
 import { noteSections } from '../config/sections.mjs';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
@@ -19,13 +18,10 @@ export default function NoteReader({ article: note }: { article: Article }) {
         <Icon name="arrow" />
         {query ? 'Back to results' : 'All notes'}
       </a>
-      <header className="reading-header">
-        <p className="eyebrow">KNOWLEDGE BASE / {noteSections.byId(note.section).label}</p>
-        <h1 className="article-title">{note.title}</h1>
-        <p className="reading-description">{note.description}</p>
-        <ArticleMeta article={note} readingTime="estimate" />
-        <ArticleTags article={note} />
-      </header>
+      <ArticleHeader
+        article={note}
+        eyebrow={`KNOWLEDGE BASE / ${noteSections.byId(note.section).label}`}
+      />
       <ArticleBody article={note} label="Note content" />
       <section className="note-backlinks" aria-labelledby="backlinks-title">
         <p className="eyebrow">LINKED REFERENCES</p>

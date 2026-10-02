@@ -1,5 +1,5 @@
 import notes, { loadSearch } from 'virtual:notes';
-import { createContentIndex } from '../content/search';
+import { createContentFilter, createContentIndex } from '../content/search';
 import { noteSections } from '../config/sections.mjs';
 
 const collator = new Intl.Collator('en');
@@ -12,7 +12,7 @@ export const noteIndex = createContentIndex(sortedNotes, groupOf, labels);
 let searchIndex: Promise<typeof noteIndex> | undefined;
 export function loadSearchIndex() {
   searchIndex ??= loadSearch()
-    .then((text) => createContentIndex(sortedNotes, groupOf, labels, text))
+    .then((text) => ({ ...noteIndex, filter: createContentFilter(noteIndex.groups, labels, text) }))
     .catch((error) => {
       searchIndex = undefined;
       throw error;

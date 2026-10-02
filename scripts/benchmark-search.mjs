@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { performance } from 'node:perf_hooks';
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
-import { createContentIndex } from '../src/content/search.ts';
+import { createContentFilter, createContentIndex } from '../src/content/search.ts';
 
 const count = 10000;
 const samples = 9;
@@ -20,7 +20,7 @@ const text = Object.fromEntries(
     'A repeatable note about numerical methods and memory access. '.repeat(20),
   ]),
 );
-const variants = [{ name: 'current', create: createContentIndex }];
+const variants = [{ name: 'current', create: createContentIndex, filter: createContentFilter }];
 const compareArg = process.argv.indexOf('--compare-ref');
 if (compareArg !== -1) {
   const ref = process.argv[compareArg + 1];
@@ -36,7 +36,11 @@ if (compareArg !== -1) {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   });
   const baseline = await import(`data:text/javascript,${encodeURIComponent(outputText)}`);
-  variants.unshift({ name: ref, create: baseline.createContentIndex });
+  variants.unshift({
+    name: ref,
+    create: baseline.createContentIndex,
+    filter: baseline.createContentFilter,
+  });
 }
 const build = (variant, body = {}) =>
   variant.create(articles, (article) => article.section, labels, body);
@@ -77,6 +81,7 @@ for (const variant of variants) {
   variant.results = {
     listingMs: [],
     fullTextIndexMs: [],
+    fullTextUpgradeMs: [],
     firstSearchMs: [],
     firstSearchTotalMs: [],
     warmQueriesMs: [],
@@ -84,8 +89,14 @@ for (const variant of variants) {
 }
 function measure(variant, record) {
   let start = performance.now();
-  build(variant);
+  const listing = build(variant);
   const listingMs = performance.now() - start;
+  start = performance.now();
+  const upgraded = variant.filter
+    ? { ...listing, filter: variant.filter(listing.groups, labels, text) }
+    : build(variant, text);
+  const fullTextUpgradeMs = performance.now() - start;
+  assert.equal(upgraded.bySlug.size, count);
   start = performance.now();
   const index = build(variant, text);
   const fullTextIndexMs = performance.now() - start;
@@ -100,6 +111,7 @@ function measure(variant, record) {
     const result = {
       listingMs,
       fullTextIndexMs,
+      fullTextUpgradeMs,
       firstSearchMs,
       firstSearchTotalMs: fullTextIndexMs + firstSearchMs,
       warmQueriesMs,

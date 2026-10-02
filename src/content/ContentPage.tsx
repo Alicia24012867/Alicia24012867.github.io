@@ -1,6 +1,7 @@
 import { useEffect, useState, type ComponentType } from 'react';
 import SiteLayout from '../components/layout/SiteLayout';
 import Icon from '../components/Icon';
+import ArticleHeader from './ArticleHeader';
 import { usePageMeta } from '../hooks/usePageMeta';
 import { listingUrl, queryFromSearch } from './urls';
 import { sortFromSearch } from './sort';
@@ -95,10 +96,7 @@ function ArticlePage({ summary, loadBody, loadReader }: Loaders & { summary: Art
   if (page) return <page.Reader article={page.article} />;
   return (
     <div className="journal-width reading-page" aria-busy={!failed}>
-      <header className="reading-header">
-        <h1 className="article-title">{summary.title}</h1>
-        <p className="reading-description">{summary.description}</p>
-      </header>
+      <ArticleHeader article={summary} metadata={false} />
       {failed ? (
         <div role="alert">
           <p>This page could not be loaded. Please try again.</p>

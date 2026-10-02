@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createContentIndex } from '../src/content/search.ts';
+import { createContentFilter, createContentIndex } from '../src/content/search.ts';
 
 const articles = [
   {
@@ -138,4 +138,44 @@ test('successive searches match a fresh search when typing, deleting, replacing,
   assert.deepEqual(index.filter('cuda api').get('learn'), [articles[0]]);
   assert.deepEqual(result.get('learn'), [articles[0], articles[2]], 'Earlier results stay intact');
   assert.equal(index.filter(' '), index.groups);
+});
+
+test('full-text search reuses browsing groups without inheriting a narrowed metadata result', () => {
+  const index = createContentIndex(articles, (article) => article.section, labels);
+  const original = [...index.groups].map(([group, entries]) => [group, [...entries]]);
+  const metadataResult = index.filter('absent');
+  const fullText = createContentFilter(
+    index.groups,
+    labels,
+    Object.fromEntries(articles.map((article) => [article.slug, article.searchText])),
+  );
+  assert.equal(fullText(' '), index.groups);
+  assert.deepEqual(fullText('synchronization').get('learn'), [articles[0]]);
+  assert.deepEqual(fullText('allocations').get('learn'), [articles[2]]);
+  assert.equal(index.filter('absent'), metadataResult);
+  assert.deepEqual(index.filter('synchronization').get('learn'), []);
+  assert.deepEqual(fullText('sea').get('life'), [articles[1]]);
+  assert.deepEqual([...index.groups], original);
+  assert.equal(fullText(''), index.groups);
+});
+
+test('independent filters share immutable groups and normalize only when first searched', () => {
+  let reads = 0;
+  const entry = Object.freeze({
+    ...articles[0],
+    get title() {
+      reads++;
+      return 'CUDA API';
+    },
+  });
+  const groups = new Map([['learn', Object.freeze([entry])]]);
+  const filter = createContentFilter(groups, labels, { [entry.slug]: 'Full text' });
+  assert.equal(filter(''), groups);
+  assert.equal(reads, 0);
+  assert.deepEqual(filter('full').get('learn'), [entry]);
+  assert.deepEqual(filter('full text').get('learn'), [entry]);
+  assert.deepEqual(filter('missing').get('learn'), []);
+  assert.equal(filter(''), groups);
+  assert.equal(reads, 1);
+  assert.equal(createContentFilter(new Map(), labels)('anything').size, 0);
 });
