@@ -45,6 +45,19 @@ test('article chunks include only referenced assets; search payloads contain tex
   assert.equal(module.default[article.slug], 'privatebodytoken');
 });
 
+test('text-only articles need no asset replacement and empty collections need no sample posts', async () => {
+  const body = { html: '<p>Text &amp; code</p>', headings: [], backlinks: [] };
+  const code = articleModule({ ...article, ...body }, new Map());
+  assert.doesNotMatch(code, /replace|import|const urls/);
+  const module = await import(`data:text/javascript,${encodeURIComponent(code)}`);
+  assert.deepEqual(module.default, body);
+  const empty = await import(
+    `data:text/javascript,${encodeURIComponent(listingModule({ articles: [] }, 'virtual:notes'))}`
+  );
+  assert.deepEqual(empty.default, []);
+  await assert.rejects(empty.loadArticle('absent'), /Unknown article/);
+});
+
 test('cached heading lookup handles boundaries, repeated positions, and large documents', () => {
   const positions = [
     { id: 'first', top: 100 },

@@ -21,17 +21,23 @@ const titles = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }
 export function sortArticles<
   T extends Pick<ArticleSummary, 'slug' | 'title' | 'date' | 'updated' | 'pin'>,
 >(articles: readonly T[], sort: ArticleSort): T[] {
+  // Parse each date once, rather than twice per comparison during sorting.
+  const dates =
+    sort === 'title'
+      ? undefined
+      : new Map(
+          articles.map((article) => [
+            article,
+            Date.parse(sort === 'updated' ? article.updated || article.date : article.date),
+          ]),
+        );
+  const direction = sort === 'oldest' ? 1 : -1;
   return [...articles].sort((a, b) => {
     const pinnedFirst = Number(b.pin === true) - Number(a.pin === true);
     if (pinnedFirst) return pinnedFirst;
-    let comparison: number;
-    if (sort === 'title') comparison = titles.compare(a.title, b.title);
-    else if (sort === 'updated')
-      comparison = Date.parse(b.updated || b.date) - Date.parse(a.updated || a.date);
-    else {
-      comparison = Date.parse(b.date) - Date.parse(a.date);
-      if (sort === 'oldest') comparison = -comparison;
-    }
+    const comparison = dates
+      ? direction * (dates.get(a)! - dates.get(b)!)
+      : titles.compare(a.title, b.title);
     return comparison || a.slug.localeCompare(b.slug);
   });
 }

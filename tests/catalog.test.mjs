@@ -31,6 +31,30 @@ function fixture(t, files) {
   return realpathSync(root);
 }
 
+test('collections can be empty, absent, deleted and recreated without template files', (t) => {
+  const root = fixture(t, {});
+  const directory = path.join(root, 'notes');
+  const cache = new Map();
+  const read = () => buildArticleCatalog(directory, undefined, { basePath: '/notes/', cache });
+  const empty = { articles: [], assets: new Map() };
+  assert.deepEqual(read(), empty);
+  mkdirSync(directory);
+  assert.deepEqual(read(), empty);
+  writeFileSync(path.join(directory, 'first.md'), '# First');
+  assert.equal(read().articles[0].slug, 'first');
+  assert.equal(cache.size, 1);
+  rmSync(directory, { recursive: true });
+  assert.deepEqual(read(), empty);
+  assert.equal(cache.size, 0);
+  mkdirSync(directory);
+  writeFileSync(path.join(directory, 'second.md'), '# Second');
+  assert.deepEqual(
+    read().articles.map((article) => article.slug),
+    ['second'],
+  );
+  assert.throws(() => buildArticleCatalog(path.join(directory, 'second.md')), { code: 'ENOTDIR' });
+});
+
 test('catalog discovers nested articles, excludes drafts/private files and sorts deterministically', (t) => {
   const root = fixture(t, {
     'old.md': '---\ndate: 2026-01-01\n---\nOld.',
@@ -184,7 +208,7 @@ test('Notes derive sections from top-level folders regardless of YAML and refres
   const topics = noteSections.collect(catalog.articles);
   assert.deepEqual(
     topics.map((topic) => topic.label),
-    ['CUDA API', 'Other notes', 'AI Research', '读书笔记'],
+    ['Other notes', 'AI Research', 'cuda', '读书笔记'],
   );
   const index = createContentIndex(
     catalog.articles,

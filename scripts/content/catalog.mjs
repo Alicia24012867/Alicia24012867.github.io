@@ -26,7 +26,15 @@ export function buildArticleCatalog(
   watch = () => {},
   { basePath = '/blog/', cache = new Map(), changedFiles } = {},
 ) {
-  const root = fs.realpathSync.native(articleRoot);
+  let root;
+  try {
+    root = fs.realpathSync.native(articleRoot);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    // Git does not retain empty folders; a collection can have no authored files yet.
+    cache.clear();
+    return { articles: [], assets: new Map() };
+  }
   const sections = basePath === '/notes/' ? noteSections : blogSections;
   const resolveDates = createArticleDateResolver(root);
   const articles = [];

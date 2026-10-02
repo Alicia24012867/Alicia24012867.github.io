@@ -1,4 +1,6 @@
 // Allura contours split into physical pen strokes, with a smooth A/l join.
+// Source: https://github.com/google/fonts/tree/main/ofl/allura
+// Copyright 2010 The Allura Project Authors. SIL OFL 1.1 (see Allura-OFL.txt).
 // Crossing strokes share intersection ink without exposing neighbouring branches.
 // The letter bodies flow A → l → i → c → i → a; the A crossbar and i dots
 // are added after lifting the pen. Fine c/a entry strokes stay inside Allura ink.

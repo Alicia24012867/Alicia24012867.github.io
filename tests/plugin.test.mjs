@@ -8,6 +8,45 @@ import { build, createServer, preview } from 'vite';
 import { articlesPlugin } from '../scripts/content/plugin.mjs';
 import { notFoundPlugin } from '../scripts/not-found.mjs';
 
+test('an absent content folder loads empty and refreshes when files are added or removed', async (t) => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), 'alicia-empty-content-test-')));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const directory = path.join(root, 'content/notes');
+  const server = await createServer({
+    root,
+    configFile: false,
+    plugins: [
+      articlesPlugin({
+        directory: 'content/notes',
+        moduleId: 'virtual:notes',
+        basePath: '/notes/',
+      }),
+    ],
+    server: { middlewareMode: true, hmr: false, ws: false, watch: null },
+    optimizeDeps: { noDiscovery: true, include: [] },
+  });
+  try {
+    assert.match((await server.transformRequest('virtual:notes')).code, /const articles = \[\]/);
+    mkdirSync(directory, { recursive: true });
+    const file = path.join(directory, 'note.md');
+    writeFileSync(file, '# Authored note\n\nUnique body.');
+    server.watcher.emit('add', file);
+    assert.match((await server.transformRequest('virtual:notes')).code, /Authored note/);
+    assert.match((await server.transformRequest('virtual:notes/entry/note')).code, /Unique body/);
+    assert.match((await server.transformRequest('virtual:notes/search')).code, /unique body/);
+    rmSync(directory, { recursive: true });
+    server.watcher.emit('unlink', file);
+    assert.match((await server.transformRequest('virtual:notes')).code, /const articles = \[\]/);
+    assert.doesNotMatch(
+      (await server.transformRequest('virtual:notes/search')).code,
+      /unique body/,
+    );
+    await assert.rejects(server.transformRequest('virtual:notes/entry/note'), /Unknown article/);
+  } finally {
+    await server.close();
+  }
+});
+
 test('Vite development mode transforms the virtual catalog without treating directories as imports', async (t) => {
   const root = mkdtempSync(path.join(tmpdir(), 'alicia-vite-test-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));

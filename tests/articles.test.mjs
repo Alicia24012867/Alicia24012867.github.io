@@ -1,10 +1,56 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { compileArticle } from '../scripts/content/compile.mjs';
+import { plainText } from '../scripts/content/text.mjs';
+
+test('plain text keeps superscripts and escaped text while removing footnote references', () => {
+  for (const [html, expected] of [
+    ['<p>Hello <b>world</b></p>', 'Hello world'],
+    ['x<sup>2</sup>', 'x2'],
+    ['<sup>outer<sup>inner</sup></sup>', 'outerinner'],
+    ['A<sup class="footnote-ref"><a href="#fn">1</a></sup> B', 'A B'],
+    ['<sup class="footnote-ref">hidden<sup>also hidden</sup></sup>visible', 'visible'],
+    ['<code>&lt;sup&gt;literal&lt;/sup&gt; &amp; &#20013;</code>', '<sup>literal</sup> & 中'],
+    ['&amp;lt;b&amp;gt;', '&lt;b&gt;'],
+    ['<script>hidden()</script><!-- hidden --><p>visible</p>', 'visible'],
+  ])
+    assert.equal(plainText(html), expected, html);
+});
 
 test('Markdown fixture renders a unique title, code, tables, tasks and local images', () => {
-  const source = readFileSync(new URL('./fixtures/article.md', import.meta.url), 'utf8');
+  const source = [
+    '---',
+    'title: Syntax coverage',
+    'date: 2026-09-19',
+    'section: 学习',
+    '---',
+    '# Syntax coverage',
+    '## Code',
+    '```python',
+    'def add(a, b): return a + b',
+    '```',
+    '## Table',
+    '| Key | Value |',
+    '| --- | --- |',
+    '| a | b |',
+    '## Tasks',
+    '- [x] Done',
+    '- [ ] Next',
+    '## Math',
+    '$E=mc^2$',
+    '## Diagram',
+    '```mermaid',
+    'flowchart LR',
+    'A --> B',
+    '```',
+    '## Media',
+    '![Fixture](./assets/fixture.svg)',
+    '<details><summary>Details</summary><p>Text.</p></details>',
+    '',
+    'Reference[^note].',
+    '',
+    '[^note]: Footnote text.',
+  ].join('\n');
   const article = compileArticle(source, 'test.md', (asset) => `/built/${asset}`);
   assert.equal(article.slug, 'test');
   assert.equal(article.date, '2026-09-19');
@@ -20,7 +66,7 @@ test('Markdown fixture renders a unique title, code, tables, tasks and local ima
   assert.match(article.html, /class="katex"/);
   assert.match(article.html, /class="article-mermaid"/);
   assert.match(article.html, /type="checkbox" disabled/);
-  assert.match(article.html, /src="\/built\/assets\/summer-sky.webp"/);
+  assert.match(article.html, /src="\/built\/assets\/fixture.svg"/);
   assert.match(article.html, /<details>/);
 });
 

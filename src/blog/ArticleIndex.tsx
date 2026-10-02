@@ -5,8 +5,7 @@ import Icon from '../components/Icon';
 import type { ArticleSummary } from '../content/types';
 import ArticleMeta from '../content/ArticleMeta';
 import { articleUrl } from '../content/urls';
-import { useSearchQuery } from '../hooks/useSearchQuery';
-import { useArticleSort } from '../hooks/useArticleSort';
+import { useListingQuery } from '../hooks/useListingQuery';
 import {
   articleSortOptions,
   parseArticleSort,
@@ -77,8 +76,7 @@ const JournalEntries = memo(function JournalEntries({
 });
 
 export default function ArticleIndex() {
-  const [query, setQuery] = useSearchQuery();
-  const [sort, setSort] = useArticleSort();
+  const { query, setQuery, sort, setSort } = useListingQuery();
   const deferredQuery = useDeferredValue(query);
   const hasQuery = deferredQuery.trim().length > 0;
   const shelves = useMemo(() => {

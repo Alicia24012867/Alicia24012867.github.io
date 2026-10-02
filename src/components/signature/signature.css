@@ -19,15 +19,8 @@
   visibility: hidden;
 }
 
-.signature-static {
-  display: none;
-}
-
 @media (prefers-reduced-motion: reduce), print {
-  .signature-animated {
-    display: none;
-  }
-  .signature-static {
-    display: block;
+  .signature-ink > path {
+    mask: none;
   }
 }

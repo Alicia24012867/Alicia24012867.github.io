@@ -5,7 +5,7 @@ import Icon from '../components/Icon';
 import ArticleTags from '../content/ArticleTags';
 import ArticleMeta from '../content/ArticleMeta';
 import { articleUrl } from '../content/urls';
-import { useSearchQuery } from '../hooks/useSearchQuery';
+import { useListingQuery } from '../hooks/useListingQuery';
 import { noteIndex, noteTopics } from './catalog';
 
 const noteCount = (count: number) => `${count} ${count === 1 ? 'note' : 'notes'}`;
@@ -55,7 +55,7 @@ const NoteEntries = memo(function NoteEntries({
 });
 
 export default function NotesIndex() {
-  const [query, setQuery] = useSearchQuery();
+  const { query, setQuery } = useListingQuery();
   const deferredQuery = useDeferredValue(query);
   const { index, pending, failed, retry } = useNoteSearch(deferredQuery);
   const shelves = useMemo(() => {

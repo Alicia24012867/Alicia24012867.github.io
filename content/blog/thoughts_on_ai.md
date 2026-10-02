@@ -69,7 +69,7 @@ tags: [learning, life, journal]
 
   And I do hope, in a time when everyone is impatient, we can still find the patience to learn things properly — to struggle with a problem, to sit with not knowing, to earn the understanding we claim to have.  
 
-  ![插图](./assets/summer-sky.webp)
+  ![插图](/images/summer-sky.webp)
 
 ## Revision
 

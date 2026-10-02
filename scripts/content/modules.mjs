@@ -8,8 +8,9 @@ export function listingModule({ articles }, moduleId) {
       `[${JSON.stringify(slug)}, () => import(${JSON.stringify(`${moduleId}/entry/${encodeURIComponent(slug)}`)}).then(module => module.default)]`,
   );
   return `const articles = ${JSON.stringify(summaries)};
-const loaders = new Map([${loaders.join(',')}]);
+let loaders;
 export function loadArticle(slug) {
+  loaders ??= new Map([${loaders.join(',')}]);
   const load = loaders.get(slug);
   return load ? load() : Promise.reject(new Error('Unknown article'));
 }
@@ -29,6 +30,7 @@ export function articleModule(article, assetsByMarker) {
     const file = assetsByMarker.get(marker);
     if (file && !used.has(marker)) used.set(marker, { file, name: `asset${used.size}` });
   }
+  if (!used.size) return `export default ${JSON.stringify(body)};`;
   const imports = [...used.values()]
     .map(({ file, name }) => `import ${name} from ${JSON.stringify(`${file}?url`)};`)
     .join('\n');

@@ -15,14 +15,14 @@ export const headingSlug = (text) =>
     .replace(/^-|-$/g, '') || 'heading';
 
 export function plainText(html) {
-  const withoutFootnotes = sanitizeHtml(html, {
+  const text = sanitizeHtml(html, {
     allowedTags: ['sup'],
     allowedAttributes: { sup: ['class'] },
-    exclusiveFilter: (frame) => frame.tag === 'sup' && frame.attribs.class === 'footnote-ref',
+    // Remove reference contents, but unwrap ordinary superscripts in the same pass.
+    exclusiveFilter: (frame) =>
+      frame.tag === 'sup' && (frame.attribs.class === 'footnote-ref' || 'excludeTag'),
   });
-  return decodeHTML(sanitizeHtml(withoutFootnotes, { allowedTags: [], allowedAttributes: {} }))
-    .replace(/\s+/g, ' ')
-    .trim();
+  return decodeHTML(text).replace(/\s+/g, ' ').trim();
 }
 
 const readingBlockTags = new Set([

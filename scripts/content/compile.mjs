@@ -21,10 +21,10 @@ export function compileArticle(
   const resolveReference = createReferenceResolver(filename, resolveAsset, onArticleLink);
   let html = sanitizeArticleHtml(rendered.html, resolveReference);
   const firstTitle = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
+  const headingTitle = firstTitle ? plainText(firstTitle[1]) : '';
   const title =
-    metadata.title ||
-    (firstTitle ? plainText(firstTitle[1]) : path.posix.basename(slugFromFile(filename)));
-  if (firstTitle && plainText(firstTitle[1]) === title) html = html.replace(firstTitle[0], '');
+    metadata.title || (firstTitle ? headingTitle : path.posix.basename(slugFromFile(filename)));
+  if (firstTitle && headingTitle === title) html = html.replace(firstTitle[0], '');
 
   const footnotes = sanitizeArticleHtml(rendered.footnotes, resolveReference);
   const extracted = extractHeadings(html, footnotes);
