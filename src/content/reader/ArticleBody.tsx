@@ -2,6 +2,7 @@ import './reader.css';
 import { useMemo, useRef } from 'react';
 import type { Article } from '../types';
 import ArticleToc from './ArticleToc';
+import ArticleSignature from './ArticleSignature';
 import { useArticleReader } from './useArticleReader';
 
 export default function ArticleBody({
@@ -18,12 +19,15 @@ export default function ArticleBody({
 
   return (
     <div className="reading-layout">
-      <article
-        ref={bodyRef}
-        className="article-body"
-        aria-label={label}
-        dangerouslySetInnerHTML={markup}
-      />
+      <div className="reading-content">
+        <article
+          ref={bodyRef}
+          className="article-body"
+          aria-label={label}
+          dangerouslySetInnerHTML={markup}
+        />
+        <ArticleSignature />
+      </div>
       <ArticleToc headings={article.headings} activeHeading={activeHeading} />
     </div>
   );

@@ -524,6 +524,30 @@
   gap: 65px;
   align-items: start;
 }
+.reading-content {
+  min-width: 0;
+}
+.article-signature {
+  width: min(100%, 128px);
+  margin: 8px 0 0 auto;
+  color: var(--blue-strong);
+}
+.article-signature svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+@media (prefers-reduced-motion: reduce), print {
+  .signature-ink {
+    opacity: 1 !important;
+  }
+  .signature-writing {
+    display: none;
+  }
+  .signature-complete {
+    visibility: visible !important;
+  }
+}
 .article-pager {
   display: grid;
   grid-template-columns: 1fr 1fr;
