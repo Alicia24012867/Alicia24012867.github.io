@@ -133,6 +133,11 @@ svg {
   letter-spacing: -0.9px;
   color: var(--heading);
 }
+.brand > span:nth-child(2),
+.brand-note {
+  font-family: 'Playfair Display', 'STXingkai', 'Xingkai SC', '华文行楷', serif;
+  font-style: italic;
+}
 .brand-symbol {
   color: #4a97df;
   width: 34px;

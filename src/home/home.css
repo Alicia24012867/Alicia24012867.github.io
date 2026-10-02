@@ -59,6 +59,17 @@
   margin-left: 5px;
   line-height: 1;
 }
+.hero h1,
+.section-heading h2,
+.profile-card h3,
+.about-copy h3,
+.interest-content h3,
+.homepage-links h2,
+.contact-copy h2,
+.interest-dialog h2 {
+  font-family: 'Playfair Display', 'STXingkai', 'Xingkai SC', '华文行楷', serif;
+  font-style: italic;
+}
 .hero h1 {
   color: #2e6fa8;
   font-weight: 500;

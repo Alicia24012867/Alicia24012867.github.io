@@ -5,6 +5,8 @@
   margin-left: auto;
 }
 .site-navigation a {
+  font-family: 'Playfair Display', 'STXingkai', 'Xingkai SC', '华文行楷', serif;
+  font-style: italic;
   position: relative;
   padding-block: 28px;
   color: var(--muted);
