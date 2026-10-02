@@ -48,6 +48,7 @@ export function articlesPlugin({
 
   return {
     name: `local-${directory}`,
+    api: { basePath, readCatalog },
     configResolved(config) {
       articleRoot = path.resolve(config.root, directory);
     },

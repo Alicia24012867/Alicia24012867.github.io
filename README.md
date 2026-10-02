@@ -81,6 +81,12 @@ docs/               撰写说明与性能记录
 
 站点正式域名与订阅元信息在 `src/config/feeds.mjs` 配置，本地预览也使用正式原文地址。摘要订阅无需解析正文附件，公式和图表可通过原文链接阅读。格式依据 [RSS 2.0](https://www.rssboard.org/rss-specification) 和 [Atom RFC 4287](https://www.rfc-editor.org/rfc/rfc4287.html)。
 
+## 搜索引擎发现
+
+[`/sitemap.xml`](https://alicia24012867.github.io/sitemap.xml) 包含首页、Blog、Notes 列表和所有已发布文章、笔记的正式地址。草稿、私有文件、404 和搜索排序参数不进入 sitemap。内容条目的 `lastmod` 取 YAML / Git 的实际发布时间或更新时间；首页和列表页不填写推测的日期。
+
+[`/robots.txt`](https://alicia24012867.github.io/robots.txt) 允许公开页面抓取，并声明 sitemap 的绝对地址。两者在生产构建时生成，本地开发和预览也可直接访问；复用已有内容目录缓存，内容增删改后自动更新。格式遵循 [Sitemaps 协议](https://www.sitemaps.org/protocol.html)。
+
 ## 运行与维护
 
 - `ContentPage` 共用查询路由、页面元信息、正文加载及错误状态；`ArticleHeader` 共用阅读页和加载状态的标题区。

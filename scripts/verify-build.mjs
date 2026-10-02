@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
-import { feedFormats } from '../src/config/feeds.mjs';
+import { blogFeed, feedFormats } from '../src/config/feeds.mjs';
 
 const report = process.argv.includes('--report');
 const root = path.resolve(process.argv.slice(2).find((arg) => arg !== '--report') || 'dist');
@@ -46,6 +46,11 @@ for (const { path: pathname, type } of feedFormats) {
     assert.ok(html.includes(`href="${pathname}"`), `${page} does not link to ${pathname}`);
   }
 }
+const sitemap = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
+assert.match(sitemap, /<urlset xmlns="http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9">/);
+assert.doesNotMatch(sitemap, /404\.html|[?&](?:q|sort)=/);
+const robots = fs.readFileSync(path.join(root, 'robots.txt'), 'utf8');
+assert.ok(robots.includes(`Sitemap: ${new URL('/sitemap.xml', blogFeed.siteUrl).href}`));
 const notFound = fs.readFileSync(path.join(root, '404.html'), 'utf8');
 assert.match(notFound, /<meta name="robots" content="noindex"/);
 for (const match of notFound.matchAll(/(?:src|href)="([^"]+)"/g)) {

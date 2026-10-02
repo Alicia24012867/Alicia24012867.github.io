@@ -4,14 +4,23 @@ import { resolve } from 'node:path';
 import { blogFeed } from './src/config/feeds.mjs';
 import { articlesPlugin } from './scripts/content/plugin.mjs';
 import { notFoundPlugin } from './scripts/not-found.mjs';
+import { sitemapPlugin } from './scripts/content/sitemap.mjs';
+
+const blog = articlesPlugin({ feed: blogFeed });
+const notes = articlesPlugin({
+  directory: 'content/notes',
+  moduleId: 'virtual:notes',
+  basePath: '/notes/',
+});
 
 // This repository is deployed as a GitHub User Page at the domain root.
 export default defineConfig({
   plugins: [
     react(),
     notFoundPlugin(),
-    articlesPlugin({ feed: blogFeed }),
-    articlesPlugin({ directory: 'content/notes', moduleId: 'virtual:notes', basePath: '/notes/' }),
+    blog,
+    notes,
+    sitemapPlugin([blog.api, notes.api], blogFeed.siteUrl),
   ],
   base: '/',
   appType: 'mpa',
