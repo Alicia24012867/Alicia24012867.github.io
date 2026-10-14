@@ -1,5 +1,6 @@
 import { useEffect, type RefObject } from 'react';
 import type { Article } from '../types';
+import { useHeadingLinks } from './useHeadingLinks';
 
 type BodyRef = RefObject<HTMLElement | null>;
 
@@ -139,5 +140,6 @@ export function useArticleReader(bodyRef: BodyRef, article: Article) {
     return () => cancelAnimationFrame(frame);
   }, [article.slug]);
   useCodeCopy(bodyRef, article.slug);
+  useHeadingLinks(bodyRef, article);
   useMermaid(bodyRef, article.slug);
 }
