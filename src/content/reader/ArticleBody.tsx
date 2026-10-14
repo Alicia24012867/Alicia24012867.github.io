@@ -4,6 +4,7 @@ import type { Article } from '../types';
 import ArticleToc from './ArticleToc';
 import HandwrittenSignature from '../../components/signature/HandwrittenSignature';
 import PhotoViewer from './PhotoViewer';
+import ReadingProgress from './ReadingProgress';
 import { useArticleReader } from './useArticleReader';
 
 export default function ArticleBody({
@@ -31,6 +32,7 @@ export default function ArticleBody({
       </div>
       <ArticleToc headings={article.headings} bodyRef={bodyRef} />
       <PhotoViewer bodyRef={bodyRef} slug={article.slug} />
+      <ReadingProgress bodyRef={bodyRef} />
     </div>
   );
 }

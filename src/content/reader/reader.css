@@ -782,8 +782,44 @@
 .comments-link:hover {
   color: var(--blue-strong);
 }
+/* Reading progress: a line along the header's bottom edge, led by a small glowing star. */
+.reading-progress {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  pointer-events: none;
+}
+.reading-progress span {
+  position: absolute;
+  inset: 0;
+  border-radius: 0 2px 2px 0;
+  background: linear-gradient(90deg, #a9d4f7, var(--blue));
+  opacity: 0;
+  transform: translateX(-100%);
+  transition: opacity 0.3s;
+}
+.reading-progress span::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 2px #7cc0f6;
+}
+[data-theme='night'] .reading-progress span {
+  background: linear-gradient(90deg, #35587d, var(--blue));
+}
+[data-theme='night'] .reading-progress span::after {
+  box-shadow: 0 0 8px 2px #8ebff0b3;
+}
 @media print {
-  .article-comments {
+  .article-comments,
+  .reading-progress {
     display: none;
   }
 }
