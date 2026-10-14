@@ -1,5 +1,6 @@
 import Icon from '../components/Icon';
 import { profile } from '../config/profile';
+import SkyNote from './SkyNote';
 
 export default function Hero() {
   return (
@@ -72,18 +73,7 @@ export default function Hero() {
             </span>
           </div>
         </div>
-        <div className="sky-note">
-          <span className="sky-note-icon">
-            <Icon name="sun" />
-          </span>
-          <div>
-            <span className="sky-note-label">TODAY'S MOOD</span>
-            <p>A little light, a wide-open sky.</p>
-          </div>
-          <span className="sky-note-star" aria-hidden="true">
-            ✧
-          </span>
-        </div>
+        <SkyNote />
         <span className="hero-side-note" aria-hidden="true">
           A LITTLE CORNER OF MY UNIVERSE
         </span>

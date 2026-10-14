@@ -205,6 +205,18 @@
   margin-left: 16px;
   font-size: 26px;
 }
+/* The mood follows the visitor's clock: a sunset glow in the evening, moonlight at night. */
+.sky-note[data-sky='evening'] .sky-note-icon {
+  background: linear-gradient(150deg, #ffefe2, #f8e7f2);
+  color: #d0896c;
+}
+.sky-note[data-sky='night'] .sky-note-icon {
+  background: #e9ebfb;
+  color: #6f7bc4;
+}
+.sky-note[data-sky='night'] .sky-note-star {
+  animation: twinkle 3.6s ease-in-out infinite;
+}
 .hero-side-note {
   position: absolute;
   right: -34px;
@@ -1076,6 +1088,14 @@
 [data-theme='night'] .sky-note-label {
   color: #8ab0cf;
 }
+[data-theme='night'] .sky-note[data-sky='evening'] .sky-note-icon {
+  background: linear-gradient(150deg, #4b3c50, #3a3552);
+  color: #efbd9f;
+}
+[data-theme='night'] .sky-note[data-sky='night'] .sky-note-icon {
+  background: #2c3a64;
+  color: #c3cdfb;
+}
 [data-theme='night'] .profile-card {
   background: linear-gradient(135deg, #1c334e, #192b42);
   border-color: var(--line);
@@ -1144,6 +1164,17 @@
   }
   50% {
     transform: translateY(-7px) rotate(-2deg);
+  }
+}
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
   }
 }
 
@@ -1465,9 +1496,31 @@
     margin-top: 23px;
     gap: 7px;
   }
-  /* Phone hero: the mood card and vertical caption would collide with the title. */
-  .sky-note,
+  /* Phone hero: the vertical caption would collide with the title. The mood card
+     floats in the open sky above the title instead; the illustrated face sits near
+     66% of the width, so the card ends well before it. */
   .hero-side-note {
+    display: none;
+  }
+  .sky-note {
+    display: flex;
+    align-items: flex-start;
+    top: 88px;
+    right: auto;
+    bottom: auto;
+    left: 0;
+    max-width: calc(66vw - 58px);
+    padding-inline: 11px 14px;
+  }
+  .sky-note-label {
+    white-space: nowrap;
+  }
+  .sky-note p {
+    line-height: 1.6;
+    letter-spacing: 0.6px;
+    text-wrap: balance;
+  }
+  .sky-note-star {
     display: none;
   }
   .hero-japanese {
@@ -1735,5 +1788,11 @@
   }
   .profile-sticker {
     left: 42px;
+  }
+}
+@media (max-width: 340px) {
+  /* The sky beside the illustrated face is too narrow for the mood card. */
+  .sky-note {
+    display: none;
   }
 }

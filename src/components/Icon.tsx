@@ -6,6 +6,7 @@ export type IconName =
   | 'arrow'
   | 'down'
   | 'sun'
+  | 'sunset'
   | 'moon'
   | 'menu'
   | 'close'
@@ -41,6 +42,7 @@ const paths: Record<IconName, React.ReactNode> = {
       <path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5" />
     </>
   ),
+  sunset: <path d="M8 17a4 4 0 0 1 8 0M3 17h18M8 21h8M12 7v2M6.3 11.3 4.9 9.9m12.8 1.4 1.4-1.4" />,
   moon: <path d="M20.9 13a9 9 0 0 1-9.9-9.9A9 9 0 1 0 20.9 13Z" />,
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
   close: <path d="m6 6 12 12M6 18 18 6" />,
