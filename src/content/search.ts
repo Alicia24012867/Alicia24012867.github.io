@@ -27,23 +27,24 @@ export function createContentFilter(
   labels: ReadonlyMap<string, string>,
   bodyText: Readonly<Record<string, string>> = {},
 ) {
-  const search = new Map<string, string>();
+  const search = new Map<string, { meta: string; body: string }>();
   // Listings and readers need lookups, but only searches need normalized text.
-  function matches(article: ArticleSummary, group: string, needle: string) {
+  // Metadata and body stay apart: the build already lowercases full text, so an
+  // unchanged body keeps pointing at the loaded string instead of a second copy.
+  function textOf(article: ArticleSummary, group: string) {
     let text = search.get(article.slug);
-    if (text === undefined) {
-      text = [
-        article.title,
-        article.description,
-        ...article.tags,
-        labels.get(group),
-        Object.hasOwn(bodyText, article.slug) ? bodyText[article.slug] : '',
-      ]
-        .join(' ')
-        .toLowerCase();
+    if (!text) {
+      const raw = Object.hasOwn(bodyText, article.slug) ? bodyText[article.slug] : '';
+      const body = raw.toLowerCase();
+      text = {
+        meta: [article.title, article.description, ...article.tags, labels.get(group)]
+          .join(' ')
+          .toLowerCase(),
+        body: body === raw ? raw : body,
+      };
       search.set(article.slug, text);
     }
-    return text.includes(needle);
+    return text;
   }
 
   // Keep only the last result: extending a substring query can only remove matches.
@@ -52,13 +53,25 @@ export function createContentFilter(
   return (query: string) => {
     const needle = query.trim().toLowerCase();
     if (needle === previousNeedle) return previousGroups;
+    // Searching "meta body" as one string also matches across the joining space.
+    const spans: [string, string][] = [];
+    for (let at = needle.indexOf(' '); at !== -1; at = needle.indexOf(' ', at + 1))
+      spans.push([needle.slice(0, at), needle.slice(at + 1)]);
+    const matches = (article: ArticleSummary, group: string) => {
+      const { meta, body } = textOf(article, group);
+      return (
+        meta.includes(needle) ||
+        body.includes(needle) ||
+        spans.some(([head, tail]) => meta.endsWith(head) && body.startsWith(tail))
+      );
+    };
     const candidates = needle.includes(previousNeedle) ? previousGroups : groups;
     previousGroups = !needle
       ? groups
       : new Map(
           [...candidates].map(([group, entries]) => [
             group,
-            entries.filter((article) => matches(article, group, needle)),
+            entries.filter((article) => matches(article, group)),
           ]),
         );
     previousNeedle = needle;

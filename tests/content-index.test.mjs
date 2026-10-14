@@ -159,6 +159,40 @@ test('full-text search reuses browsing groups without inheriting a narrowed meta
   assert.equal(fullText(''), index.groups);
 });
 
+test('separate metadata and body text match exactly like one joined, lowercased string', () => {
+  const entries = [
+    { slug: 'sigma', section: 'learn', title: 'ΟΔΟΣ Map', description: 'Ends ΣΑ', tags: ['GPU'] },
+    { slug: 'unlabelled', section: 'other', title: 'B', description: '', tags: [] },
+    { slug: 'no-body', section: 'life', title: 'C', description: 'Sea  day', tags: ['x y'] },
+  ];
+  const body = { sigma: 'Body ΣTARTS here', unlabelled: 'ünïcode body 正文 Text' };
+  const groups = new Map(entries.map((entry) => [entry.section, [entry]]));
+  const joined = entries.map((entry) =>
+    [
+      entry.title,
+      entry.description,
+      ...entry.tags,
+      labels.get(entry.section),
+      Object.hasOwn(body, entry.slug) ? body[entry.slug] : '',
+    ]
+      .join(' ')
+      .toLowerCase(),
+  );
+  // Every short substring, including those that cross the joins and repeated spaces.
+  const queries = new Set(['', ' ', 'map learning body', 'learning body', 'b  ü', 'life ']);
+  for (const text of joined)
+    for (let start = 0; start < text.length; start++)
+      for (let end = start + 1; end <= Math.min(text.length, start + 12); end++)
+        queries.add(text.slice(start, end));
+  const filter = createContentFilter(groups, labels, body);
+  for (const query of queries) {
+    const needle = query.trim().toLowerCase();
+    const expected = entries.filter((_, index) => joined[index].includes(needle));
+    const found = [...filter(query).values()].flat();
+    assert.deepEqual(found, expected, JSON.stringify(query));
+  }
+});
+
 test('independent filters share immutable groups and normalize only when first searched', () => {
   let reads = 0;
   const entry = Object.freeze({

@@ -123,17 +123,39 @@ for (const variant of variants) measure(variant, false);
 for (let i = 0; i < samples; i++)
   for (const variant of i % 2 ? [...variants].reverse() : variants) measure(variant, true);
 const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+// With --expose-gc, also report the heap a full-text filter keeps after it has
+// normalized every document. The build lowercases full text, so measure that input.
+const normalized = Object.fromEntries(
+  Object.entries(text).map(([slug, value]) => [slug, value.toLowerCase()]),
+);
+function retainedBytes(variant) {
+  const listing = build(variant);
+  globalThis.gc();
+  const before = process.memoryUsage().heapUsed;
+  const index = variant.filter
+    ? { filter: variant.filter(listing.groups, labels, normalized) }
+    : build(variant, normalized);
+  index.filter('absent');
+  globalThis.gc();
+  const bytes = process.memoryUsage().heapUsed - before;
+  assert.equal(index.filter('absent').get('learn').length, 0);
+  return bytes;
+}
+if (typeof globalThis.gc === 'function')
+  for (const variant of variants)
+    variant.retained = median(Array.from({ length: 5 }, () => retainedBytes(variant)));
 console.log(
   JSON.stringify(
     {
       documents: count,
       queriesPerSample: queries.length,
       samples,
-      results: variants.map(({ name, results }) => ({
+      results: variants.map(({ name, results, retained }) => ({
         implementation: name,
         ...Object.fromEntries(
           Object.entries(results).map(([key, values]) => [key, median(values)]),
         ),
+        ...(retained === undefined ? {} : { retainedFullTextBytes: retained }),
       })),
     },
     null,
