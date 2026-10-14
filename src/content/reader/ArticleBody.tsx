@@ -3,6 +3,7 @@ import { useMemo, useRef } from 'react';
 import type { Article } from '../types';
 import ArticleToc from './ArticleToc';
 import HandwrittenSignature from '../../components/signature/HandwrittenSignature';
+import PhotoViewer from './PhotoViewer';
 import { useArticleReader } from './useArticleReader';
 
 export default function ArticleBody({
@@ -29,6 +30,7 @@ export default function ArticleBody({
         <HandwrittenSignature />
       </div>
       <ArticleToc headings={article.headings} bodyRef={bodyRef} />
+      <PhotoViewer bodyRef={bodyRef} slug={article.slug} />
     </div>
   );
 }

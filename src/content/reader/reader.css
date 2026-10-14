@@ -419,6 +419,106 @@
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
+.article-body [data-photo] {
+  cursor: zoom-in;
+}
+/* The photo viewer: one photo large over a deep night sky, in either theme. */
+.photo-viewer {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: #dceafa;
+}
+.photo-viewer::backdrop {
+  background: #0b1626e6;
+  backdrop-filter: blur(12px);
+}
+.photo-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 64px 88px 28px;
+  touch-action: pan-y pinch-zoom;
+}
+.photo-stage figure {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  min-width: 0;
+  margin: 0;
+}
+.photo-stage img {
+  display: block;
+  max-width: min(100%, 1100px);
+  max-height: calc(100dvh - 150px);
+  object-fit: contain;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 80px #00000080;
+  animation: photo-in 0.22s ease-out;
+}
+.photo-stage figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  max-width: 640px;
+  text-align: center;
+  font-size: var(--text-sm);
+  line-height: 1.7;
+}
+.photo-count {
+  color: #93abc2;
+  letter-spacing: 1px;
+}
+.photo-viewer .icon-button {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  color: #e3eefb;
+  background: #ffffff14;
+}
+.photo-viewer .icon-button:hover {
+  color: #fff;
+  background: #ffffff2b;
+}
+.photo-viewer :focus-visible {
+  outline-color: #9fd2ff;
+}
+.photo-close {
+  top: 16px;
+  right: 16px;
+}
+.photo-step {
+  top: 50%;
+  translate: 0 -50%;
+}
+.photo-previous {
+  left: 20px;
+}
+.photo-previous .icon {
+  transform: rotate(180deg);
+}
+.photo-next {
+  right: 20px;
+}
+@keyframes photo-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 .article-body hr {
   border: 0;
   border-top: 1px solid var(--line);
@@ -785,5 +885,23 @@
   .article-body td {
     font-size: var(--text-sm);
     padding: 10px 13px;
+  }
+  /* Phones step through photos with buttons below the caption, or by swiping. */
+  .photo-stage {
+    padding: 64px 14px 88px;
+  }
+  .photo-stage img {
+    max-height: calc(100dvh - 200px);
+  }
+  .photo-step {
+    top: auto;
+    bottom: 22px;
+    translate: none;
+  }
+  .photo-previous {
+    left: calc(50% - 56px);
+  }
+  .photo-next {
+    right: calc(50% - 56px);
   }
 }
