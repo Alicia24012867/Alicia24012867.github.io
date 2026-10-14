@@ -3,6 +3,7 @@ import { useMemo, useRef } from 'react';
 import type { Article } from '../types';
 import ArticleFigures from './ArticleFigures';
 import ArticleToc from './ArticleToc';
+import ContinueReading from './ContinueReading';
 import FootnotePreview from './FootnotePreview';
 import LinkPreview, { type LinkPreviewSource } from './LinkPreview';
 import HandwrittenSignature from '../../components/signature/HandwrittenSignature';
@@ -28,6 +29,7 @@ export default function ArticleBody({
   return (
     <div className="reading-layout">
       <div className="reading-content">
+        <ContinueReading bodyRef={bodyRef} article={article} />
         <article
           ref={bodyRef}
           className="article-body"
