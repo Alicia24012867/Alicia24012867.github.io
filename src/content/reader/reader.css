@@ -619,6 +619,85 @@
   text-decoration: none;
   margin-left: 4px;
 }
+/* A footnote shown beside its reference, pointing at it with a small caret. */
+.footnote-preview {
+  position: absolute;
+  z-index: 15;
+  width: min(340px, calc(100% - 32px));
+  padding: 12px 16px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow:
+    var(--shadow-card),
+    0 2px 8px #2047750f;
+  color: var(--muted);
+  font-size: var(--text-base);
+  line-height: 1.75;
+  animation: footnote-preview-in 0.16s ease-out;
+}
+.footnote-preview::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: var(--caret);
+  width: 10px;
+  height: 10px;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  background: var(--surface);
+  transform: translateX(-50%) rotate(45deg);
+}
+.footnote-preview.is-above::before {
+  top: auto;
+  bottom: -6px;
+  transform: translateX(-50%) rotate(225deg);
+}
+.footnote-preview.is-above {
+  animation-name: footnote-preview-in-above;
+}
+.footnote-preview-label {
+  margin: 0 0 2px;
+  color: var(--heading);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+}
+.footnote-preview .footnote-preview-body {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+.footnote-preview .footnote-preview-body > * {
+  margin-block: 4px;
+}
+.footnote-preview-jump {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--blue-strong);
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+.footnote-preview-jump:hover {
+  text-decoration: underline;
+}
+@keyframes footnote-preview-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@keyframes footnote-preview-in-above {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .footnote-preview {
+    animation: none;
+  }
+}
 [data-theme='night'] .article-body blockquote {
   color: #abc8e0;
 }
@@ -859,7 +938,8 @@
 }
 @media print {
   .article-comments,
-  .reading-progress {
+  .reading-progress,
+  .footnote-preview {
     display: none;
   }
 }

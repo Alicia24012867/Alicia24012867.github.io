@@ -3,6 +3,7 @@ import { useMemo, useRef } from 'react';
 import type { Article } from '../types';
 import ArticleFigures from './ArticleFigures';
 import ArticleToc from './ArticleToc';
+import FootnotePreview from './FootnotePreview';
 import HandwrittenSignature from '../../components/signature/HandwrittenSignature';
 import PhotoViewer from './PhotoViewer';
 import ReadingProgress from './ReadingProgress';
@@ -33,6 +34,7 @@ export default function ArticleBody({
       </div>
       <ArticleToc headings={article.headings} bodyRef={bodyRef} />
       <ArticleFigures key={article.slug} bodyRef={bodyRef} />
+      <FootnotePreview bodyRef={bodyRef} slug={article.slug} />
       <PhotoViewer bodyRef={bodyRef} slug={article.slug} />
       <ReadingProgress bodyRef={bodyRef} />
     </div>
