@@ -383,6 +383,9 @@
 }
 .article-body > figure img {
   display: block;
+  /* The width attribute alone would let max-height squash a tall photo; its ratio narrows
+     it to fit instead (2px: the border on both sides). Others keep the column width. */
+  max-width: min(100%, calc((min(360px, 60svh) - 2px) * var(--ratio, 100) + 2px));
   max-height: min(360px, 60svh);
   margin: 0 auto 12px;
 }

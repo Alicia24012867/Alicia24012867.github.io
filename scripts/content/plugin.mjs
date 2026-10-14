@@ -17,6 +17,7 @@ export function articlesPlugin({
   const resolvedId = `\0${moduleId}`;
   let root;
   let articleRoot;
+  let publicDir;
   let shareCards;
   let catalog;
   let feeds;
@@ -25,7 +26,9 @@ export function articlesPlugin({
   let changedFiles;
   const watched = new Set();
   const compiled = new Map();
-  const ownsFile = (file) => path.resolve(file).startsWith(`${articleRoot}${path.sep}`);
+  // Public images that articles show belong to the catalog too: a replaced one gets its new size.
+  const ownsFile = (file) =>
+    path.resolve(file).startsWith(`${articleRoot}${path.sep}`) || watched.has(path.resolve(file));
   const invalidate = (file) => {
     if (file) changedFiles?.add(path.relative(articleRoot, file).replaceAll('\\', '/'));
     else changedFiles = undefined;
@@ -33,15 +36,18 @@ export function articlesPlugin({
     feeds = undefined;
     bySlug = undefined;
     assetsByMarker = undefined;
-    watched.clear();
   };
 
   const readCatalog = () => {
     if (!catalog) {
+      // Vite calls watchChange before the server's own watcher, so the old files stay
+      // owned until the new catalog lists its own.
+      watched.clear();
       catalog = buildArticleCatalog(articleRoot, (file) => watched.add(file), {
         basePath,
         cache: compiled,
         changedFiles,
+        publicDir,
       });
       // Static share pages are built by site-share; listing entries carry the same
       // card so a client-rendered route can update its own preview.
@@ -72,6 +78,7 @@ export function articlesPlugin({
     configResolved(config) {
       root = config.root;
       articleRoot = path.resolve(config.root, directory);
+      publicDir = config.publicDir;
     },
     buildStart() {
       invalidate();

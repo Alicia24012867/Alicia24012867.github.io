@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { decodeHTML } from 'entities';
 import { compileArticle } from './compile.mjs';
+import { sizeImages } from './html.mjs';
+import { readImageSize } from './images.mjs';
 import { createArticleDateResolver } from './metadata.mjs';
 import { blogSections, noteSections } from '../../src/config/sections.mjs';
 import { decodeSlug } from '../../src/config/sharing.mjs';
@@ -32,11 +34,24 @@ function linkedSlugs(html, basePath) {
   return targets;
 }
 
+/** A site-root address such as /images/sky.webp names a file in Vite's public folder. */
+function publicFile(publicDir, src) {
+  if (!publicDir || !/^\/(?![/\\])/.test(src)) return undefined;
+  let pathname;
+  try {
+    pathname = decodeURIComponent(src.replace(/[?#][\s\S]*$/, ''));
+  } catch {
+    return undefined;
+  }
+  const file = path.join(publicDir, pathname);
+  return file.startsWith(`${publicDir}${path.sep}`) ? file : undefined;
+}
+
 /** Filesystem discovery and cross-file validation, independent of Vite. */
 export function buildArticleCatalog(
   articleRoot,
   watch = () => {},
-  { basePath = '/blog/', cache = new Map(), changedFiles } = {},
+  { basePath = '/blog/', cache = new Map(), changedFiles, publicDir } = {},
 ) {
   let root;
   try {
@@ -55,20 +70,32 @@ export function buildArticleCatalog(
   const slugs = new Set();
   const visited = new Set();
   const outgoing = new Map();
-  const checked = new Set();
+  const checked = new Map();
+  const assetFiles = new Map();
 
   function checkedFile(relative, owner, isFile = false) {
     const absolute = path.resolve(root, relative);
     if (checked.has(absolute)) return absolute;
-    if (!isFile && !fs.statSync(absolute, { throwIfNoEntry: false })?.isFile())
-      throw new Error(`${owner}: 找不到文章附件 ${relative}`);
+    const stat = isFile ? undefined : fs.statSync(absolute, { throwIfNoEntry: false });
+    if (!isFile && !stat?.isFile()) throw new Error(`${owner}: 找不到文章附件 ${relative}`);
     const real = fs.realpathSync.native(absolute);
     if (!real.startsWith(`${root}${path.sep}`))
       throw new Error(`${owner}: 文件不可越过 articles 目录：${relative}`);
     watch(absolute);
-    checked.add(absolute);
+    checked.set(absolute, stat);
     return absolute;
   }
+
+  // Attachments and public images get their real size; remote and missing images do not.
+  const sizeOf = (src) => {
+    const asset = assetFiles.get(/^__ALICIA_ARTICLE_ASSET_\d+__/.exec(src)?.[0]);
+    if (asset) return readImageSize(asset, checked.get(asset));
+    const file = publicFile(publicDir, src);
+    if (!file) return undefined;
+    // Replacing or adding the public file refreshes the article as an attachment would.
+    watch(file);
+    return readImageSize(file);
+  };
 
   // Only files belong in Vite's module graph. The plugin watches the directory separately.
   const files = new Map();
@@ -129,17 +156,22 @@ export function buildArticleCatalog(
       const assetPath = checkedFile(asset, file);
       if (!assets.has(assetPath)) assets.set(assetPath, `__ALICIA_ARTICLE_ASSET_${assets.size}__`);
       replacements.set(marker, assets.get(assetPath));
+      assetFiles.set(assets.get(assetPath), assetPath);
     }
     links.push(...compiled.localLinks);
+    // Image sizes are checked on every build, so a replaced image never keeps an old size.
     const article = compiled.article && {
       ...compiled.article,
       section: sections.resolve(compiled.article.section, file),
-      html: replacements.size
-        ? compiled.article.html.replace(
-            /__ALICIA_ARTICLE_ASSET_\d+__/g,
-            (marker) => replacements.get(marker) ?? marker,
-          )
-        : compiled.article.html,
+      html: sizeImages(
+        replacements.size
+          ? compiled.article.html.replace(
+              /__ALICIA_ARTICLE_ASSET_\d+__/g,
+              (marker) => replacements.get(marker) ?? marker,
+            )
+          : compiled.article.html,
+        sizeOf,
+      ),
     };
     if (!article) continue;
     Object.assign(article, resolveDates(article, file, absolute, compiled));

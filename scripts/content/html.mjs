@@ -73,6 +73,22 @@ export function sanitizeArticleHtml(html, resolveReference) {
   });
 }
 
+/**
+ * Local images get their real size, so text below them stays put while they load. CSS
+ * cannot read the attributes, so the ratio also goes in a custom property.
+ */
+export function sizeImages(html, sizeOf) {
+  return html.replace(/<img\b([^>]*?)(\s*\/?)>/g, (tag, attributes, end) => {
+    // A width or height the author wrote stays exactly as written.
+    if (/\s(?:width|height)="/.test(attributes)) return tag;
+    const src = /\ssrc="([^"]*)"/.exec(attributes)?.[1];
+    const size = src && sizeOf(decodeHTML(src));
+    if (!size) return tag;
+    const { width, height } = size;
+    return `<img${attributes} width="${width}" height="${height}" style="--ratio: ${width} / ${height}"${end}>`;
+  });
+}
+
 export function extractHeadings(html, footnotes = '') {
   const headings = [];
   // Reserve authored anchors before generating any: a later custom id must not be stolen.
