@@ -28,6 +28,37 @@
     linear-gradient(0deg, rgba(244, 250, 255, 0.8), transparent 17%);
   z-index: -2;
 }
+/* Shooting stars fly above the wash and behind the words. */
+.shooting-sky {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.shooting-star {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 2px;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, #fff, #4f95d6d9 18%, #6fa9dc00);
+  opacity: 0;
+}
+.shooting-star::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px #6fa9dc80,
+    0 0 10px 3px #4f95d6b3;
+}
 .hero-inner {
   min-height: inherit;
   position: relative;
@@ -111,6 +142,16 @@
   right: -49px;
   top: 57px;
   font-weight: 400;
+  transition: transform 0.3s ease;
+}
+/* The sparkle beside the name sends a shooting star. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .name-sparkle {
+    cursor: pointer;
+  }
+  .name-sparkle:hover {
+    transform: rotate(15deg) scale(1.15);
+  }
 }
 .hero-subtitle {
   font-size: 21px;
@@ -1095,6 +1136,12 @@
   background:
     linear-gradient(90deg, #16283e 0%, #16283ef5 25%, #16283ec9 40%, #142d4550 63%, #16283e10 85%),
     linear-gradient(0deg, #152b45ad, transparent 25%);
+}
+[data-theme='night'] .shooting-star {
+  background: linear-gradient(90deg, #fff, #cfe0ffa6 28%, #cfe0ff00);
+}
+[data-theme='night'] .shooting-star::before {
+  box-shadow: 0 0 10px 3px #d8e6ffcc;
 }
 [data-theme='night'] .hello-line {
   color: #deedfa;
