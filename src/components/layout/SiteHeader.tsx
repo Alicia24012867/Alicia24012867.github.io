@@ -23,6 +23,8 @@ const sections = [
 ];
 // Homepage anchors observed for the active navigation item, in page order.
 const anchorIds = ['home', ...sections.map((item) => item.id)];
+// Links from elsewhere may also point inside a section.
+const scrollTargets = [...anchorIds, 'guestbook'];
 
 export default function SiteHeader({ section }: { section: SiteSection }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -44,7 +46,7 @@ export default function SiteHeader({ section }: { section: SiteSection }) {
   useEffect(() => {
     if (section !== 'home') return;
     // Cross-page anchors can arrive before React has mounted the target sections.
-    const anchor = anchorIds.find((id) => window.location.hash === `#${id}`);
+    const anchor = scrollTargets.find((id) => window.location.hash === `#${id}`);
     const frame = anchor
       ? requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView())
       : 0;

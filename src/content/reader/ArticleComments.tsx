@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type ComponentType } from 'react';
-import type { GiscusProps } from '@giscus/react';
+import { useRef } from 'react';
 import { comments } from '../../config/comments';
-import { commentIdentity, commentTheme } from './comments';
+import { useCommentWidget } from '../../hooks/useCommentWidget';
+import { commentIdentity } from './comments';
 import type { Collection } from '../urls';
 
 /** The widget and its dependencies are fetched only near the end of the article. */
@@ -13,63 +13,8 @@ export default function ArticleComments({
   slug: string;
 }) {
   const container = useRef<HTMLElement>(null);
-  const [Widget, setWidget] = useState<ComponentType<GiscusProps>>();
-  const [failed, setFailed] = useState(false);
-  const [theme, setTheme] = useState(() => commentTheme(document.documentElement.dataset.theme));
   const { term, backlink } = commentIdentity(collection, slug);
-
-  useEffect(() => {
-    let disposed = false;
-    let started = false;
-    setFailed(false);
-    const load = () => {
-      if (started) return;
-      started = true;
-      observer?.disconnect();
-      import('@giscus/react').then(
-        ({ default: Giscus }) => {
-          if (!disposed) setWidget(() => Giscus);
-        },
-        () => {
-          if (!disposed) setFailed(true);
-        },
-      );
-    };
-    const observer =
-      typeof IntersectionObserver === 'undefined'
-        ? undefined
-        : new IntersectionObserver(
-            (entries) => {
-              if (entries.some((entry) => entry.isIntersecting)) load();
-            },
-            { rootMargin: '300px 0px' },
-          );
-    if (observer && container.current) observer.observe(container.current);
-    else load();
-    return () => {
-      disposed = true;
-      observer?.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    const syncTheme = () => setTheme(commentTheme(document.documentElement.dataset.theme));
-    syncTheme();
-    const observer = new MutationObserver(syncTheme);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const meta = document.createElement('meta');
-    meta.name = 'giscus:backlink';
-    meta.content = backlink;
-    document.head.append(meta);
-    return () => meta.remove();
-  }, [backlink]);
+  const { Widget, failed, theme } = useCommentWidget(container, backlink);
 
   return (
     <section

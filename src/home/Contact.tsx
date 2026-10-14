@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Icon from '../components/Icon';
 import { profile } from '../config/profile';
+import Guestbook from './Guestbook';
 
 export default function Contact() {
   const [copyStatus, setCopyStatus] = useState('');
@@ -54,6 +55,7 @@ export default function Contact() {
           <Icon name="heart" /> CURIOSITY
         </span>
       </div>
+      <Guestbook />
     </section>
   );
 }

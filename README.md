@@ -28,7 +28,7 @@ src/
   config/            个人资料、外链、研究方向和分区预设，以及静态分享地址规则
   content/           内容路由、标题区、元信息、标签、搜索和 URL 工具
     reader/          正文增强、独立目录状态、阅读进度、代码复制、图表渲染与图片查看器
-  hooks/             URL 查询状态与页面元信息
+  hooks/             URL 查询状态、页面元信息与评论组件懒加载
   styles/            字体、主题、共享样式与 404 样式
   not-found.tsx      独立 404 入口
 content/
@@ -96,13 +96,14 @@ npm run share:check   # 只检查缺失或过期，CI 不需要 Python
 
 构建、开发服务器和自动测试都会校验分享图：缺失或过期时构建失败并提示上面的命令，避免分享出旧图或旧标题。地址细节、卡片内容与校验范围见 [分享图与静态分享地址](docs/sharing.md)。旧的 `?post=<地址>` 链接继续可用（页脚、订阅与旧书签不受影响），但 `canonical`、sitemap 与站内链接都指向静态地址，`q` 与 `sort` 仍然保留列表筛选。
 
-## 文章评论
+## 文章评论与留言簿
 
-Blog 和 Notes 的正文及相关阅读下方提供 [giscus](https://giscus.app/) 评论区。访客通过 GitHub 登录后评论或回应，讨论保存在本仓库的 **Announcements** 分类，由仓库维护者在 GitHub 管理。
+Blog 和 Notes 的正文及相关阅读下方提供 [giscus](https://giscus.app/) 评论区，首页 Contact 卡片下方另有留言簿（`/#guestbook`）。访客通过 GitHub 登录后评论或回应，讨论保存在本仓库的 **Announcements** 分类，由仓库维护者在 GitHub 管理。
 
 - `src/config/comments.ts` 保存公开的仓库与分类 ID，不需要前端 token；首次接入需启用仓库 Discussions，并将 [giscus App](https://github.com/apps/giscus/installations/new) 安装到该仓库。
+- 留言簿固定使用标题为 `Guestbook` 的讨论，与文章评论共用 `useCommentWidget` 的加载、主题同步和回链逻辑。
 - 使用文章静态路径作为严格匹配的讨论标识，旧的 `?post=`、显式 `index.html`、搜索与排序参数共用同一个评论区；Blog 与 Notes 的同名文档互不混淆。重命名文章地址时需迁移对应讨论的标题与 giscus 严格匹配摘要，避免分出新讨论。
-- 接近评论区 300 px 时才加载官方 React 组件，iframe 继续使用懒加载；首页和列表不加载评论客户端。主题切换通过 giscus 配置消息更新，保留输入中的评论。
+- 接近评论区或留言簿 300 px 时才加载官方 React 组件，iframe 继续使用懒加载；首页顶部和列表页不加载评论客户端。主题切换通过 giscus 配置消息更新，保留输入中的评论。
 - 评论标题沿用花体，配色、边框与圆角延续站点风格。`public/giscus/` 提供 iframe 内的日间与夜间主题；颜色与 `src/styles/global.css` 同步维护。主题资源固定从 `nymphilia.com` 加载，本地预览需先发布这些资源。
 - 模块加载失败时可重试，评论区始终提供 GitHub 讨论入口。`giscus.json` 限定正式域名、GitHub Pages 原域名与本地预览来源。
 
@@ -138,7 +139,7 @@ Blog 和 Notes 的正文及相关阅读下方提供 [giscus](https://giscus.app/
 - `scripts/content/` 统一发现文件、清洗 HTML、渲染代码和公式、校验资源及互链，并生成摘要、正文和全文索引模块。
 - 修改依赖时同时提交 `package.json` 和锁文件；修改内容路径时同步更新文档与互链。
 
-发布前除自动检查外，应在桌面与窄屏复核主题、心情卡片的三个时段、夜间流星、Right now 卡片、移动导航、兴趣弹窗、搜索排序、返回链接、目录定位、阅读进度、代码复制、图片查看器、公式、签名、减少动态效果及 404。自动测试和构建不能代替浏览器与线上验收。
+发布前除自动检查外，应在桌面与窄屏复核主题、心情卡片的三个时段、夜间流星、Right now 卡片、移动导航、兴趣弹窗、搜索排序、返回链接、目录定位、阅读进度、代码复制、图片查看器、公式、签名、评论区与留言簿、减少动态效果及 404。自动测试和构建不能代替浏览器与线上验收。
 
 ## 部署
 

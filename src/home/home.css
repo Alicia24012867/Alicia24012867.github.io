@@ -1051,6 +1051,62 @@
   height: 11px;
   vertical-align: middle;
 }
+/* The guestbook sits under the contact card, styled like the link cards below it. */
+.guestbook {
+  display: grid;
+  grid-template-columns: minmax(0, 290px) minmax(0, 1fr);
+  gap: 14px 44px;
+  margin-top: 20px;
+  padding: 22px 26px 26px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  scroll-margin-top: 110px;
+}
+.guestbook h3 {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--heading);
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.guestbook h3::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.guestbook-intro > p {
+  color: var(--muted);
+  font-size: var(--text-base);
+  line-height: 1.8;
+}
+.guestbook-link {
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+.guestbook-link:hover {
+  color: var(--blue-strong);
+}
+.guestbook-widget {
+  min-width: 0;
+  min-height: 180px;
+}
+.guestbook-status {
+  color: var(--muted);
+  font-size: var(--text-base);
+}
+.guestbook-status .button {
+  margin-top: 12px;
+}
 .interest-dialog {
   width: min(540px, calc(100vw - 40px));
   max-height: calc(100dvh - 48px);
@@ -1341,6 +1397,9 @@
   }
 }
 @media (max-width: 800px) {
+  .guestbook {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .hero {
     min-height: 594px;
   }
@@ -1829,6 +1888,9 @@
   }
   .contact-card {
     padding: 30px 23px 19px;
+  }
+  .guestbook {
+    padding: 20px 18px 22px;
   }
   .contact-orbit {
     display: none;
