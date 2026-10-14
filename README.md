@@ -46,7 +46,7 @@ docs/               撰写说明与性能记录
 ## 配置与视觉规范
 
 - `src/config/profile.ts`：姓名、邮箱、GitHub 和个人介绍；`interests.ts`：研究方向与兴趣弹窗。
-- `src/config/links.ts`：`homepageLinks` 是个人外链，`friendLinks` 是友情链接。空条目、空分组自动隐藏；两组均为空时隐藏该区块和对应导航。
+- `src/config/links.ts`：`homepageLinks` 是个人外链，`friendLinks` 是友情链接。空条目、空分组自动隐藏；两组均为空时隐藏该区块和对应导航。每个链接带网站图标：GitHub 使用站内线条图标，其他网站读取自己的 `/favicon.ico`，也可用 `icon` 指定图片（如头像）；图片加载失败时显示地球图标。
 - `src/styles/global.css`：全站字体、字号、圆角、页面边距与明暗主题变量。正文采用 Noto Sans SC 和系统回退；品牌、标题、导航栏和文章目录保留花体；代码使用等宽字体，公式保留专用字体。
 - 四个 HTML 入口加载相同字体，按字重区间请求（Noto Sans SC 400–700，Playfair Display 斜体 400–600），新用的字重需落在区间内；Mermaid 读取全局字体变量。全站布局由 `SiteLayout` 复用，导航支持首页锚点、窄屏菜单、键盘和 Escape 关闭。
 - 首页和文章可共用 `public/images/` 中的资源；蓝天主图为 `summer-sky.webp`。

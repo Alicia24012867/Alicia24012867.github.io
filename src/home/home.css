@@ -799,7 +799,7 @@
   align-items: center;
   gap: 8px;
   min-height: 40px;
-  padding: 0 14px 0 16px;
+  padding: 0 14px 0 7px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--section);
@@ -820,6 +820,21 @@
   width: 14px;
   height: 14px;
   color: var(--muted);
+}
+.homepage-links-list .link-site-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--light-blue);
+  overflow: hidden;
+}
+.homepage-links-list .link-site-icon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 .homepage-links-list a:hover,
 .homepage-links-list a:focus-visible {
