@@ -304,6 +304,43 @@
 .article-mermaid.is-error {
   padding-top: 42px;
 }
+/* Interactive figures share the diagram frame; the space is held while their code loads. */
+.article-body figure[data-figure] {
+  position: relative;
+  margin-block: 25px;
+  padding: 44px 18px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--section);
+}
+.article-body figure[data-figure='timestep-control']:not(.is-ready) {
+  min-height: 752px;
+}
+.article-body figure[data-figure]::before {
+  content: 'INTERACTIVE';
+  position: absolute;
+  top: 12px;
+  left: 18px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  letter-spacing: 1.5px;
+}
+.article-body figure[data-figure] > figcaption {
+  margin-top: 14px;
+  text-align: left;
+  line-height: 1.7;
+}
+.article-body .figure-status {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+.article-body .figure-status p {
+  margin: 0;
+}
 .article-body .hljs-keyword,
 .article-body .hljs-selector-tag,
 .article-body .hljs-type {
@@ -895,6 +932,9 @@
   }
 }
 @media (max-width: 600px) {
+  .article-body figure[data-figure='timestep-control']:not(.is-ready) {
+    min-height: 1010px;
+  }
   .reading-header .article-meta {
     margin-top: 17px;
   }

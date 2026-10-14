@@ -150,6 +150,8 @@ tags: [source code analysis, ngspice]
 
 但是**依然无法解决导数未补偿阶乘因子**。无论采用哪种公式，都将使步长限制放得更宽。
 
+<figure data-figure="timestep-control"></figure>
+
 ### 后续使用 Gear 积分公式的潜在问题（默认不会触及的路径）
 
 变步长的 Gear 积分公式根据历史步长确定积分余项系数，而在 CKTterr 函数中采用固定的静态积分余项系数表。

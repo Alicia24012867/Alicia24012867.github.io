@@ -1,6 +1,7 @@
 import './reader.css';
 import { useMemo, useRef } from 'react';
 import type { Article } from '../types';
+import ArticleFigures from './ArticleFigures';
 import ArticleToc from './ArticleToc';
 import HandwrittenSignature from '../../components/signature/HandwrittenSignature';
 import PhotoViewer from './PhotoViewer';
@@ -31,6 +32,7 @@ export default function ArticleBody({
         <HandwrittenSignature />
       </div>
       <ArticleToc headings={article.headings} bodyRef={bodyRef} />
+      <ArticleFigures key={article.slug} bodyRef={bodyRef} />
       <PhotoViewer bodyRef={bodyRef} slug={article.slug} />
       <ReadingProgress bodyRef={bodyRef} />
     </div>

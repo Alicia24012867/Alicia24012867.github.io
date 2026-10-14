@@ -1,6 +1,7 @@
 import sanitizeHtml from 'sanitize-html';
 import { decodeHTML } from 'entities';
 import hljs from 'highlight.js/lib/common';
+import { articleFigures } from '../../src/config/figures.mjs';
 import { createSuffixer, escapeHtml, headingSlug, plainText } from './text.mjs';
 
 export function sanitizeArticleHtml(html, resolveReference) {
@@ -30,6 +31,7 @@ export function sanitizeArticleHtml(html, resolveReference) {
       span: ['data-math-index'],
       div: ['data-math-index', 'class'],
       section: ['class', 'aria-label'],
+      figure: ['data-figure'],
     },
     allowedClasses: {
       code: ['language-*'],
@@ -87,6 +89,20 @@ export function sizeImages(html, sizeOf) {
     const { width, height } = size;
     return `<img${attributes} width="${width}" height="${height}" style="--ratio: ${width} / ${height}"${end}>`;
   });
+}
+
+/** Interactive figure placeholders must name a known figure and stay empty for the reader. */
+export function checkFigures(html, filename) {
+  const placeholders = html.matchAll(
+    /<figure\b[^>]*\sdata-figure="([^"]*)"[^>]*>([\s\S]*?)<\/figure>/g,
+  );
+  for (const [, encodedName, inner] of placeholders) {
+    const name = decodeHTML(encodedName);
+    if (!articleFigures.includes(name)) {
+      throw new Error(`${filename}: 未知的交互图 ${name}，可用：${articleFigures.join('、')}`);
+    }
+    if (inner.trim()) throw new Error(`${filename}: 交互图 ${name} 的占位元素内请勿填写内容`);
+  }
 }
 
 export function extractHeadings(html, footnotes = '') {
