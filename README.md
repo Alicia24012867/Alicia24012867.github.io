@@ -48,6 +48,7 @@ docs/               撰写说明与性能记录
 - `src/config/profile.ts`：姓名、邮箱、GitHub 和个人介绍；`interests.ts`：研究方向与兴趣弹窗。
 - `src/config/links.ts`：`homepageLinks` 是个人外链，`friendLinks` 是友情链接。空条目、空分组自动隐藏；两组均为空时隐藏该区块和对应导航。每个链接带网站图标：GitHub 使用站内线条图标，其他网站读取自己的 `/favicon.ico`，也可用 `icon` 指定图片（如头像）；图片加载失败时显示地球图标。
 - `src/config/moods.ts`：首页心情卡片的文案。卡片按访客本地时间切换白天（6:00 起）、傍晚（17:00 起）和夜晚（20:00 起）的图标与配色，每天从对应时段的句子中轮换一句；零点到 6:00 仍属前一晚。每句不超过 32 个字符，以免卡片变宽。手机上卡片浮在标题上方的天空中；窄平板（601–760px）和窄于 340px 的屏幕放不下，仍隐藏。
+- 首页 Right now 卡片在两项近况下方显示最近推送的 GitHub 公开仓库和最新一篇 Blog 文章。仓库跳过 fork、归档和主页 README 仓库，本站仓库显示为 This website；数据在卡片接近视口时由浏览器向 GitHub 请求。未登录的 GitHub 接口每个网络地址每小时只允许 60 次，所以每位访客半小时内最多请求一次，并在本地保存上次结果；请求失败时显示上次结果，没有结果时显示 GitHub 主页链接。最新文章在构建时确定，发布新文章后随部署更新。窄屏上卡片排在介绍下方。
 - `src/styles/global.css`：全站字体、字号、圆角、页面边距与明暗主题变量。正文采用 Noto Sans SC 和系统回退；品牌、标题、导航栏和文章目录保留花体；代码使用等宽字体，公式保留专用字体。
 - 四个 HTML 入口加载相同字体，按字重区间请求（Noto Sans SC 400–700，Playfair Display 斜体 400–600），新用的字重需落在区间内；Mermaid 读取全局字体变量。全站布局由 `SiteLayout` 复用，导航支持首页锚点、窄屏菜单、键盘和 Escape 关闭。
 - 首页和文章可共用 `public/images/` 中的资源；蓝天主图为 `summer-sky.webp`。
@@ -127,6 +128,7 @@ Blog 和 Notes 的正文及相关阅读下方提供 [giscus](https://giscus.app/
 
 - `ContentPage` 共用静态地址路由、页面元信息、正文加载及错误状态；`ArticleHeader` 共用阅读页和加载状态的标题区。
 - `scripts/share/spec.mjs` 决定分享图文案、摘要与文件名，`scripts/share/render_card.py` 负责渲染；`scripts/content/share.mjs` 生成静态分享页并在开发服务器提供相同地址。调整卡片文案、配色或版式时提升 `CARD_VERSION`，再运行 `npm run share:cards`。
+- 首页只引入最新文章的标题、日期和地址（`virtual:articles/latest`），不加载文章列表。
 - 列表只加载摘要，正文按篇加载；Notes 全文索引首次搜索时才加载，复用已有文章映射和分组。搜索文本按需归一化，连续扩展关键词时只筛选上次结果；不同搜索实例的缓存独立。
 - 目录高亮状态由 `ArticleToc` 内部维护，滚动切换高亮不触发正文组件重新渲染。标题位置缓存继续在尺寸、字体和折叠内容变化后刷新。
 - 日期排序每篇只解析一次日期。Mermaid、公式样式与阅读器按需加载；图表接近视口、签名进入视口后才初始化。

@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { buildArticleCatalog } from './catalog.mjs';
-import { articleModule, listingModule, searchModule } from './modules.mjs';
+import { articleModule, latestModule, listingModule, searchModule } from './modules.mjs';
 import { renderFeeds } from './feeds.mjs';
 import { serveGenerated } from './serve.mjs';
 import { feedFormats } from '../../src/config/feeds.mjs';
@@ -90,6 +90,7 @@ export function articlesPlugin({
         return listingModule(catalog, moduleId);
       }
       if (id === `${resolvedId}/search`) return searchModule(catalog);
+      if (id === `${resolvedId}/latest`) return latestModule(catalog, basePath);
       const prefix = `${resolvedId}/entry/`;
       if (!id.startsWith(prefix)) return null;
       const article = bySlug.get(decodeURIComponent(id.slice(prefix.length)));

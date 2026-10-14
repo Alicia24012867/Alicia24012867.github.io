@@ -1,3 +1,5 @@
+import { sharePath } from '../../src/config/sharing.mjs';
+
 /** Small listing metadata and lazy, per-document payloads. */
 export function listingModule({ articles }, moduleId) {
   const summaries = articles.map(
@@ -16,6 +18,17 @@ export function loadArticle(slug) {
 }
 export const loadSearch = () => import(${JSON.stringify(`${moduleId}/search`)}).then(module => module.default);
 export default articles;`;
+}
+
+/** Only the newest document's title, date and address, for pages that just link to it. */
+export function latestModule({ articles }, basePath) {
+  const [latest] = articles;
+  const summary = latest && {
+    title: latest.title,
+    date: latest.date,
+    path: sharePath(basePath, latest.slug),
+  };
+  return `export default ${JSON.stringify(summary ?? null)};`;
 }
 
 export function searchModule({ articles }) {

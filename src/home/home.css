@@ -534,6 +534,47 @@
   margin-top: 5px;
   color: #62809a;
 }
+/* The latest push and newest post: two quiet lines in the card's spare space. */
+.now-recent {
+  display: grid;
+  gap: 6px;
+  margin: -8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+.now-recent li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.now-recent .icon {
+  width: 14px;
+  height: 14px;
+  color: #83a6c5;
+}
+.now-recent a {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #62809a;
+}
+.now-recent a:hover {
+  color: var(--blue);
+  text-decoration: underline;
+}
+.now-recent time {
+  flex-shrink: 0;
+  color: #9ab0c1;
+}
+.now-recent time::before {
+  content: '·';
+  content: '·' / '';
+  margin-right: 7px;
+}
 .now-card-bottom {
   position: relative;
   border-top: 1px dashed var(--line);
@@ -1114,8 +1155,12 @@
 [data-theme='night'] .profile-card > p,
 [data-theme='night'] .profile-card > a,
 [data-theme='night'] .now-item p,
+[data-theme='night'] .now-recent a,
 [data-theme='night'] .now-card-top {
   color: var(--muted);
+}
+[data-theme='night'] .now-recent time {
+  color: #6f88a0;
 }
 [data-theme='night'] .skill-list span {
   border-color: var(--line);
@@ -1203,8 +1248,27 @@
     grid-template-columns: 235px 1fr;
     gap: 35px;
   }
+  /* Below the profile and introduction, the card spreads its lines across the width. */
   .now-card {
-    display: none;
+    grid-column: 1 / -1;
+  }
+  .now-card-top {
+    padding-bottom: 18px;
+  }
+  .now-items {
+    display: grid;
+    grid-template-columns: repeat(2, max-content) minmax(0, 1fr);
+    align-items: center;
+    gap: 16px 44px;
+  }
+  .now-item {
+    margin-bottom: 0;
+  }
+  .now-recent {
+    margin: 0;
+  }
+  .now-card-bottom {
+    margin-top: 20px;
   }
   .contact-stamp {
     display: none;
@@ -1336,6 +1400,15 @@
   .about-layout {
     grid-template-columns: 215px 1fr;
     gap: 27px;
+  }
+  .now-items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* The two quiet lines sit under the two topics, in the same columns. */
+  .now-recent {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 44px;
   }
   .about-copy h3 {
     font-size: 18px;
@@ -1572,6 +1645,11 @@
   .about-layout {
     grid-template-columns: 1fr;
     gap: 30px;
+  }
+  /* Phones list the card's lines one per row, as on wide screens. */
+  .now-items,
+  .now-recent {
+    grid-template-columns: minmax(0, 1fr);
   }
   .profile-card {
     min-height: 165px;

@@ -1,5 +1,6 @@
 import Icon from '../components/Icon';
 import { profile } from '../config/profile';
+import NowCard from './NowCard';
 
 export default function About() {
   return (
@@ -76,38 +77,7 @@ export default function About() {
             </p>
           </div>
         </div>
-        <div className="now-card">
-          <div className="now-card-top">
-            <span className="status-dot" />
-            Right now<span>NOW</span>
-          </div>
-          <div className="now-item">
-            <span className="now-icon">
-              <Icon name="code" />
-            </span>
-            <div>
-              <span>Exploring</span>
-              <p>GPU parallelism</p>
-            </div>
-          </div>
-          <div className="now-item">
-            <span className="now-icon">
-              <Icon name="book" />
-            </span>
-            <div>
-              <span>Learning</span>
-              <p>Numerics & ML systems</p>
-            </div>
-          </div>
-          <div className="now-card-bottom">
-            <Icon name="cloud" />
-            <p>
-              A long road ahead. <br />
-              Every step counts.
-            </p>
-            <span aria-hidden="true">✦</span>
-          </div>
-        </div>
+        <NowCard />
       </div>
     </section>
   );

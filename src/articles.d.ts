@@ -5,6 +5,11 @@ declare module 'virtual:articles' {
   export default articles;
 }
 
+declare module 'virtual:articles/latest' {
+  const latest: { title: string; date: string; path: string } | null;
+  export default latest;
+}
+
 declare module 'virtual:notes' {
   const notes: import('./content/types').ArticleSummary[];
   export function loadArticle(slug: string): Promise<import('./content/types').ArticleBody>;

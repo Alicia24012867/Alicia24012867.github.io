@@ -16,6 +16,7 @@ export type IconName =
   | 'sparkles'
   | 'code'
   | 'book'
+  | 'pen'
   | 'heart'
   | 'pin'
   | 'globe';
@@ -71,6 +72,7 @@ const paths: Record<IconName, React.ReactNode> = {
       <path d="M12 6c-3-2-6-2-10-1v15c4-1 7-1 10 1 3-2 6-2 10-1V5c-4-1-7-1-10 1Zm0 0v15" />
     </>
   ),
+  pen: <path d="M4 20v-4L15 5a2.8 2.8 0 0 1 4 4L8 20Zm9.5-13.5 4 4M13 20h7" />,
   heart: (
     <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0l-1 1-1-1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" />
   ),

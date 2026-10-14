@@ -352,3 +352,34 @@ test('listing entries expose their static address and card when sharing is enabl
   assert.doesNotMatch(shared, /ALICIA_ARTICLE_ASSET|begin edit/);
   assert.doesNotMatch(await listing(articlesPlugin()), /"share"/);
 });
+
+test('the latest-post module carries only the newest published document', async (t) => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), 'alicia-latest-')));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const blog = path.join(root, 'content/blog');
+  mkdirSync(path.join(blog, '2026'), { recursive: true });
+  const post = (file, front) => writeFileSync(path.join(blog, file), `---\n${front}\n---\n\nBody`);
+  post('older.md', 'title: Older\ndate: 2026-09-01\npin: true');
+  post('2026/newest.md', 'title: Newest post\ndate: 2026-10-03');
+  post('draft.md', 'title: Draft\ndate: 2026-12-01\ndraft: true');
+  const server = await createServer({
+    root,
+    configFile: false,
+    plugins: [articlesPlugin()],
+    server: { middlewareMode: true, hmr: false, ws: false, watch: null },
+    optimizeDeps: { noDiscovery: true, include: [] },
+  });
+  t.after(() => server.close());
+  const latest = async () => {
+    const { code } = await server.transformRequest('virtual:articles/latest');
+    return JSON.parse(code.match(/export default (.*);/)[1]);
+  };
+  assert.deepEqual(await latest(), {
+    title: 'Newest post',
+    date: '2026-10-03',
+    path: '/blog/2026/newest/',
+  });
+  rmSync(blog, { recursive: true });
+  server.watcher.emit('unlink', path.join(blog, '2026/newest.md'));
+  assert.equal(await latest(), null);
+});
