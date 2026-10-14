@@ -38,7 +38,7 @@ scripts/
   content/           内容发现、编译、清洗、校验和 Vite 插件
   share/             分享图渲染脚本、摘要规则与生成命令
   verify-build.mjs   构建依赖边界检查与包体积报告
-  benchmark-*.mjs    编译、搜索与排序基准
+  benchmark-*.mjs    编译、搜索、排序与分享页基准
 tests/              独立回归样例
 docs/               撰写说明与性能记录
 ```

@@ -1,12 +1,13 @@
 import { Marked } from 'marked';
 import katex from 'katex';
-import { escapeHtml, headingSlug } from './text.mjs';
+import { createSuffixer, escapeHtml, headingSlug } from './text.mjs';
 
 /** Extensions run on Markdown tokens, never inside code or HTML attributes. */
 export function renderMarkdown(body) {
   const definitions = new Map();
   const references = new Map();
   const anchors = new Set();
+  const suffixed = createSuffixer((anchor) => anchors.has(anchor));
   const mathHtml = [];
   const rememberMath = (tex, display) => {
     const trimmed = tex.trim();
@@ -74,9 +75,7 @@ export function renderMarkdown(body) {
           let reference = references.get(token.label);
           if (!reference) {
             const base = headingSlug(token.label);
-            let anchor = base;
-            let suffix = 2;
-            while (anchors.has(anchor)) anchor = `${base}-${suffix++}`;
+            const anchor = anchors.has(base) ? suffixed(base) : base;
             anchors.add(anchor);
             reference = { label: token.label, anchor, number: references.size + 1, count: 0 };
             references.set(token.label, reference);

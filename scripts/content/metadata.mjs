@@ -143,6 +143,10 @@ const beforePublication = (updated, date) =>
     ? updated.slice(0, 10) < date.slice(0, 10)
     : Date.parse(updated) < Date.parse(date);
 
+/** The later of publication and editing, as the UTC timestamp feeds, sitemaps and share pages use. */
+export const lastModified = ({ date, updated }) =>
+  new Date(Math.max(Date.parse(date), Date.parse(updated || date))).toISOString();
+
 /** Resolve explicit metadata, then Git history, then a stable local preview date. */
 export function createArticleDateResolver(root) {
   let history;

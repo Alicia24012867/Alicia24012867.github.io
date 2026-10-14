@@ -2,7 +2,7 @@ import sanitizeHtml from 'sanitize-html';
 import { decodeHTML } from 'entities';
 
 export const escapeHtml = (text) =>
-  text
+  String(text)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
@@ -13,6 +13,22 @@ export const headingSlug = (text) =>
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, '-')
     .replace(/^-|-$/g, '') || 'heading';
+
+/**
+ * Returns `${base}-2`, `-3`, … skipping taken anchors. Each base resumes where it
+ * last stopped, so k repeats cost O(k) instead of rescanning from 2 every time.
+ * Callers must take each returned anchor, and `isTaken` may only ever grow.
+ * @param {(anchor: string) => boolean} isTaken
+ */
+export function createSuffixer(isTaken) {
+  const next = new Map();
+  return (base) => {
+    let suffix = next.get(base) ?? 2;
+    while (isTaken(`${base}-${suffix}`)) suffix++;
+    next.set(base, suffix + 1);
+    return `${base}-${suffix}`;
+  };
+}
 
 export function plainText(html) {
   const text = sanitizeHtml(html, {

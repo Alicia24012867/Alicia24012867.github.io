@@ -21,23 +21,28 @@ const titles = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }
 export function sortArticles<
   T extends Pick<ArticleSummary, 'slug' | 'title' | 'date' | 'updated' | 'pin'>,
 >(articles: readonly T[], sort: ArticleSort): T[] {
-  // Parse each date once, rather than twice per comparison during sorting.
-  const dates =
-    sort === 'title'
-      ? undefined
-      : new Map(
-          articles.map((article) => [
-            article,
-            Date.parse(sort === 'updated' ? article.updated || article.date : article.date),
-          ]),
-        );
+  // Slug ties keep localeCompare: V8's fast path beats a cached Intl.Collator on ASCII.
+  if (sort === 'title')
+    return [...articles].sort(
+      (a, b) =>
+        Number(b.pin === true) - Number(a.pin === true) ||
+        titles.compare(a.title, b.title) ||
+        a.slug.localeCompare(b.slug),
+    );
+  // Decorate each article once, so comparisons read numbers instead of parsing
+  // dates or looking them up for every pair.
   const direction = sort === 'oldest' ? 1 : -1;
-  return [...articles].sort((a, b) => {
-    const pinnedFirst = Number(b.pin === true) - Number(a.pin === true);
-    if (pinnedFirst) return pinnedFirst;
-    const comparison = dates
-      ? direction * (dates.get(a)! - dates.get(b)!)
-      : titles.compare(a.title, b.title);
-    return comparison || a.slug.localeCompare(b.slug);
-  });
+  return articles
+    .map((article) => ({
+      article,
+      pin: Number(article.pin === true),
+      time: Date.parse(sort === 'updated' ? article.updated || article.date : article.date),
+    }))
+    .sort(
+      (a, b) =>
+        b.pin - a.pin ||
+        direction * (a.time - b.time) ||
+        a.article.slug.localeCompare(b.article.slug),
+    )
+    .map(({ article }) => article);
 }

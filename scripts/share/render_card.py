@@ -147,22 +147,32 @@ def wrap(runs, max_width, spacing=0):
         width += step
     if current:
         lines.append(current)
-    return [trim(line) for line in lines if trim(line)] or [[]]
+    return [line for line in map(trim, lines) if line] or [[]]
 
 
 def trim(line):
-    while line and line[0][0] == " ":
-        line = line[1:]
-    while line and line[-1][0] == " ":
-        line = line[:-1]
-    return line
+    start, end = 0, len(line)
+    while start < end and line[start][0] == " ":
+        start += 1
+    while end > start and line[end - 1][0] == " ":
+        end -= 1
+    return line[start:end]
 
 
 def ellipsize(line, max_width, spacing=0):
     characters = list(line)
     ellipsis = ("…", characters[-1][1] if characters else font("sans-cjk", DESCRIPTION_SIZE))
-    while characters and measure(characters + [ellipsis], spacing) > max_width:
-        characters.pop()
+    # Prefix widths measure every shorter candidate in one pass instead of re-measuring
+    # the whole line after each removed character. Glyph advances are 1/64 px multiples,
+    # so these sums are exact and match measure() bit for bit.
+    widths = [0.0]
+    for character, run_font in characters:
+        widths.append(widths[-1] + run_font.getlength(character))
+    tail = ellipsis[1].getlength(ellipsis[0])
+    keep = len(characters)
+    while keep and widths[keep] + tail + spacing * keep > max_width:
+        keep -= 1
+    characters = characters[:keep]
     while characters and characters[-1][0] == " ":
         characters.pop()
     return characters + [ellipsis]
@@ -173,8 +183,7 @@ def fit_title(title, max_width):
         lines = wrap(segment(title, "display-latin", "display-cjk", size), max_width)
         if len(lines) <= 3:
             return size, lines
-    size = TITLE_SIZES[-1]
-    lines = wrap(segment(title, "display-latin", "display-cjk", size), max_width)
+    # Still too long at the smallest size: keep its first three lines and close with an ellipsis.
     lines = lines[:3]
     lines[-1] = ellipsize(lines[-1], max_width)
     return size, lines
@@ -221,14 +230,19 @@ def cover(background):
     return resized.crop((left, 0, left + WIDTH, HEIGHT))
 
 
-def draw_card(job, background):
+def washed_background(background):
+    """The cover-cropped sky under both hero washes; identical for every card, so built once."""
     card = cover(background.convert("RGB"))
     card = Image.composite(Image.new("RGB", (WIDTH, HEIGHT), WASH), card, gradient_mask(HORIZONTAL_WASH, WIDTH, HEIGHT))
-    card = Image.composite(
+    return Image.composite(
         Image.new("RGB", (WIDTH, HEIGHT), BOTTOM_WASH),
         card,
         vertical_gradient_mask([(1 - position, alpha) for position, alpha in VERTICAL_WASH], WIDTH, HEIGHT),
     )
+
+
+def draw_card(job, washed):
+    card = washed.copy()
     draw = ImageDraw.Draw(card)
     eyebrow = wrap(segment(job["eyebrow"], "sans-latin", "sans-cjk", EYEBROW_SIZE), COLUMN - 38, 2.6)
     if len(eyebrow) > 1:
@@ -273,10 +287,10 @@ def draw_card(job, background):
 
 def main():
     request = json.load(sys.stdin)
-    background = Image.open(request["background"])
+    washed = washed_background(Image.open(request["background"]))
     written = []
     for job in request["jobs"]:
-        card = draw_card(job, background)
+        card = draw_card(job, washed)
         os.makedirs(os.path.dirname(job["output"]), exist_ok=True)
         if request.get("format") == "jpeg":
             card.save(job["output"], "JPEG", quality=88, optimize=True, progressive=True)

@@ -1,4 +1,4 @@
-import { shareBases, sharePath } from '../config/sharing.mjs';
+import { decodeSlug, shareBases, sharePath } from '../config/sharing.mjs';
 import { blogFeed } from '../config/feeds.mjs';
 import type { ArticleSort } from './sort';
 
@@ -45,16 +45,7 @@ export function slugFromLocation(
       .slice(base.length)
       .replace(/(^|\/)index\.html$/, '$1')
       .replace(/\/+$/, '');
-    if (rest) {
-      try {
-        return rest
-          .split('/')
-          .map((segment) => decodeURIComponent(segment))
-          .join('/');
-      } catch {
-        return undefined;
-      }
-    }
+    if (rest) return decodeSlug(rest);
   }
   return new URLSearchParams(location.search).get('post') ?? undefined;
 }

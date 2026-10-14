@@ -14,8 +14,9 @@ import path from 'node:path';
 import { build, createServer, preview } from 'vite';
 import { buildArticleCatalog } from '../scripts/content/catalog.mjs';
 import { articlesPlugin } from '../scripts/content/plugin.mjs';
-import { sharePageHtml, sharePlugin } from '../scripts/content/share.mjs';
+import { createSharePage, sharePageHtml, sharePlugin } from '../scripts/content/share.mjs';
 import { notFoundPlugin } from '../scripts/not-found.mjs';
+import { jpegSize } from '../scripts/share/jpeg.mjs';
 import {
   articleCard,
   cardCollections,
@@ -59,24 +60,6 @@ const article = {
   section: 'life',
 };
 const card = { url: '/images/share/blog/nested/中文 note.abc123.jpg' };
-
-/** JPEG start-of-frame dimensions, read without an image library. */
-function jpegSize(buffer) {
-  assert.equal(buffer.readUInt16BE(0), 0xffd8, 'not a JPEG file');
-  let offset = 2;
-  while (offset < buffer.length - 9) {
-    if (buffer[offset] !== 0xff) {
-      offset++;
-      continue;
-    }
-    const marker = buffer[offset + 1];
-    const length = buffer.readUInt16BE(offset + 2);
-    if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker))
-      return { height: buffer.readUInt16BE(offset + 5), width: buffer.readUInt16BE(offset + 7) };
-    offset += 2 + length;
-  }
-  return undefined;
-}
 
 test('a static share page rewrites the entry head for one article', () => {
   const html = sharePageHtml(shell, article, { siteUrl, basePath: '/blog/', card });
@@ -130,6 +113,30 @@ test('head replacements keep dollar sequences literal and accept unchanged value
   assert.doesNotThrow(() =>
     sharePageHtml(sameTitleShell, article, { siteUrl, basePath: '/blog/', card }),
   );
+});
+
+test('one compiled entry shell renders each document independently', () => {
+  const options = { siteUrl, basePath: '/blog/' };
+  const render = createSharePage(shell, options);
+  const other = { ...article, slug: 'other', title: 'Other title', tags: [] };
+  const first = render(article, card);
+  const second = render(other, card);
+  assert.equal(first, sharePageHtml(shell, article, { ...options, card }));
+  assert.equal(second, sharePageHtml(shell, other, { ...options, card }));
+  assert.ok(second.includes('<title>Other title · Alicia Blog</title>'));
+  assert.doesNotMatch(second, /A &lt; B|中文/);
+  // Only the first copy of a repeated tag belongs to the document; later copies stay.
+  const repeated = shell.replace(
+    '</head>',
+    '<meta property="og:title" content="Kept" />\n  </head>',
+  );
+  assert.match(sharePageHtml(repeated, article, { ...options, card }), /content="Kept"/);
+  const formatted = shell.replace(
+    '<noscript>Please enable JavaScript to read the blog.</noscript>',
+    '<noscript\n      >Please enable JavaScript to read the blog.</noscript\n    >',
+  );
+  assert.doesNotMatch(sharePageHtml(formatted, article, { ...options, card }), /Please enable/);
+  assert.throws(() => createSharePage(shell.replace('<title>', '\0<title>'), options), /NUL/);
 });
 
 test('share cards stay valid when Git dates change during a commit', () => {

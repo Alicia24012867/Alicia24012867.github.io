@@ -9,6 +9,7 @@ import {
   slugFromLocation,
 } from '../src/content/urls.ts';
 import { contentPageMeta } from '../src/content/meta.ts';
+import { decodeSlug, encodeSlug } from '../src/config/sharing.mjs';
 
 test('articles use their own static address while list filters stay in the query string', () => {
   assert.equal(articlePath('blog', 'test'), '/blog/test/');
@@ -161,6 +162,13 @@ test('both addresses of one document share its canonical and card', () => {
     contentPageMeta({ ...options, summary: { ...summary, share: undefined } }).image,
     undefined,
   );
+});
+
+test('slug paths decode what they encode and reject malformed escapes', () => {
+  for (const slug of ['moments', 'nested/中文 note', '100% ready', 'literal%20name', 'hash#query?'])
+    assert.equal(decodeSlug(encodeSlug(slug)), slug);
+  assert.equal(decodeSlug('ok/%E0%A4%A'), undefined);
+  assert.equal(decodeSlug('%'), undefined);
 });
 
 test('explicit index documents resolve like their directory addresses', () => {

@@ -1,6 +1,6 @@
 import { feedFormats } from '../../src/config/feeds.mjs';
 import { sharePath } from '../../src/config/sharing.mjs';
-
+import { lastModified } from './metadata.mjs';
 import { xml, declaration } from './xml.mjs';
 
 /** Summary feeds use the same published catalog as the website, with no runtime dependencies. */
@@ -48,7 +48,7 @@ ${entry.tags.map((tag) => `      <category>${xml(tag)}</category>`).join('\n')}
     <title type="text">${xml(entry.title)}</title>
     <link rel="alternate" type="text/html" href="${entry.url}"/>
     <published>${entry.published.toISOString()}</published>
-    <updated>${new Date(Math.max(+entry.published, +entry.edited)).toISOString()}</updated>
+    <updated>${lastModified(entry)}</updated>
     <author><name>${xml(entry.author || author)}</name></author>
     <summary type="text">${xml(entry.description)}</summary>
 ${entry.tags.map((tag) => `    <category term="${xml(tag)}"/>`).join('\n')}

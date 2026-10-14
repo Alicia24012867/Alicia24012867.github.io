@@ -1,19 +1,13 @@
 import Icon from '../components/Icon';
-import { friendLinks, homepageLinks } from '../config/links';
+import { friendLinks, homepageLinks, visibleLinks } from '../config/links';
 
-const linkGroups = [
-  { id: 'elsewhere', title: 'Elsewhere', links: homepageLinks },
-  { id: 'friends', title: 'Friends', links: friendLinks },
-];
+// The configuration is static, so empty entries and groups are dropped once.
+const groups = [
+  { id: 'elsewhere', title: 'Elsewhere', links: visibleLinks(homepageLinks) },
+  { id: 'friends', title: 'Friends', links: visibleLinks(friendLinks) },
+].filter((group) => group.links.length > 0);
 
 export default function Links() {
-  const groups = linkGroups
-    .map((group) => ({
-      ...group,
-      links: group.links.filter((link) => link.name.trim() && link.url.trim()),
-    }))
-    .filter((group) => group.links.length > 0);
-
   if (groups.length === 0) return null;
 
   return (

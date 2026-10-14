@@ -1,4 +1,6 @@
 import { sharePath } from '../../src/config/sharing.mjs';
+import { lastModified } from './metadata.mjs';
+import { serveGenerated } from './serve.mjs';
 import { xml, declaration } from './xml.mjs';
 
 /** Catalogs already exclude drafts/private files and resolve authored or Git dates. */
@@ -6,13 +8,8 @@ export function renderSitemap(collections, siteUrl) {
   const urls = new Map([[new URL('/', siteUrl).href, '']]);
   for (const { basePath, articles } of collections) {
     urls.set(new URL(basePath, siteUrl).href, '');
-    for (const article of articles) {
-      const url = new URL(sharePath(basePath, article.slug), siteUrl).href;
-      const changed = new Date(
-        Math.max(Date.parse(article.date), Date.parse(article.updated || article.date)),
-      ).toISOString();
-      urls.set(url, changed);
-    }
+    for (const article of articles)
+      urls.set(new URL(sharePath(basePath, article.slug), siteUrl).href, lastModified(article));
   }
   return `${declaration}<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${[...urls].map(([url, date]) => `  <url><loc>${xml(url)}</loc>${date ? `<lastmod>${date}</lastmod>` : ''}</url>`).join('\n')}
@@ -48,26 +45,14 @@ export function sitemapPlugin(collections, siteUrl) {
       this.emitFile({ type: 'asset', fileName: 'robots.txt', source: robots });
     },
     configureServer(server) {
+      const documents = new Map([
+        ['/sitemap.xml', { type: 'application/xml', read: readSitemap }],
+        ['/robots.txt', { type: 'text/plain', read: () => robots }],
+      ]);
       server.middlewares.use((req, res, next) => {
-        const pathname = new URL(req.url, 'http://localhost').pathname;
-        if (!['/sitemap.xml', '/robots.txt'].includes(pathname)) return next();
-        if (req.method !== 'GET' && req.method !== 'HEAD') {
-          res.statusCode = 405;
-          res.setHeader('Allow', 'GET, HEAD');
-          return res.end();
-        }
-        try {
-          const body =
-            req.method === 'HEAD' ? undefined : pathname === '/robots.txt' ? robots : readSitemap();
-          res.setHeader(
-            'Content-Type',
-            `${pathname === '/robots.txt' ? 'text/plain' : 'application/xml'}; charset=utf-8`,
-          );
-          res.setHeader('Cache-Control', 'no-cache');
-          res.end(body);
-        } catch (error) {
-          next(error);
-        }
+        const document = documents.get(new URL(req.url, 'http://localhost').pathname);
+        if (!document) return next();
+        serveGenerated(req, res, next, document.type, document.read);
       });
     },
   };

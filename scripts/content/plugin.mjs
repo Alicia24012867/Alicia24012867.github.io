@@ -2,6 +2,7 @@ import path from 'node:path';
 import { buildArticleCatalog } from './catalog.mjs';
 import { articleModule, listingModule, searchModule } from './modules.mjs';
 import { renderFeeds } from './feeds.mjs';
+import { serveGenerated } from './serve.mjs';
 import { feedFormats } from '../../src/config/feeds.mjs';
 import { summaryShare, skyDigest } from '../share/spec.mjs';
 
@@ -59,10 +60,15 @@ export function articlesPlugin({
     return catalog;
   };
   const readFeeds = () => (feeds ??= renderFeeds(readCatalog().articles, { ...feed, basePath }));
+  // Constant-time lookups for per-request consumers such as static share pages.
+  const readArticle = (slug) => {
+    readCatalog();
+    return bySlug.get(slug);
+  };
 
   return {
     name: `local-${directory}`,
-    api: { basePath, readCatalog },
+    api: { basePath, readCatalog, readArticle },
     configResolved(config) {
       root = config.root;
       articleRoot = path.resolve(config.root, directory);
@@ -110,19 +116,7 @@ export function articlesPlugin({
           const pathname = new URL(req.url, 'http://localhost').pathname;
           const format = feedFormats.find((format) => format.path === pathname);
           if (!format) return next();
-          if (req.method !== 'GET' && req.method !== 'HEAD') {
-            res.statusCode = 405;
-            res.setHeader('Allow', 'GET, HEAD');
-            return res.end();
-          }
-          try {
-            const body = req.method === 'HEAD' ? undefined : readFeeds()[pathname];
-            res.setHeader('Content-Type', `${format.type}; charset=utf-8`);
-            res.setHeader('Cache-Control', 'no-cache');
-            res.end(body);
-          } catch (error) {
-            next(error);
-          }
+          serveGenerated(req, res, next, format.type, () => readFeeds()[pathname]);
         });
       server.watcher.add(articleRoot);
       const reload = (file) => {

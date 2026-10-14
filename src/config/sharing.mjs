@@ -9,5 +9,20 @@ export const encodeSlug = (slug) =>
     .map((segment) => encodeURIComponent(segment))
     .join('/');
 
+/**
+ * Inverse of encodeSlug; undefined when a segment is not valid percent-encoding.
+ * @param {string} path
+ */
+export function decodeSlug(path) {
+  try {
+    return path
+      .split('/')
+      .map((segment) => decodeURIComponent(segment))
+      .join('/');
+  } catch {
+    return undefined;
+  }
+}
+
 /** @param {string} basePath @param {string} slug */
 export const sharePath = (basePath, slug) => basePath + encodeSlug(slug) + '/';

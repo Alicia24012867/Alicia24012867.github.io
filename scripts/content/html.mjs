@@ -1,7 +1,7 @@
 import sanitizeHtml from 'sanitize-html';
 import { decodeHTML } from 'entities';
 import hljs from 'highlight.js/lib/common';
-import { escapeHtml, headingSlug, plainText } from './text.mjs';
+import { createSuffixer, escapeHtml, headingSlug, plainText } from './text.mjs';
 
 export function sanitizeArticleHtml(html, resolveReference) {
   return sanitizeHtml(html, {
@@ -85,14 +85,15 @@ export function extractHeadings(html, footnotes = '') {
     authoredIds.add(id);
     if (!/^h[1-6]$/i.test(tag)) ids.add(id);
   }
+  const suffixed = createSuffixer((id) => ids.has(id) || authoredIds.has(id));
   html = html.replace(/<h([1-6])\b([^>]*)>([\s\S]*?)<\/h\1>/gi, (_match, depth, attrs, inner) => {
     const level = Math.max(2, Number(depth));
     const text = plainText(inner);
     const authoredId = decodeHTML(attrs.match(/\bid="([^"]+)"/)?.[1] || '');
     const base = authoredId || `section-${headingSlug(text)}`;
-    let id = base;
-    let count = 2;
-    while (ids.has(id) || (id !== authoredId && authoredIds.has(id))) id = `${base}-${count++}`;
+    // A heading may keep its own authored id; a suffixed form can never equal it.
+    const id =
+      ids.has(base) || (base !== authoredId && authoredIds.has(base)) ? suffixed(base) : base;
     ids.add(id);
     if (level <= 3 && text) headings.push({ id, text, level });
     return `<h${level} id="${escapeHtml(id)}">${inner}</h${level}>`;

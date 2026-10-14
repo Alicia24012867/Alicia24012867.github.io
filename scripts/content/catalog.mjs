@@ -4,20 +4,13 @@ import { decodeHTML } from 'entities';
 import { compileArticle } from './compile.mjs';
 import { createArticleDateResolver } from './metadata.mjs';
 import { blogSections, noteSections } from '../../src/config/sections.mjs';
+import { decodeSlug } from '../../src/config/sharing.mjs';
 
 /** Links written before static addresses existed still count as backlinks. */
 function pathTarget(pathname, basePath) {
   if (!pathname.startsWith(basePath)) return undefined;
   const rest = pathname.slice(basePath.length).replace(/\/+$/, '');
-  if (!rest) return undefined;
-  try {
-    return rest
-      .split('/')
-      .map((segment) => decodeURIComponent(segment))
-      .join('/');
-  } catch {
-    return undefined;
-  }
+  return rest ? decodeSlug(rest) : undefined;
 }
 
 function linkedSlugs(html, basePath) {

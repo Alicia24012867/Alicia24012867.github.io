@@ -54,17 +54,23 @@ function readTree(directory) {
   });
 }
 
-/** Remove rendered cards that no published article points at any more. */
+/** Remove rendered cards that no published article points at any more, then emptied folders. */
 function pruneStale(keep) {
   const shareRoot = path.join(publicRoot, SHARE_DIRECTORY);
   const files = readTree(shareRoot);
   const removed = files.filter((file) => imageFile.test(file) && !keep.has(file));
   for (const file of removed) fs.rmSync(file);
-  const directories = files
-    .map((file) => path.dirname(file))
-    .filter((directory, index, all) => all.indexOf(directory) === index)
-    .sort((a, b) => b.length - a.length);
-  for (const directory of directories)
+  // Parents count too: clearing a nested folder can leave its parent empty. Each walk
+  // stops at the share root or at a folder another file already reached.
+  const directories = new Set();
+  for (const file of files)
+    for (let directory = path.dirname(file); !directories.has(directory); ) {
+      directories.add(directory);
+      if (directory === shareRoot) break;
+      directory = path.dirname(directory);
+    }
+  // Deeper paths are longer, so children are removed before their parents.
+  for (const directory of [...directories].sort((a, b) => b.length - a.length))
     if (fs.existsSync(directory) && !fs.readdirSync(directory).length) fs.rmdirSync(directory);
   return removed;
 }

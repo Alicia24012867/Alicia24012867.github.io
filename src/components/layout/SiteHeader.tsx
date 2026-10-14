@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Icon from '../Icon';
 import ThemeToggle from '../ThemeToggle';
 import { profile } from '../../config/profile';
-import { friendLinks, homepageLinks } from '../../config/links';
+import { friendLinks, homepageLinks, visibleLinks } from '../../config/links';
 import { listingUrl, queryFromSearch, slugFromLocation } from '../../content/urls';
 import { sortFromSearch } from '../../content/sort';
 import './site-header.css';
@@ -17,10 +17,12 @@ const sections = [
   { id: 'about', label: 'About' },
   { id: 'explore', label: 'Explore' },
   { id: 'contact', label: 'Contact' },
-  ...([...homepageLinks, ...friendLinks].some((link) => link.name.trim() && link.url.trim())
+  ...(visibleLinks([...homepageLinks, ...friendLinks]).length
     ? [{ id: 'links', label: 'Links' }]
     : []),
 ];
+// Homepage anchors observed for the active navigation item, in page order.
+const anchorIds = ['home', ...sections.map((item) => item.id)];
 
 export default function SiteHeader({ section }: { section: SiteSection }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -42,9 +44,7 @@ export default function SiteHeader({ section }: { section: SiteSection }) {
   useEffect(() => {
     if (section !== 'home') return;
     // Cross-page anchors can arrive before React has mounted the target sections.
-    const anchor = ['home', ...sections.map((item) => item.id)].find(
-      (id) => window.location.hash === `#${id}`,
-    );
+    const anchor = anchorIds.find((id) => window.location.hash === `#${id}`);
     const frame = anchor
       ? requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView())
       : 0;
@@ -54,7 +54,7 @@ export default function SiteHeader({ section }: { section: SiteSection }) {
       },
       { rootMargin: '-18% 0px -55% 0px', threshold: 0 },
     );
-    for (const id of ['home', ...sections.map((item) => item.id)]) {
+    for (const id of anchorIds) {
       const element = document.getElementById(id);
       if (element) observer.observe(element);
     }
