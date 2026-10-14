@@ -26,7 +26,7 @@ function NoteEntry({
           <a href={articleUrl('notes', note.slug, query)}>{note.title}</a>
         </h3>
         <p>{note.description}</p>
-        <ArticleMeta article={note} />
+        <ArticleMeta article={note} compact />
         <ArticleTags article={note} onTag={onTag} />
       </div>
       <a
@@ -72,7 +72,9 @@ export default function NotesIndex() {
     <>
       <section className="journal-hero">
         <div className="journal-width">
-          <p className="eyebrow">NOTES / KNOWLEDGE BASE</p>
+          <p className="eyebrow">
+            <span /> NOTES / KNOWLEDGE BASE
+          </p>
           <h1>
             Connecting the pieces<span>.</span>
           </h1>
@@ -83,6 +85,11 @@ export default function NotesIndex() {
           </p>
           <div className="journal-hero-note">
             <span>✧</span> A personal wiki, always growing.
+          </div>
+          <div className="journal-doodle notes-doodle" aria-hidden="true">
+            <Icon name="code" />
+            <span>✦</span>
+            <i>pieces, connected</i>
           </div>
         </div>
       </section>

@@ -7,11 +7,14 @@ export default function ArticleMeta({
   showDetails = false,
   readingTime = showDetails,
   collection = 'blog',
+  compact = false,
 }: {
   article: ArticleSummary;
   showDetails?: boolean;
   readingTime?: boolean;
   collection?: Collection;
+  /** Listings: dates and reading time only; the author is the same on every entry. */
+  compact?: boolean;
 }) {
   const section = showDetails ? blogSections.byId(article.section) : undefined;
   return (
@@ -21,8 +24,8 @@ export default function ArticleMeta({
           {section.label}
         </a>
       )}
-      {article.author && <span className="article-author">{article.author}</span>}
-      {article.email && (
+      {!compact && article.author && <span className="article-author">{article.author}</span>}
+      {!compact && article.email && (
         <a className="article-email" href={'mailto:' + encodeURIComponent(article.email)}>
           {article.email}
         </a>
@@ -35,9 +38,12 @@ export default function ArticleMeta({
       </span>
       {readingTime && (
         <>
-          <span className="article-word-count">
-            {article.wordCount.toLocaleString('en-US')} {article.wordCount === 1 ? 'word' : 'words'}
-          </span>
+          {!compact && (
+            <span className="article-word-count">
+              {article.wordCount.toLocaleString('en-US')}{' '}
+              {article.wordCount === 1 ? 'word' : 'words'}
+            </span>
+          )}
           <span className="reading-time">{article.readingMinutes} min read</span>
         </>
       )}

@@ -34,12 +34,12 @@ function JournalEntry({
       </span>
       <div className="journal-entry-content">
         {article.pin && <span className="article-pin">Pinned</span>}
-        <ArticleMeta article={article} showDetails />
+        <ArticleMeta article={article} readingTime compact />
         <h3 className="article-title">
           <a href={articleUrl('blog', article.slug, query, sort)}>{article.title}</a>
         </h3>
         <p>{article.description}</p>
-        <ArticleTags article={article} onTag={onTag} showFormat />
+        <ArticleTags article={article} onTag={onTag} />
       </div>
       <a
         className="journal-read"
@@ -187,7 +187,10 @@ export default function ArticleIndex() {
               >
                 <div className="journal-shelf-heading">
                   <div>
-                    {section.english && <p className="eyebrow">{section.english}</p>}
+                    {section.english &&
+                      section.english.toLowerCase() !== section.label.toLowerCase() && (
+                        <p className="eyebrow">{section.english}</p>
+                      )}
                     <h3 id={`shelf-${section.anchorId}`}>
                       {section.label}
                       <span className="article-count">

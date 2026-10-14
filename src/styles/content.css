@@ -115,7 +115,7 @@
 .journal-doodle > i {
   position: absolute;
   bottom: -35px;
-  font-size: 9px;
+  font-size: 11px;
   color: #8aa9c1;
   font-style: normal;
   letter-spacing: 1px;
@@ -216,7 +216,7 @@
   color: var(--ink);
   border: 0;
   min-width: 0;
-  width: 170px;
+  width: 230px;
   font-size: var(--text-base);
 }
 .article-search input::placeholder {
@@ -275,7 +275,7 @@
   font-weight: 500;
 }
 .journal-shelf-heading > p {
-  max-width: 280px;
+  max-width: 360px;
   text-align: right;
   font-size: var(--text-sm);
   color: var(--muted);
@@ -312,21 +312,29 @@
   color: #d4e3ef;
   font-size: 16px;
 }
+/* Every item carries its own leading dot; the container is shifted left by one
+   separator width and clipped there, so a wrapped line never starts with "·". */
 .article-meta {
   --meta-gap: 10px;
+  --meta-sep: calc(var(--meta-gap) * 2 + 0.3em);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  column-gap: var(--meta-gap);
   row-gap: 4px;
+  margin-inline-start: calc(var(--meta-sep) * -1);
+  clip-path: inset(-8px -8px -8px var(--meta-sep));
   color: var(--muted);
   font-size: var(--text-sm);
   line-height: 1.8;
 }
-.article-meta > * + *::before {
+.article-meta > * {
+  position: relative;
+  padding-inline-start: var(--meta-sep);
+}
+.article-meta > *::before {
   content: '·';
-  display: inline-block;
-  margin-inline-end: var(--meta-gap);
+  position: absolute;
+  left: var(--meta-gap);
   color: #abc1d3;
 }
 .article-author,
@@ -563,6 +571,12 @@
 @media (max-width: 1000px) {
   .journal-doodle {
     right: 15px;
+  }
+}
+/* The notes introduction runs wider, so its doodle needs more room. */
+@media (max-width: 1150px) {
+  .notes-doodle {
+    display: none;
   }
 }
 @media (max-width: 760px) {

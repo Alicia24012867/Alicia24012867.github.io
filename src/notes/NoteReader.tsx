@@ -21,7 +21,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
       </a>
       <ArticleHeader
         article={note}
-        eyebrow={`KNOWLEDGE BASE / ${noteSections.byId(note.section).label}`}
+        eyebrow={`KNOWLEDGE BASE / ${noteSections.byId(note.section).label.toUpperCase()}`}
         collection="notes"
       />
       <ArticleBody article={note} label="Note content" />

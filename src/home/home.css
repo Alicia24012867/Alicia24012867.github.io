@@ -190,7 +190,7 @@
   color: #5796c6;
 }
 .sky-note-label {
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 1.8px;
   color: #6493b6;
 }
@@ -210,7 +210,7 @@
   right: -34px;
   top: 47px;
   writing-mode: vertical-rl;
-  font-size: 8px;
+  font-size: 9px;
   color: #447ba6;
   letter-spacing: 3px;
   opacity: 0.8;
@@ -226,7 +226,7 @@
   color: #6c94b3;
 }
 .scroll-cue span {
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 2px;
 }
 .scroll-cue .icon {
@@ -237,7 +237,7 @@
   position: absolute;
   right: max(48px, calc((100vw - 1180px) / 2));
   bottom: 27px;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 2px;
   color: #5d829e;
 }
@@ -404,7 +404,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 7px;
+  font-size: 10px;
   letter-spacing: 1.7px;
   color: #8ba9c2;
   margin-top: 25px;
@@ -523,6 +523,7 @@
   color: #62809a;
 }
 .now-card-bottom {
+  position: relative;
   border-top: 1px dashed var(--line);
   padding-top: 17px;
   display: flex;
@@ -539,11 +540,12 @@
 .now-card-bottom > p {
   font-size: var(--text-xs);
   line-height: 1.9;
-  letter-spacing: 1px;
+  letter-spacing: 0.3px;
 }
 .now-card-bottom > span {
-  margin-left: auto;
-  align-self: flex-end;
+  position: absolute;
+  right: 0;
+  bottom: 0;
   font-size: 16px;
   color: #bfd6e9;
 }
@@ -595,7 +597,7 @@
   position: absolute;
   top: 15px;
   left: 18px;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 2px;
   color: #8eafca;
   z-index: 1;
@@ -648,7 +650,7 @@
   bottom: 13px;
   width: 100%;
   text-align: center;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 1.2px;
   color: #7c9bb5;
 }
@@ -754,21 +756,36 @@
 }
 .homepage-links {
   display: grid;
-  gap: 24px;
-  padding-block: 0 32px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 20px;
+  padding-block: 0 76px;
+  scroll-margin-top: 110px;
 }
 .homepage-links > section {
   min-width: 0;
+  padding: 22px 24px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
 }
 .homepage-links h2 {
-  margin-bottom: 12px;
-  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 19px;
   letter-spacing: 0;
+}
+.homepage-links h2::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
 }
 .homepage-links-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 28px;
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -781,25 +798,37 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 44px;
-  color: var(--muted);
+  min-height: 40px;
+  padding: 0 14px 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--section);
+  color: var(--ink);
   font-size: var(--text-base);
   line-height: 1.6;
   letter-spacing: 0;
+  transition:
+    color 0.2s,
+    border-color 0.2s,
+    transform 0.2s;
 }
 .homepage-links-list a span {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 .homepage-links-list .icon {
+  width: 14px;
   height: 14px;
-  margin: 0 4px 0 0;
+  color: var(--muted);
 }
 .homepage-links-list a:hover,
 .homepage-links-list a:focus-visible {
-  color: var(--blue);
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  color: var(--blue-strong);
+  border-color: var(--control-border);
+  transform: translateY(-1px);
+}
+.homepage-links-list a:hover .icon {
+  color: var(--blue-strong);
 }
 .contact-section {
   padding-block: 66px;
@@ -1212,10 +1241,10 @@
     gap: 8px;
   }
   .sky-note p {
-    font-size: 10px;
+    font-size: 11px;
   }
   .sky-note-label {
-    font-size: 7px;
+    font-size: 9px;
   }
   .sky-note-icon {
     width: 28px;
@@ -1231,7 +1260,7 @@
   }
   .hero-japanese {
     right: 25px;
-    font-size: 8px;
+    font-size: 10px;
   }
   .hero-side-note {
     right: -10px;
@@ -1311,7 +1340,7 @@
     top: -1px;
   }
   .art-formula {
-    font-size: 6px;
+    font-size: 9px;
     letter-spacing: 0.4px;
   }
   .contact-card {
@@ -1333,6 +1362,12 @@
     gap: 8px;
   }
 }
+@media (max-width: 760px) {
+  /* Narrow tablets: the mood card would sit on top of the status line. */
+  .sky-note {
+    display: none;
+  }
+}
 @media (max-width: 600px) {
   .hero {
     min-height: 700px;
@@ -1343,7 +1378,7 @@
   }
   .hero-wash {
     background:
-      linear-gradient(0deg, #f2f9ff 26%, #f2f9fff5 35%, #f2f9ff63 53%, #f2f9ff05 76%),
+      linear-gradient(0deg, #f2f9ff 30%, #f2f9fff2 40%, #f2f9ffa3 56%, #f2f9ff00 78%),
       linear-gradient(90deg, #f4faff80, transparent 85%);
   }
   .hero-inner {
@@ -1415,27 +1450,10 @@
     margin-top: 23px;
     gap: 7px;
   }
-  .sky-note {
-    top: 195px;
-    right: 0;
-    bottom: auto;
-    padding: 9px 12px;
-  }
-  .sky-note p {
-    font-size: 9px;
-  }
-  .sky-note-star {
-    display: none;
-  }
-  .sky-note-icon {
-    height: 25px;
-    width: 25px;
-  }
+  /* Phone hero: the mood card and vertical caption would collide with the title. */
+  .sky-note,
   .hero-side-note {
-    top: 25px;
-    font-size: 6px;
-    right: -6px;
-    color: #446b8c;
+    display: none;
   }
   .hero-japanese {
     display: none;
@@ -1445,27 +1463,34 @@
     gap: 5px;
   }
   .scroll-cue span {
-    font-size: 6px;
+    display: none;
   }
   .scroll-cue .icon {
     height: 13px;
     width: 13px;
   }
+  /* Three even columns, icon above label, instead of three squeezed rows. */
   .introduction-strip .page-width {
-    gap: 6px;
-    min-height: 56px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    min-height: 0;
+    padding-block: 16px;
   }
   .introduction-strip span {
+    flex-direction: column;
+    text-align: center;
     font-size: var(--text-xs);
-    gap: 5px;
+    gap: 6px;
     letter-spacing: 0.2px;
+    line-height: 1.4;
   }
   .introduction-strip .icon {
-    height: 12px;
-    width: 12px;
+    height: 16px;
+    width: 16px;
   }
   .introduction-strip i {
-    font-size: var(--text-sm);
+    display: none;
   }
   .section-space {
     padding-block: 47px;
@@ -1592,7 +1617,7 @@
     margin-top: 20px;
   }
   .art-formula {
-    font-size: 8px;
+    font-size: 9px;
     letter-spacing: 1px;
   }
   .network-art > svg {
@@ -1654,7 +1679,7 @@
   }
   [data-theme='night'] .hero-wash {
     background:
-      linear-gradient(0deg, #16283e 26%, #16283ef5 35%, #16283e70 54%, #16283e05 80%),
+      linear-gradient(0deg, #16283e 30%, #16283ef2 40%, #16283ea3 56%, #16283e00 80%),
       linear-gradient(90deg, #16283e66, transparent 85%);
   }
 }

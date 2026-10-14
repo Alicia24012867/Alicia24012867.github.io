@@ -1,6 +1,4 @@
 .article-toc {
-  font-family: var(--font-display);
-  font-style: italic;
   font-weight: 400;
   position: sticky;
   top: 112px;
@@ -8,18 +6,31 @@
   border-left: 1px solid var(--line);
   padding-left: 24px;
 }
-.article-toc nav > p {
+.article-toc summary {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  font-size: var(--text-sm);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 15px;
   color: var(--heading);
+  list-style: none;
+  pointer-events: none;
 }
-.article-toc nav > p > span {
-  font-size: var(--text-xs);
-  letter-spacing: 1px;
+.article-toc summary::-webkit-details-marker {
+  display: none;
+}
+.article-toc summary .icon {
+  display: none;
+  width: 16px;
+  height: 16px;
   color: var(--muted);
+  transform: rotate(90deg);
+  transition: transform 0.2s;
+}
+.article-toc details[open] summary .icon {
+  transform: rotate(-90deg);
 }
 .article-toc ol {
   list-style: none;
@@ -41,6 +52,9 @@
 .article-toc .toc-subheading {
   padding-left: 13px;
   font-size: var(--text-xs);
+}
+.article-toc .toc-subheading a {
+  padding-block: 2px;
 }
 .article-toc a {
   display: block;
@@ -521,8 +535,10 @@
 }
 .reading-layout {
   display: grid;
-  grid-template-columns: minmax(0, 760px) 215px;
-  gap: 65px;
+  /* ~70 characters per line at the reading size. */
+  grid-template-columns: minmax(0, 700px) 230px;
+  justify-content: space-between;
+  gap: 64px;
   align-items: start;
 }
 .reading-content {
@@ -532,7 +548,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  margin: 48px 280px 0 0;
+  max-width: 700px;
+  margin: 48px 0 0;
 }
 .article-pager a,
 .article-pager > span {
@@ -565,7 +582,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 53px 280px 0 0;
+  max-width: 700px;
+  margin: 53px 0 0;
   padding-top: 35px;
   border-top: 1px solid var(--line);
 }
@@ -624,7 +642,8 @@
   font-size: 20px;
 }
 .article-comments {
-  margin: 48px 280px 0 0;
+  max-width: 700px;
+  margin: 48px 0 0;
   padding-top: 30px;
   border-top: 1px solid var(--line);
   scroll-margin-top: 100px;
@@ -676,10 +695,14 @@
   .reading-end,
   .article-comments,
   .article-pager {
+    max-width: none;
     margin-right: 215px;
   }
   .article-toc {
     padding-left: 17px;
+  }
+  .toc-note {
+    display: none;
   }
 }
 @media (max-width: 760px) {
@@ -701,13 +724,24 @@
     position: static;
     width: 100%;
     border: 1px solid var(--line);
-    padding: 17px 21px;
+    padding: 0;
     border-radius: var(--radius-md);
     background: var(--section);
   }
+  /* Collapsed by default on phones so the article starts right away. */
+  .article-toc summary {
+    pointer-events: auto;
+    cursor: pointer;
+    min-height: var(--control-height);
+    padding: 10px 18px;
+  }
+  .article-toc summary .icon {
+    display: block;
+  }
   .article-toc ol {
     max-height: min(40dvh, 18rem);
-    margin-top: 12px;
+    margin: 0 15px 0;
+    padding-bottom: 14px;
   }
   .article-toc li {
     font-size: var(--text-sm);

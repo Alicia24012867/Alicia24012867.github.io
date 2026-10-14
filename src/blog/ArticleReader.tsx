@@ -26,7 +26,7 @@ export default function ArticleReader({ article }: { article: Article }) {
       </a>
       <ArticleHeader
         article={article}
-        eyebrow={[section.english, section.label].filter(Boolean).join(' / ')}
+        eyebrow={`BLOG / ${(section.english || section.label).toUpperCase()}`}
         collection="blog"
         showDetails
       />
