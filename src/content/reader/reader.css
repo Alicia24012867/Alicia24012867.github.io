@@ -845,6 +845,8 @@
   .reading-layout {
     display: flex;
     flex-direction: column;
+    /* Full width, so wide formulas and tables scroll inside their own box. */
+    align-items: stretch;
     gap: 30px;
   }
   .reading-end,
