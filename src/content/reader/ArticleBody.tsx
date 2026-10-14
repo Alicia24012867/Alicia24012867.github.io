@@ -4,6 +4,7 @@ import type { Article } from '../types';
 import ArticleFigures from './ArticleFigures';
 import ArticleToc from './ArticleToc';
 import FootnotePreview from './FootnotePreview';
+import LinkPreview, { type LinkPreviewSource } from './LinkPreview';
 import HandwrittenSignature from '../../components/signature/HandwrittenSignature';
 import PhotoViewer from './PhotoViewer';
 import ReadingProgress from './ReadingProgress';
@@ -12,9 +13,12 @@ import { useArticleReader } from './useArticleReader';
 export default function ArticleBody({
   article,
   label = 'Article content',
+  previews,
 }: {
   article: Article;
   label?: string;
+  /** Other documents whose links show a preview card. */
+  previews?: LinkPreviewSource;
 }) {
   const bodyRef = useRef<HTMLElement>(null);
   // Keep enhanced DOM nodes intact if the parent renders again.
@@ -35,6 +39,7 @@ export default function ArticleBody({
       <ArticleToc headings={article.headings} bodyRef={bodyRef} />
       <ArticleFigures key={article.slug} bodyRef={bodyRef} />
       <FootnotePreview bodyRef={bodyRef} slug={article.slug} />
+      {previews && <LinkPreview bodyRef={bodyRef} slug={article.slug} source={previews} />}
       <PhotoViewer bodyRef={bodyRef} slug={article.slug} />
       <ReadingProgress bodyRef={bodyRef} />
     </div>

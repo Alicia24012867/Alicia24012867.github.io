@@ -1,11 +1,18 @@
 import Icon from '../components/Icon';
 import ArticleHeader from '../content/ArticleHeader';
 import ArticleBody from '../content/reader/ArticleBody';
+import type { LinkPreviewSource } from '../content/reader/LinkPreview';
 import ArticleComments from '../content/reader/ArticleComments';
 import { noteSections } from '../config/sections.mjs';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
 import type { Article, ArticleSummary } from '../content/types';
 import { noteIndex } from './catalog';
+
+const previews: LinkPreviewSource = {
+  collection: 'notes',
+  find: (slug) => noteIndex.bySlug.get(slug),
+  section: (summary) => noteSections.byId(summary.section).label,
+};
 
 export default function NoteReader({ article: note }: { article: Article }) {
   const query = queryFromSearch(window.location.search);
@@ -24,7 +31,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
         eyebrow={`KNOWLEDGE BASE / ${noteSections.byId(note.section).label.toUpperCase()}`}
         collection="notes"
       />
-      <ArticleBody article={note} label="Note content" />
+      <ArticleBody article={note} label="Note content" previews={previews} />
       <section className="note-backlinks" aria-labelledby="backlinks-title">
         <p className="eyebrow">LINKED REFERENCES</p>
         <h2 id="backlinks-title">Notes linking here</h2>

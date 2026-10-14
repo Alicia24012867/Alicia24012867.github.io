@@ -1,5 +1,6 @@
 import { blogIndex } from './catalog';
 import ArticleBody from '../content/reader/ArticleBody';
+import type { LinkPreviewSource } from '../content/reader/LinkPreview';
 import ArticleComments from '../content/reader/ArticleComments';
 import ArticleHeader from '../content/ArticleHeader';
 import Icon from '../components/Icon';
@@ -7,6 +8,15 @@ import type { Article } from '../content/types';
 import { blogSections } from '../config/sections.mjs';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
 import { sortFromSearch } from '../content/sort';
+
+const previews: LinkPreviewSource = {
+  collection: 'blog',
+  find: (slug) => blogIndex.bySlug.get(slug),
+  section: (summary) => {
+    const section = blogSections.byId(summary.section);
+    return section.english || section.label;
+  },
+};
 
 export default function ArticleReader({ article }: { article: Article }) {
   const query = queryFromSearch(window.location.search);
@@ -30,7 +40,7 @@ export default function ArticleReader({ article }: { article: Article }) {
         collection="blog"
         showDetails
       />
-      <ArticleBody article={article} />
+      <ArticleBody article={article} previews={previews} />
       {(older || newer) && (
         <nav className="article-pager" aria-label={`More posts in ${section.label}`}>
           {older ? (

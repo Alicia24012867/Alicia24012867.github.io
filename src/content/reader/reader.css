@@ -619,8 +619,8 @@
   text-decoration: none;
   margin-left: 4px;
 }
-/* A footnote shown beside its reference, pointing at it with a small caret. */
-.footnote-preview {
+/* Cards beside article links (footnotes, other posts), pointing at them with a small caret. */
+.reader-popover {
   position: absolute;
   z-index: 15;
   width: min(340px, calc(100% - 32px));
@@ -634,9 +634,9 @@
   color: var(--muted);
   font-size: var(--text-base);
   line-height: 1.75;
-  animation: footnote-preview-in 0.16s ease-out;
+  animation: reader-popover-in 0.16s ease-out;
 }
-.footnote-preview::before {
+.reader-popover::before {
   content: '';
   position: absolute;
   top: -6px;
@@ -648,13 +648,13 @@
   background: var(--surface);
   transform: translateX(-50%) rotate(45deg);
 }
-.footnote-preview.is-above::before {
+.reader-popover.is-above::before {
   top: auto;
   bottom: -6px;
   transform: translateX(-50%) rotate(225deg);
 }
-.footnote-preview.is-above {
-  animation-name: footnote-preview-in-above;
+.reader-popover.is-above {
+  animation-name: reader-popover-in-above;
 }
 .footnote-preview-label {
   margin: 0 0 2px;
@@ -681,20 +681,58 @@
 .footnote-preview-jump:hover {
   text-decoration: underline;
 }
-@keyframes footnote-preview-in {
+.reader-popover.link-preview {
+  width: min(320px, calc(100% - 32px));
+  padding: 6px;
+}
+.link-preview-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1200 / 630;
+  border-radius: 6px;
+  background: var(--section);
+}
+.link-preview-text {
+  padding: 9px 10px 6px;
+}
+.link-preview-text p {
+  margin: 0;
+}
+.link-preview-meta {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.link-preview .link-preview-title {
+  margin-top: 2px;
+  font-size: 17px;
+  line-height: 1.5;
+}
+.link-preview-description {
+  display: -webkit-box;
+  margin-top: 3px;
+  overflow: hidden;
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+@keyframes reader-popover-in {
   from {
     opacity: 0;
     transform: translateY(4px);
   }
 }
-@keyframes footnote-preview-in-above {
+@keyframes reader-popover-in-above {
   from {
     opacity: 0;
     transform: translateY(-4px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .footnote-preview {
+  .reader-popover {
     animation: none;
   }
 }
@@ -939,7 +977,7 @@
 @media print {
   .article-comments,
   .reading-progress,
-  .footnote-preview {
+  .reader-popover {
     display: none;
   }
 }
