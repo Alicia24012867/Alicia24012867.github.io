@@ -3,7 +3,7 @@ import { parseArticleSource } from './metadata.mjs';
 import { renderMarkdown, restoreMath } from './markdown.mjs';
 import { createReferenceResolver } from './references.mjs';
 import { sanitizeArticleHtml, extractHeadings, decorateRichHtml, checkFigures } from './html.mjs';
-import { measureArticle, plainText, slugFromFile } from './text.mjs';
+import { measureArticle, plainText, proseLanguage, slugFromFile } from './text.mjs';
 
 /** Build-time pipeline; no Markdown parser or sanitizer is shipped to the homepage. */
 export function compileArticle(
@@ -36,7 +36,10 @@ export function compileArticle(
   html += footnotes;
   checkFigures(html, filename);
   const { wordCount, readingMinutes } = measureArticle(html);
+  const lang = metadata.lang || proseLanguage(html);
   html = restoreMath(decorateRichHtml(html), rendered.mathHtml);
+  // Code keeps the page's English typesetting, so comments look the same in any article.
+  if (lang !== 'en') html = html.replace(/<pre\b(?![^>]*\slang=)/g, '<pre lang="en"');
 
   return {
     ...metadata,
@@ -44,6 +47,7 @@ export function compileArticle(
     title,
     description,
     format,
+    lang,
     readingMinutes,
     wordCount,
     html,

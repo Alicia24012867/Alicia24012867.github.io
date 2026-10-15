@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import Icon from '../../components/Icon';
 import type { Article } from '../types';
+import { textLanguage } from '../language.mjs';
 import { readingProgress } from './progress';
 import {
   finishedAt,
@@ -216,7 +217,12 @@ export default function ContinueReading({
     <div className="continue-reading">
       <button type="button" className="continue-reading-jump" onClick={resume}>
         <Icon name="down" />
-        Continue reading {section && <span className="continue-reading-section">{section}</span>}
+        Continue reading{' '}
+        {section && (
+          <span className="continue-reading-section" lang={textLanguage(section)}>
+            {section}
+          </span>
+        )}
       </button>
       <button
         type="button"

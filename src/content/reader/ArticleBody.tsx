@@ -33,6 +33,7 @@ export default function ArticleBody({
         <article
           ref={bodyRef}
           className="article-body"
+          lang={article.lang}
           aria-label={label}
           dangerouslySetInnerHTML={markup}
         />

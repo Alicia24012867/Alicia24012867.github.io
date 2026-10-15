@@ -5,6 +5,7 @@ import type { LinkPreviewSource } from '../content/reader/LinkPreview';
 import ArticleComments from '../content/reader/ArticleComments';
 import { noteSections } from '../config/sections.mjs';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
+import { textLanguage } from '../content/language.mjs';
 import type { Article, ArticleSummary } from '../content/types';
 import { noteIndex } from './catalog';
 
@@ -39,7 +40,11 @@ export default function NoteReader({ article: note }: { article: Article }) {
           <ul>
             {backlinks.map((item) => (
               <li key={item.slug}>
-                <a className="article-title" href={articleUrl('notes', item.slug, query)}>
+                <a
+                  className="article-title"
+                  href={articleUrl('notes', item.slug, query)}
+                  lang={textLanguage(item.title)}
+                >
                   {item.title}
                   <Icon name="arrow" />
                 </a>

@@ -10,6 +10,8 @@ export interface ArticleSummary {
   tags: string[];
   section: string;
   format: 'Markdown' | 'HTML';
+  /** Language of the body (`zh-CN` or `en`), from front matter or counted from its prose. */
+  lang: string;
   readingMinutes: number;
   /** Chinese characters plus English words, as shown next to the reading estimate. */
   wordCount: number;

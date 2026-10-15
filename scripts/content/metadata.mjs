@@ -35,7 +35,16 @@ export function parseArticleSource(source, filename) {
   if (metadata.draft === true) return null;
   if (Object.hasOwn(metadata, 'pin') && typeof metadata.pin !== 'boolean')
     throw new Error(`${filename}: pin 必须是布尔值 true 或 false，不要加引号`);
-  for (const field of ['title', 'date', 'updated', 'description', 'author', 'email', 'section']) {
+  for (const field of [
+    'title',
+    'date',
+    'updated',
+    'description',
+    'author',
+    'email',
+    'section',
+    'lang',
+  ]) {
     if (metadata[field] != null && typeof metadata[field] !== 'string')
       throw new Error(`${filename}: ${field} 必须是字符串`);
   }
@@ -45,6 +54,9 @@ export function parseArticleSource(source, filename) {
   ) {
     throw new Error(`${filename}: tags 应写成字符串列表，例如 [学习, 随记]`);
   }
+  const lang = metadata.lang?.trim() || undefined;
+  if (lang && !/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(lang))
+    throw new Error(`${filename}: lang 请写成语言代码，例如 zh-CN 或 en`);
   const date = articleDate(metadata.date, 'date', filename);
   const updated = articleDate(metadata.updated, 'updated', filename);
   return {
@@ -59,6 +71,7 @@ export function parseArticleSource(source, filename) {
       pin: metadata.pin === true,
       tags: [...new Set((metadata.tags || []).map((tag) => tag.trim()).filter(Boolean))],
       section: metadata.section?.trim() || '',
+      lang,
     },
   };
 }

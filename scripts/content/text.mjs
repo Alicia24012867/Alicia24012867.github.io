@@ -1,5 +1,6 @@
 import sanitizeHtml from 'sanitize-html';
 import { decodeHTML } from 'entities';
+import { textLanguage } from '../../src/content/language.mjs';
 
 export const escapeHtml = (text) =>
   String(text)
@@ -104,4 +105,16 @@ export function measureArticle(html) {
       Math.ceil(chineseCharacters / HAN_PER_MINUTE + words / WORDS_PER_MINUTE),
     ),
   };
+}
+
+/** The language of the prose, leaving out code and formulas; input as for `measureArticle`. */
+export function proseLanguage(html) {
+  return textLanguage(
+    readableText(
+      html
+        .replace(/<pre\b[\s\S]*?<\/pre>/gi, ' ')
+        .replace(/<code\b[\s\S]*?<\/code>/gi, ' ')
+        .replace(/<(span|div) data-math-index="\d+">[^<]*<\/\1>/g, ' '),
+    ),
+  );
 }

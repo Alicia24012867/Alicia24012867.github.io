@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useActiveHeading } from './useActiveHeading';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import Icon from '../../components/Icon';
+import { textLanguage } from '../language.mjs';
 import type { Article } from '../types';
 
 export default function ArticleToc({
@@ -51,6 +52,7 @@ export default function ArticleToc({
               <li className={heading.level === 3 ? 'toc-subheading' : undefined} key={heading.id}>
                 <a
                   href={`#${encodeURIComponent(heading.id)}`}
+                  lang={textLanguage(heading.text)}
                   className={activeHeading === heading.id ? 'is-active' : undefined}
                   aria-current={activeHeading === heading.id ? 'location' : undefined}
                 >

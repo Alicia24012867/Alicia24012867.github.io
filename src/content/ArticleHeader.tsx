@@ -1,5 +1,6 @@
 import ArticleMeta from './ArticleMeta';
 import ArticleTags from './ArticleTags';
+import { textLanguage } from './language.mjs';
 import type { Collection } from './urls';
 import type { ArticleSummary } from './types';
 
@@ -20,8 +21,12 @@ export default function ArticleHeader({
   return (
     <header className="reading-header">
       {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-      <h1 className="article-title">{article.title}</h1>
-      <p className="reading-description">{article.description}</p>
+      <h1 className="article-title" lang={textLanguage(article.title)}>
+        {article.title}
+      </h1>
+      <p className="reading-description" lang={textLanguage(article.description)}>
+        {article.description}
+      </p>
       {metadata && (
         <>
           <ArticleMeta

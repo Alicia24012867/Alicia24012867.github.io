@@ -5,6 +5,7 @@ import Icon from '../components/Icon';
 import type { ArticleSummary } from '../content/types';
 import ArticleMeta from '../content/ArticleMeta';
 import { articleUrl } from '../content/urls';
+import { textLanguage } from '../content/language.mjs';
 import { useListingQuery } from '../hooks/useListingQuery';
 import {
   articleSortOptions,
@@ -36,9 +37,14 @@ function JournalEntry({
         {article.pin && <span className="article-pin">Pinned</span>}
         <ArticleMeta article={article} readingTime compact />
         <h3 className="article-title">
-          <a href={articleUrl('blog', article.slug, query, sort)}>{article.title}</a>
+          <a
+            href={articleUrl('blog', article.slug, query, sort)}
+            lang={textLanguage(article.title)}
+          >
+            {article.title}
+          </a>
         </h3>
-        <p>{article.description}</p>
+        <p lang={textLanguage(article.description)}>{article.description}</p>
         <ArticleTags article={article} onTag={onTag} />
       </div>
       <a

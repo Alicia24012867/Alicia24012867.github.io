@@ -7,6 +7,7 @@ import Icon from '../components/Icon';
 import type { Article } from '../content/types';
 import { blogSections } from '../config/sections.mjs';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
+import { textLanguage } from '../content/language.mjs';
 import { sortFromSearch } from '../content/sort';
 
 const previews: LinkPreviewSource = {
@@ -46,7 +47,9 @@ export default function ArticleReader({ article }: { article: Article }) {
           {older ? (
             <a href={articleUrl('blog', older.slug, query, sort)}>
               <span>Previous post</span>
-              <strong className="article-title">{older.title}</strong>
+              <strong className="article-title" lang={textLanguage(older.title)}>
+                {older.title}
+              </strong>
             </a>
           ) : (
             <span />
@@ -54,7 +57,9 @@ export default function ArticleReader({ article }: { article: Article }) {
           {newer ? (
             <a className="pager-newer" href={articleUrl('blog', newer.slug, query, sort)}>
               <span>Next post</span>
-              <strong className="article-title">{newer.title}</strong>
+              <strong className="article-title" lang={textLanguage(newer.title)}>
+                {newer.title}
+              </strong>
             </a>
           ) : (
             <span />

@@ -5,6 +5,7 @@ import Icon from '../components/Icon';
 import ArticleTags from '../content/ArticleTags';
 import ArticleMeta from '../content/ArticleMeta';
 import { articleUrl } from '../content/urls';
+import { textLanguage } from '../content/language.mjs';
 import { useListingQuery } from '../hooks/useListingQuery';
 import { noteIndex, noteTopics } from './catalog';
 
@@ -23,9 +24,11 @@ function NoteEntry({
     <article className="note-entry">
       <div>
         <h3 className="article-title">
-          <a href={articleUrl('notes', note.slug, query)}>{note.title}</a>
+          <a href={articleUrl('notes', note.slug, query)} lang={textLanguage(note.title)}>
+            {note.title}
+          </a>
         </h3>
-        <p>{note.description}</p>
+        <p lang={textLanguage(note.description)}>{note.description}</p>
         <ArticleMeta article={note} compact />
         <ArticleTags article={note} onTag={onTag} />
       </div>
