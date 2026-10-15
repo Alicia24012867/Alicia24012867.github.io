@@ -54,6 +54,7 @@ docs/               撰写说明与性能记录
 - `src/styles/global.css`：全站字体、字号、圆角、页面边距与明暗主题变量。正文采用 Noto Sans SC 和系统回退；品牌、标题、导航栏和文章目录保留花体；代码使用等宽字体，公式保留专用字体。
 - 字体由站点自己提供，不再连接 Google 字体服务（该服务在中国大陆无法访问，曾让页面空白等待）。`npm run fonts:fetch`（`scripts/fonts.mjs`）从 Google Fonts 取回与原来完全相同的字体文件（Noto Sans SC 400–700，Playfair Display 斜体 400–600，按字符范围切片）放进 `public/fonts/`，并生成全站样式引入的 `src/styles/fonts.css`；每页只下载正文用到的切片，四个 HTML 入口预加载两种字体的拉丁字符切片。新用的字重需落在区间内，修改字体或字重后重新运行该命令；Mermaid 读取全局字体变量。全站布局由 `SiteLayout` 复用，导航支持首页锚点、窄屏菜单、键盘和 Escape 关闭。
 - 首页和文章可共用 `public/images/` 中的资源；蓝天主图为 `summer-sky.webp`。
+- 网站图标是 `public/favicon.svg`；`public/apple-touch-icon.png` 是同一图案铺满方形、无透明的 180 px 版本，供 iPhone 和 iPad 添加到主屏幕时使用（系统自行裁成圆角）。修改网站图标后同步更新它，四个 HTML 入口都引用这两个文件。
 
 ## 发布内容
 
