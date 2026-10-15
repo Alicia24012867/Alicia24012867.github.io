@@ -1062,6 +1062,9 @@
   border-radius: var(--radius-lg);
   background: var(--surface);
   scroll-margin-top: 110px;
+  /* Never a scroll anchor, so notes that grow once the reader is past its top keep the links
+     below still. */
+  overflow-anchor: none;
 }
 .guestbook h3 {
   grid-column: 1 / -1;

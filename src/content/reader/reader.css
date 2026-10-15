@@ -952,6 +952,9 @@
   padding-top: 30px;
   border-top: 1px solid var(--line);
   scroll-margin-top: 100px;
+  /* Never a scroll anchor: comments that grow once the reader is past their top keep the end
+     of the page still, while text above them in view still holds its place. */
+  overflow-anchor: none;
 }
 .comments-heading h2 {
   font-family: var(--font-display);
