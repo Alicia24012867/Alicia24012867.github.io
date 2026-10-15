@@ -2,6 +2,7 @@ import path from 'node:path';
 import { buildArticleCatalog } from './catalog.mjs';
 import { articleModule, latestModule, listingModule, searchModule } from './modules.mjs';
 import { renderFeeds } from './feeds.mjs';
+import { withoutCopies, writePhotoCopy } from './resize.mjs';
 import { serveGenerated } from './serve.mjs';
 import { feedFormats } from '../../src/config/feeds.mjs';
 import { summaryShare, skyDigest } from '../share/spec.mjs';
@@ -18,6 +19,7 @@ export function articlesPlugin({
   let root;
   let articleRoot;
   let publicDir;
+  let copyDirectory;
   let shareCards;
   let catalog;
   let feeds;
@@ -26,6 +28,7 @@ export function articlesPlugin({
   let changedFiles;
   const watched = new Set();
   const compiled = new Map();
+  const shownCopies = new Map();
   // Public images that articles show belong to the catalog too: a replaced one gets its new size.
   const ownsFile = (file) =>
     path.resolve(file).startsWith(`${articleRoot}${path.sep}`) || watched.has(path.resolve(file));
@@ -48,6 +51,7 @@ export function articlesPlugin({
         cache: compiled,
         changedFiles,
         publicDir,
+        copyDirectory,
       });
       // Static share pages are built by site-share; listing entries carry the same
       // card so a client-rendered route can update its own preview.
@@ -66,6 +70,33 @@ export function articlesPlugin({
     return catalog;
   };
   const readFeeds = () => (feeds ??= renderFeeds(readCatalog().articles, { ...feed, basePath }));
+  // Each copy is made once, when an article first shows it. Where a copy cannot be made
+  // or saves too little, the article shows the photo itself.
+  const shownArticle = async (article, warn) => {
+    const { copies } = readCatalog();
+    const filesByMarker = assetsByMarker;
+    const files = new Map();
+    const hidden = new Set();
+    const markers = new Set(article.html.match(/__ALICIA_ARTICLE_ASSET_\d+__/g));
+    await Promise.all(
+      [...markers].map(async (marker) => {
+        const file = filesByMarker.get(marker);
+        files.set(marker, file);
+        const copy = copies.get(file);
+        if (!copy) return;
+        if (!shownCopies.has(file))
+          shownCopies.set(
+            file,
+            writePhotoCopy(copy).catch((error) => {
+              warn(`Showing ${path.relative(root, copy.source)} at full size: ${error.message}`);
+              return false;
+            }),
+          );
+        if (!(await shownCopies.get(file))) hidden.add(marker);
+      }),
+    );
+    return articleModule({ ...article, html: withoutCopies(article.html, hidden) }, files);
+  };
   // Constant-time lookups for per-request consumers such as static share pages.
   const readArticle = (slug) => {
     readCatalog();
@@ -79,6 +110,7 @@ export function articlesPlugin({
       root = config.root;
       articleRoot = path.resolve(config.root, directory);
       publicDir = config.publicDir;
+      copyDirectory = path.join(config.cacheDir, 'article-images');
     },
     buildStart() {
       invalidate();
@@ -89,7 +121,7 @@ export function articlesPlugin({
     resolveId(id) {
       return id === moduleId || id.startsWith(`${moduleId}/`) ? `\0${id}` : null;
     },
-    load(id) {
+    async load(id) {
       if (id !== resolvedId && !id.startsWith(`${resolvedId}/`)) return null;
       readCatalog();
       if (id === resolvedId) {
@@ -102,7 +134,7 @@ export function articlesPlugin({
       if (!id.startsWith(prefix)) return null;
       const article = bySlug.get(decodeURIComponent(id.slice(prefix.length)));
       if (!article) throw new Error(`Unknown article module: ${id.slice(1)}`);
-      return articleModule(article, assetsByMarker);
+      return shownArticle(article, (message) => this.warn(message));
     },
     transformIndexHtml() {
       if (!feed) return;

@@ -36,7 +36,7 @@ test('collections can be empty, absent, deleted and recreated without template f
   const directory = path.join(root, 'notes');
   const cache = new Map();
   const read = () => buildArticleCatalog(directory, undefined, { basePath: '/notes/', cache });
-  const empty = { articles: [], assets: new Map() };
+  const empty = { articles: [], assets: new Map(), copies: new Map() };
   assert.deepEqual(read(), empty);
   mkdirSync(directory);
   assert.deepEqual(read(), empty);

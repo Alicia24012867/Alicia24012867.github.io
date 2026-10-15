@@ -50,9 +50,10 @@ export function articleModule(article, assetsByMarker) {
   const urls = [...used]
     .map(([marker, { name }]) => `${JSON.stringify(marker)}: ${name}`)
     .join(',');
+  // Spaces would split a srcset list, so addresses keep them percent-encoded.
   return `${imports}
 const urls = {${urls}};
 const body = ${JSON.stringify(body)};
-body.html = body.html.replace(/__ALICIA_ARTICLE_ASSET_\\d+__/g, marker => urls[marker]?.replaceAll('&', '&amp;').replaceAll('"', '&quot;') ?? marker);
+body.html = body.html.replace(/__ALICIA_ARTICLE_ASSET_\\d+__/g, marker => urls[marker]?.replace(/\\s/g, encodeURIComponent).replaceAll('&', '&amp;').replaceAll('"', '&quot;') ?? marker);
 export default body;`;
 }

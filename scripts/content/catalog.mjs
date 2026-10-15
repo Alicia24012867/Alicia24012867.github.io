@@ -4,6 +4,7 @@ import { decodeHTML } from 'entities';
 import { compileArticle } from './compile.mjs';
 import { sizeImages } from './html.mjs';
 import { readImageSize } from './images.mjs';
+import { photoCopy } from './resize.mjs';
 import { createArticleDateResolver } from './metadata.mjs';
 import { blogSections, noteSections } from '../../src/config/sections.mjs';
 import { decodeSlug } from '../../src/config/sharing.mjs';
@@ -51,7 +52,7 @@ function publicFile(publicDir, src) {
 export function buildArticleCatalog(
   articleRoot,
   watch = () => {},
-  { basePath = '/blog/', cache = new Map(), changedFiles, publicDir } = {},
+  { basePath = '/blog/', cache = new Map(), changedFiles, publicDir, copyDirectory } = {},
 ) {
   let root;
   try {
@@ -60,7 +61,7 @@ export function buildArticleCatalog(
     if (error.code !== 'ENOENT') throw error;
     // Git does not retain empty folders; a collection can have no authored files yet.
     cache.clear();
-    return { articles: [], assets: new Map() };
+    return { articles: [], assets: new Map(), copies: new Map() };
   }
   const sections = basePath === '/notes/' ? noteSections : blogSections;
   const resolveDates = createArticleDateResolver(root);
@@ -72,6 +73,7 @@ export function buildArticleCatalog(
   const outgoing = new Map();
   const checked = new Map();
   const assetFiles = new Map();
+  const copies = new Map();
 
   function checkedFile(relative, owner, isFile = false) {
     const absolute = path.resolve(root, relative);
@@ -96,6 +98,18 @@ export function buildArticleCatalog(
     watch(file);
     return readImageSize(file);
   };
+
+  // A large attachment shows a smaller copy, which the plugin makes when it is first shown.
+  const copyOf =
+    copyDirectory &&
+    ((src, size, place) => {
+      const asset = assetFiles.get(/^__ALICIA_ARTICLE_ASSET_\d+__$/.exec(src)?.[0]);
+      const copy = asset && photoCopy(asset, size, place, copyDirectory);
+      if (!copy) return undefined;
+      if (!assets.has(copy.file)) assets.set(copy.file, `__ALICIA_ARTICLE_ASSET_${assets.size}__`);
+      copies.set(copy.file, copy);
+      return { src: assets.get(copy.file), width: copy.width };
+    });
 
   // Only files belong in Vite's module graph. The plugin watches the directory separately.
   const files = new Map();
@@ -171,6 +185,7 @@ export function buildArticleCatalog(
             )
           : compiled.article.html,
         sizeOf,
+        copyOf,
       ),
     };
     if (!article) continue;
@@ -198,5 +213,5 @@ export function buildArticleCatalog(
       if (target !== article.slug) incoming.get(target)?.add(article.slug);
   }
   for (const article of articles) article.backlinks = [...incoming.get(article.slug)];
-  return { articles, assets };
+  return { articles, assets, copies };
 }

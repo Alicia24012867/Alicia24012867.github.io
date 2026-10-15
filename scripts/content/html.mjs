@@ -2,6 +2,7 @@ import sanitizeHtml from 'sanitize-html';
 import { decodeHTML } from 'entities';
 import hljs from 'highlight.js/lib/common';
 import { articleFigures } from '../../src/config/figures.mjs';
+import { copySizes, imagePlaces } from './resize.mjs';
 import { createSuffixer, escapeHtml, headingSlug, plainText } from './text.mjs';
 
 export function sanitizeArticleHtml(html, resolveReference) {
@@ -77,16 +78,31 @@ export function sanitizeArticleHtml(html, resolveReference) {
 
 /**
  * Local images get their real size, so text below them stays put while they load. CSS
- * cannot read the attributes, so the ratio also goes in a custom property.
+ * cannot read the attributes, so the ratio also goes in a custom property. A large photo
+ * can show a smaller copy that copyOf names; the photo viewer still opens the full file.
  */
-export function sizeImages(html, sizeOf) {
+export function sizeImages(html, sizeOf, copyOf) {
+  const places = copyOf ? imagePlaces(html) : [];
+  let index = 0;
   return html.replace(/<img\b([^>]*?)(\s*\/?)>/g, (tag, attributes, end) => {
+    const place = places[index++];
     // A width or height the author wrote stays exactly as written.
     if (/\s(?:width|height)="/.test(attributes)) return tag;
     const src = /\ssrc="([^"]*)"/.exec(attributes)?.[1];
     const size = src && sizeOf(decodeHTML(src));
     if (!size) return tag;
     const { width, height } = size;
+    const copy = place && copyOf(decodeHTML(src), size, place);
+    if (copy) {
+      // Screens that need more pixels than the copy has pick the photo itself.
+      const choices = `${copy.src} ${copy.width}w, ${src} ${width}w`;
+      attributes = attributes.replace(
+        /\ssrc="[^"]*"/,
+        () => ` src="${copy.src}" srcset="${choices}" sizes="${copySizes(size, place)}"`,
+      );
+      // A linked photo opens the file its link names.
+      if (!place.linked) attributes += ` data-full-src="${src}"`;
+    }
     return `<img${attributes} width="${width}" height="${height}" style="--ratio: ${width} / ${height}"${end}>`;
   });
 }
