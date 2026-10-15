@@ -1,3 +1,5 @@
+@import './fonts.css';
+
 :root {
   /* Shared type, colour and geometry tokens for every page. */
   --font-body:

@@ -279,3 +279,13 @@ node --expose-gc --experimental-strip-types scripts/benchmark-search.mjs --compa
 ### 验证
 
 113 项自动测试通过（新增搜索拼接等价与字体请求 2 项）。`npm run format:check`、`npm run check` 与 `npm run bundle:report` 通过。初始 JavaScript gzip：Blog 70,354、Notes 70,175 字节（各多约 100 字节，来自分开匹配的搜索代码），Home 69,066、404 64,640 字节不变；CSS 不变。本轮没有测量 Safari、Firefox 或真实设备上的内存，也没有测量线上网络时延。
+
+## 第六轮：字体自托管
+
+基线提交为 `1a07183`。线上巡检发现每个页面都要先等 Google 字体样式表：它会阻塞首次渲染，而 Google 在中国大陆无法访问，连接被挂起时页面一直空白。在模拟中让 Google 字体服务延迟 10 秒，首次内容绘制从 708 ms 推迟到 10,724 ms；请求被立即拒绝时为 720 ms。
+
+- `npm run fonts:fetch`（`scripts/fonts.mjs`）按原来的请求 `Noto Sans SC:wght@400..700` 与 `Playfair Display:ital,wght@1,400..600` 从 Google Fonts 取回同样的 105 个 WOFF2 文件（4.38 MB，按字符范围切片），放进 `public/fonts/`，并生成同样的 105 条 `@font-face` 规则（`src/styles/fonts.css`，由全站共用的 `global.css` 引入）。四个入口不再连接 `fonts.googleapis.com` 与 `fonts.gstatic.com`，改为预加载两种字体的拉丁字符切片。
+- 字体文件与原来逐字节相同，因此外观不变：两版构建在 8 个页面上以 1280 px 与 390 px 逐屏截图（共 77 屏），75 屏逐像素一致；其余 2 屏分别是首页 GitHub 动态的实时文字和手写签名动画的暂停时刻，后者在两次基线截图之间同样不同。
+- 屏蔽 Google 后，5 个页面的字体全部从站内加载，无任何 Google 请求。每页仍只下载正文用到的切片：中文文章约 1.0–1.2 MB，与原来相同。
+- 规则从 Google 的样式表（解码 115,019 字节，传输约 31 KB）移入站内共用样式表，各入口初始 CSS 的 gzip 增加约 32 KB（首页 9,302 → 41,418 字节），总传输量基本持平，但少连接两个外部域名，并随共用样式表在页面之间缓存。初始 JavaScript 不变。
+- 同一标签页内连续浏览时，Chrome 已在内存缓存中保有这两个切片，会在控制台提示预加载未被使用；每次新开浏览器加载任一页面都不会出现该提示。

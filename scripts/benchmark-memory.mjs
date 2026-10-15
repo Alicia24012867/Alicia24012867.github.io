@@ -115,9 +115,9 @@ const scroll = `(async () => {
 const pageFacts = `JSON.stringify({
   nodes: document.getElementsByTagName('*').length,
   fontFaces: document.fonts.size,
-  fontCssBytes: performance
+  fontFileBytes: performance
     .getEntriesByType('resource')
-    .filter((entry) => entry.name.startsWith('https://fonts.googleapis.com/'))
+    .filter((entry) => new URL(entry.name).pathname.startsWith('/fonts/'))
     .reduce((sum, entry) => sum + entry.decodedBodySize, 0),
 })`;
 
