@@ -1,7 +1,9 @@
+import crypto from 'node:crypto';
+import fs from 'node:fs';
 import path from 'node:path';
 import { buildArticleCatalog } from './catalog.mjs';
 import { articleModule, latestModule, listingModule, searchModule } from './modules.mjs';
-import { renderFeeds } from './feeds.mjs';
+import { feedHtml, renderFeeds } from './feeds.mjs';
 import { withoutCopies, writePhotoCopy } from './resize.mjs';
 import { serveGenerated } from './serve.mjs';
 import { feedFormats } from '../../src/config/feeds.mjs';
@@ -17,6 +19,8 @@ export function articlesPlugin({
 } = {}) {
   const resolvedId = `\0${moduleId}`;
   let root;
+  let base;
+  let assetsDir;
   let articleRoot;
   let publicDir;
   let copyDirectory;
@@ -69,7 +73,18 @@ export function articlesPlugin({
     }
     return catalog;
   };
-  const readFeeds = () => (feeds ??= renderFeeds(readCatalog().articles, { ...feed, basePath }));
+  // Feeds carry each post in full, with photos at full size. `assetUrl` names the file behind
+  // an attachment marker: in builds the emitted file, in development the dev server's path.
+  const fullFeeds = (assetUrl) => {
+    const { articles, assets, copies } = readCatalog();
+    const resized = new Set([...copies.values()].map((copy) => assets.get(copy.file)));
+    return renderFeeds(articles, { ...feed, basePath }, (article, url) =>
+      feedHtml(article.html, { url, assetUrl, copies: resized }),
+    );
+  };
+  const sourcePath = (marker) =>
+    path.relative(root, assetsByMarker.get(marker)).replaceAll('\\', '/');
+  const readFeeds = () => (feeds ??= fullFeeds((marker) => `/${sourcePath(marker)}`));
   // Each copy is made once, when an article first shows it. Where a copy cannot be made
   // or saves too little, the article shows the photo itself.
   const shownArticle = async (article, warn) => {
@@ -108,6 +123,8 @@ export function articlesPlugin({
     api: { basePath, readCatalog, readArticle },
     configResolved(config) {
       root = config.root;
+      base = config.base;
+      assetsDir = config.build.assetsDir;
       articleRoot = path.resolve(config.root, directory);
       publicDir = config.publicDir;
       copyDirectory = path.join(config.cacheDir, 'article-images');
@@ -144,9 +161,27 @@ export function articlesPlugin({
         injectTo: 'head',
       }));
     },
-    generateBundle() {
+    generateBundle(_options, bundle) {
       if (!feed) return;
-      for (const [pathname, source] of Object.entries(readFeeds()))
+      const emitted = new Map();
+      for (const output of Object.values(bundle))
+        if (output.type === 'asset')
+          for (const name of output.originalFileNames ?? []) emitted.set(name, output.fileName);
+      const assetUrl = (marker) => {
+        const name = sourcePath(marker);
+        if (!emitted.has(name)) {
+          // Vite writes small files into the page itself, so feeds get a file of their own.
+          const file = assetsByMarker.get(marker);
+          const source = fs.readFileSync(file);
+          const hash = crypto.createHash('sha256').update(source).digest('hex').slice(0, 8);
+          const { name: stem, ext } = path.parse(file);
+          const fileName = path.posix.join(assetsDir, `${stem}-${hash}${ext}`);
+          if (!bundle[fileName]) this.emitFile({ type: 'asset', fileName, source });
+          emitted.set(name, fileName);
+        }
+        return base + emitted.get(name);
+      };
+      for (const [pathname, source] of Object.entries(fullFeeds(assetUrl)))
         this.emitFile({ type: 'asset', fileName: pathname.slice(1), source });
       for (const file of watched) this.addWatchFile(file);
     },

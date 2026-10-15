@@ -117,11 +117,11 @@ Blog 和 Notes 的正文及相关阅读下方提供 [giscus](https://giscus.app/
 - RSS 2.0：[`/rss.xml`](https://nymphilia.com/rss.xml)
 - Atom 1.0：[`/atom.xml`](https://nymphilia.com/atom.xml)
 
-两种订阅源均包含所有已发布 Blog 文章的标题、纯文本摘要、作者、标签、发布时间和原文链接，按发布时间倒序排列，不受置顶影响；不包含草稿和 Notes。页脚提供订阅入口，所有页面的 HTML 头部都有自动发现链接。
+两种订阅源均包含所有已发布 Blog 文章的标题、纯文本摘要、全文、作者、标签、发布时间和原文链接，按发布时间倒序排列，不受置顶影响；不包含草稿和 Notes。页脚提供订阅入口，所有页面的 HTML 头部都有自动发现链接。
 
 每次构建复用内容目录生成 XML，开发服务也提供相同地址并随内容修改刷新。Atom 保留文章更新时间；条目的 `guid` / `id` 继续使用原域名下的 `?post=` 旧地址作为稳定标识，Atom feed ID 也保留原值（由 `idBaseUrl` 配置），因此改标题或改地址规则都不会让读者重复收到旧文章，条目链接则指向静态分享地址。日期继承正文的 YAML / Git 规则，不以构建时间伪造更新；空集合仍生成有效订阅源，更新时间使用 Unix epoch。
 
-站点正式域名与订阅元信息在 `src/config/feeds.mjs` 配置，本地预览也使用正式原文地址。摘要订阅无需解析正文附件，公式和图表可通过原文链接阅读。格式依据 [RSS 2.0](https://www.rssboard.org/rss-specification) 和 [Atom RFC 4287](https://www.rfc-editor.org/rfc/rfc4287.html)。
+站点正式域名与订阅元信息在 `src/config/feeds.mjs` 配置，本地预览也使用正式原文地址。全文放在 RSS 的 `content:encoded` 和 Atom 的 `content` 中，按阅读器没有站点样式和脚本来整理：照片使用原图，站内链接和附件写成完整地址，脚注等页内跳转留在条目内；公式只保留 MathML，代码块和表格去掉复制按钮与外框，任务清单显示为 ☑ / ☐，Mermaid 图表和交互图的位置换成指向原文的链接。语言与订阅源不同的文章（如中文文章）标明自己的语言。构建时附件地址取自本次构建写出的文件（Vite 内联进页面的小文件另写一份），开发服务器中按源文件路径列出。格式依据 [RSS 2.0](https://www.rssboard.org/rss-specification) 和 [Atom RFC 4287](https://www.rfc-editor.org/rfc/rfc4287.html)。
 
 ## 搜索引擎发现
 

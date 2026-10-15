@@ -1,10 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { realpathSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import {
+  realpathSync,
+  mkdtempSync,
+  mkdirSync,
+  readdirSync,
+  writeFileSync,
+  readFileSync,
+  rmSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import sharp from 'sharp';
 import { build, createServer, preview } from 'vite';
-import { renderFeeds } from '../scripts/content/feeds.mjs';
+import { buildArticleCatalog } from '../scripts/content/catalog.mjs';
+import { feedHtml, renderFeeds } from '../scripts/content/feeds.mjs';
 import { articlesPlugin } from '../scripts/content/plugin.mjs';
 import { notFoundPlugin } from '../scripts/not-found.mjs';
 import { blogFeed, feedFormats } from '../src/config/feeds.mjs';
@@ -190,3 +200,187 @@ for (const mode of ['development', 'preview']) {
     }
   });
 }
+
+// A grainy photo, large enough to get a resized copy on the site.
+const photo = (file, width, height) =>
+  sharp({
+    create: { width, height, channels: 3, noise: { type: 'gaussian', mean: 128, sigma: 30 } },
+  })
+    .jpeg({ quality: 95 })
+    .toFile(file);
+
+test('feed entries carry the whole post as plain HTML with full addresses', async (t) => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), 'alicia-feed-html-')));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const blog = path.join(root, 'content/blog');
+  mkdirSync(path.join(blog, 'assets'), { recursive: true });
+  mkdirSync(path.join(root, 'public/images'), { recursive: true });
+  await photo(path.join(blog, 'assets/photo.jpg'), 4000, 3000);
+  await photo(path.join(root, 'public/images/sky.jpg'), 300, 200);
+  writeFileSync(path.join(blog, 'assets/notes.pdf'), '%PDF-1.4 fixture');
+  writeFileSync(
+    path.join(blog, 'post.md'),
+    [
+      '---\ndate: 2026-01-01\n---',
+      'See [the other post](./other.md), [its end](./other.md#end), [a note](#notes) and [notes](./assets/notes.pdf).[^1]',
+      '![A photo](./assets/photo.jpg)',
+      '![The sky](/images/sky.jpg)',
+      'Inline $a^2$ and a display formula:',
+      '$$\nE=mc^2\n$$',
+      '```js\nconst answer = 42;\n```',
+      '```mermaid\nflowchart TD\nA-->B\n```',
+      '<figure data-figure="timestep-control"></figure>',
+      '| a | b |\n|---|---|\n| 1 | 2 |',
+      '- [x] done\n- [ ] todo',
+      '[^1]: A footnote.',
+    ].join('\n\n'),
+  );
+  writeFileSync(path.join(blog, 'other.md'), '---\ndate: 2026-01-02\n---\n\nAnother post.');
+  writeFileSync(
+    path.join(blog, 'zh.md'),
+    '---\ndate: 2026-01-03\n---\n\n今天天气很好，我们一起去公园散步，看见了很多花。\n\n```js\nlet a = 1;\n```',
+  );
+  const catalog = buildArticleCatalog(blog, () => {}, {
+    publicDir: path.join(root, 'public'),
+    copyDirectory: path.join(root, 'copies'),
+  });
+  const files = new Map([...catalog.assets].map(([file, marker]) => [marker, file]));
+  const resized = new Set(
+    [...catalog.copies.values()].map((copy) => catalog.assets.get(copy.file)),
+  );
+  assert.equal(resized.size, 1);
+  const assetUrl = (marker) => `/assets/${path.basename(files.get(marker))}`;
+  const contentOf = (article, url) => feedHtml(article.html, { url, assetUrl, copies: resized });
+  const post = catalog.articles.find((article) => article.slug === 'post');
+  const html = contentOf(post, 'https://example.com/blog/post/');
+
+  // Photos load at full size, from addresses that work outside the site.
+  assert.match(
+    html,
+    /<img src="https:\/\/example.com\/assets\/photo.jpg" alt="A photo" [^>]*width="4000" height="3000" \/>/,
+  );
+  assert.match(html, /<img src="https:\/\/example.com\/images\/sky.jpg"/);
+  assert.doesNotMatch(html, /srcset|sizes=|data-full-src|--ratio|__ALICIA_ARTICLE_ASSET_/);
+  assert.match(html, /href="https:\/\/example.com\/blog\/other\/"/);
+  assert.match(html, /href="https:\/\/example.com\/blog\/other\/#end"/);
+  assert.match(html, /href="https:\/\/example.com\/assets\/notes.pdf"/);
+  // Links within the entry, such as footnotes, stay within it.
+  assert.match(html, /href="#notes"/);
+  assert.match(html, /<a href="#fn-1"/);
+  // Formulas keep only their MathML; the spans KaTeX's stylesheet lays out are gone.
+  assert.match(html, /Inline <math xmlns="http:\/\/www.w3.org\/1998\/Math\/MathML">/);
+  assert.match(html, /<div class="article-math"><math xmlns="[^"]+" display="block">/);
+  assert.doesNotMatch(html, /katex/);
+  assert.match(html, /<pre><code class="hljs">/);
+  assert.doesNotMatch(html, /<button|copy-code|tabindex|role="region"|<input/);
+  assert.match(html, /<table>/);
+  assert.match(html, /☑ done[\s\S]*☐ todo/);
+  // The site draws diagrams and interactive figures with scripts, so readers get the post.
+  assert.equal(html.match(/<a href="https:\/\/example.com\/blog\/post\/">/g).length, 2);
+  assert.doesNotMatch(html, /mermaid|flowchart|data-figure/);
+
+  const zh = contentOf(
+    catalog.articles.find((article) => article.slug === 'zh'),
+    'https://example.com/blog/zh/',
+  );
+  // Code keeps its English typesetting inside Chinese writing.
+  assert.match(zh, /<pre lang="en"><code class="hljs">/);
+
+  const feeds = renderFeeds(catalog.articles, config, contentOf);
+  const rss = feeds['/rss.xml'];
+  const atom = feeds['/atom.xml'];
+  assert.match(rss, /xmlns:content="http:\/\/purl.org\/rss\/1.0\/modules\/content\/"/);
+  assert.equal(rss.match(/<content:encoded>/g).length, 3);
+  assert.equal(atom.match(/<content type="html">/g).length, 3);
+  assert.ok(rss.includes(xmlText(html)));
+  assert.ok(atom.includes(xmlText(html)));
+  // Only the Chinese entry names its language, which differs from the feed's.
+  assert.equal(atom.match(/<entry xml:lang="zh-CN">/g).length, 1);
+  assert.equal(atom.match(/<entry>/g).length, 2);
+  assert.ok(
+    atom.includes(`<content type="html">${xmlText(`<div lang="zh-CN">${zh}</div>`)}</content>`),
+  );
+  assert.ok(
+    rss.includes(`<content:encoded>${xmlText(`<div lang="zh-CN">${zh}</div>`)}</content:encoded>`),
+  );
+});
+
+const xmlText = (text) =>
+  text.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[character],
+  );
+
+test('built feeds name the files the build wrote, including ones Vite inlines into pages', async (t) => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), 'alicia-feed-files-')));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const blog = path.join(root, 'content/blog');
+  mkdirSync(path.join(blog, 'assets'), { recursive: true });
+  for (const directory of ['blog', 'notes']) mkdirSync(path.join(root, directory));
+  const pages = ['index.html', 'blog/index.html', 'notes/index.html', '404.html'];
+  for (const file of pages)
+    writeFileSync(
+      path.join(root, file),
+      '<html><head><title>Fixture</title></head><body></body></html>',
+    );
+  // Like the reader, the Blog page loads the article, so the build writes its attachments.
+  writeFileSync(
+    path.join(root, 'blog/index.html'),
+    '<html><head><title>Fixture</title></head><body><script type="module" src="./main.js"></script></body></html>',
+  );
+  writeFileSync(
+    path.join(root, 'blog/main.js'),
+    "import { loadArticle } from 'virtual:articles';\nloadArticle('post');\n",
+  );
+  await photo(path.join(blog, 'assets/photo.jpg'), 4000, 3000);
+  // Small enough for Vite to write into the article's script instead of a file.
+  await sharp({ create: { width: 4, height: 4, channels: 3, background: '#3a8de0' } })
+    .png()
+    .toFile(path.join(blog, 'assets/dot.png'));
+  writeFileSync(
+    path.join(blog, 'post.md'),
+    '---\ndate: 2026-01-01\n---\n\n![A photo](./assets/photo.jpg)\n\n![A dot](./assets/dot.png)',
+  );
+  await build({
+    root,
+    configFile: false,
+    appType: 'mpa',
+    logLevel: 'silent',
+    cacheDir: path.join(root, 'cache'),
+    plugins: [notFoundPlugin(), articlesPlugin({ feed: config })],
+    build: { rolldownOptions: { input: pages.map((file) => path.join(root, file)) } },
+  });
+  const atom = readFileSync(path.join(root, 'dist/atom.xml'), 'utf8');
+  const images = [...atom.matchAll(/&lt;img src=&quot;https:\/\/example.com\/([^&]+)&quot;/g)].map(
+    ([, file]) => file,
+  );
+  assert.equal(images.length, 2);
+  assert.match(images[1], /^assets\/dot-[0-9a-f]{8}\.png$/);
+  for (const file of images)
+    assert.deepEqual(
+      readFileSync(path.join(root, 'dist', file)),
+      readFileSync(
+        path.join(blog, 'assets', file.replace(/^assets\/(\w+)-[\w-]+(\.\w+)$/, '$1$2')),
+      ),
+    );
+  // The page shows a resized copy of the photo and offers the same full-size file as the feed;
+  // the dot is written into the page.
+  const scripts = readdirSync(path.join(root, 'dist/assets')).filter((file) =>
+    file.endsWith('.js'),
+  );
+  const article = scripts
+    .map((file) => readFileSync(path.join(root, 'dist/assets', file), 'utf8'))
+    .join('\n');
+  const urls = Object.fromEntries(
+    [...article.matchAll(/(__ALICIA_ARTICLE_ASSET_\d+__):`([^`]*)`/g)].map(([, marker, url]) => [
+      marker,
+      url,
+    ]),
+  );
+  const [, copy, original] = /srcset="(\w+) 1724w, (\w+) 4000w"/.exec(article);
+  assert.equal(urls[original], `/${images[0]}`);
+  assert.match(urls[copy], /^\/assets\/photo-[\w-]+\.jpg$/);
+  assert.notEqual(urls[copy], urls[original]);
+  assert.match(Object.values(urls).join(' '), /data:image\/png;base64,/);
+});
