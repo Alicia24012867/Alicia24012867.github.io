@@ -145,7 +145,7 @@ Blog 和 Notes 的正文及相关阅读下方提供 [giscus](https://giscus.app/
 - 正文用 `<figure data-figure="名称"></figure>` 放置交互图（名称登记在 `src/config/figures.mjs`，用法见 [文章撰写](docs/writing.md)）。每个交互图是独立的代码块，接近视口时才加载，加载前占位保留其高度。`timestep-control` 用于 ngspice 步长控制笔记：在 RC 低通电路上按 DCtran、CKTtrunc 与 CKTterr 的规则逐步计算，可调 reltol 并比较是否补偿 (k+1)!，图中显示接受的时间点、被拒绝的尝试、步长与相对精确解的误差；计算逻辑在 `src/content/figures/timestep.ts`，有独立测试。
 - 日期排序每篇只解析一次日期。Mermaid、公式样式与阅读器按需加载；图表接近视口、签名进入视口后才初始化。
 - `scripts/content/` 统一发现文件、清洗 HTML、渲染代码和公式、校验资源及互链，并生成摘要、正文和全文索引模块。
-- 修改依赖时同时提交 `package.json` 和锁文件；修改内容路径时同步更新文档与互链。
+- 修改依赖时同时提交 `package.json` 和锁文件；修改内容路径时同步更新文档与互链。`package.json` 的 `overrides` 让 Mermaid 与正文共用同一版 KaTeX（Mermaid 11 自带的旧版有安全公告）；升级到自身要求 KaTeX 0.18 以上的 Mermaid 后可删除该项。
 
 发布前除自动检查外，应在桌面与窄屏复核主题、心情卡片的三个时段、夜间流星、Right now 卡片、移动导航、兴趣弹窗、搜索排序、返回链接、目录定位、章节链接、阅读进度、继续阅读、代码复制、图片查看器、脚注与链接预览、公式、交互图、签名、评论区与留言簿、减少动态效果及 404。自动测试和构建不能代替浏览器与线上验收。
 
