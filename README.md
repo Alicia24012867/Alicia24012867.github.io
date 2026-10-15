@@ -104,7 +104,7 @@ Blog 和 Notes 的正文及相关阅读下方提供 [giscus](https://giscus.app/
 - `src/config/comments.ts` 保存公开的仓库与分类 ID，不需要前端 token；首次接入需启用仓库 Discussions，并将 [giscus App](https://github.com/apps/giscus/installations/new) 安装到该仓库。
 - 留言簿固定使用标题为 `Guestbook` 的讨论，与文章评论共用 `useCommentWidget` 的加载、主题同步和回链逻辑。
 - 使用文章静态路径作为严格匹配的讨论标识，旧的 `?post=`、显式 `index.html`、搜索与排序参数共用同一个评论区；Blog 与 Notes 的同名文档互不混淆。重命名文章地址时需迁移对应讨论的标题与 giscus 严格匹配摘要，避免分出新讨论。
-- 接近评论区或留言簿 300 px 时才加载官方 React 组件，iframe 继续使用懒加载；首页顶部和列表页不加载评论客户端。主题切换通过 giscus 配置消息更新，保留输入中的评论。
+- 距评论区或留言簿约 1200 px（一屏半）时才加载官方 React 组件，通常在读者到达前就已显示完毕，iframe 继续使用懒加载；两处预留 giscus 尚无评论时的高度（375 px），加载时下方内容不会跳动。文章正文加载完成前，占位区至少一屏高，页脚不会先闪现再被推开；首页顶部和列表页不加载评论客户端。主题切换通过 giscus 配置消息更新，保留输入中的评论。
 - 评论标题沿用花体，配色、边框与圆角延续站点风格。`public/giscus/` 提供 iframe 内的日间与夜间主题；颜色与 `src/styles/global.css` 同步维护。主题资源固定从 `nymphilia.com` 加载，本地预览需先发布这些资源。
 - 模块加载失败时可重试，评论区始终提供 GitHub 讨论入口。`giscus.json` 限定正式域名、GitHub Pages 原域名与本地预览来源。
 

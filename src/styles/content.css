@@ -552,6 +552,10 @@
 .reading-page {
   padding-block: 35px 70px;
 }
+/* Holds the footer below the screen until the article replaces this placeholder. */
+.reading-loading {
+  min-height: 100vh;
+}
 .reading-header {
   padding-block: 43px 32px;
   margin-bottom: 35px;

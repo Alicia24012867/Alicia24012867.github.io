@@ -965,8 +965,9 @@
   color: var(--muted);
   font-size: var(--text-base);
 }
+/* giscus settles at about this height before any comments, so loading moves nothing below. */
 .comments-widget {
-  min-height: 180px;
+  min-height: 375px;
   margin-top: 24px;
 }
 .comments-status {

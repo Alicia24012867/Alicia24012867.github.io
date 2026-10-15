@@ -3,9 +3,9 @@ import type { GiscusProps } from '@giscus/react';
 import { commentTheme } from '../content/reader/comments';
 
 /**
- * The giscus widget and its dependencies are fetched only once `container` comes near the
- * viewport. The widget follows the site theme, and `backlink` tells the discussion where
- * it lives.
+ * The giscus widget and its dependencies are fetched once `container` is about a screen and
+ * a half away, so it has usually settled before the reader reaches it. The widget follows
+ * the site theme, and `backlink` tells the discussion where it lives.
  */
 export function useCommentWidget(container: RefObject<HTMLElement | null>, backlink: string) {
   const [Widget, setWidget] = useState<ComponentType<GiscusProps>>();
@@ -36,7 +36,7 @@ export function useCommentWidget(container: RefObject<HTMLElement | null>, backl
             (entries) => {
               if (entries.some((entry) => entry.isIntersecting)) load();
             },
-            { rootMargin: '300px 0px' },
+            { rootMargin: '1200px 0px' },
           );
     if (observer && container.current) observer.observe(container.current);
     else load();

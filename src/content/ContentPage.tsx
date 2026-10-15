@@ -101,7 +101,10 @@ function ArticlePage({
 
   if (page) return <page.Reader article={page.article} />;
   return (
-    <div className="journal-width reading-page" aria-busy={!failed}>
+    <div
+      className={`journal-width reading-page${failed ? '' : ' reading-loading'}`}
+      aria-busy={!failed}
+    >
       <ArticleHeader article={summary} metadata={false} collection={section} />
       {failed ? (
         <div role="alert">
