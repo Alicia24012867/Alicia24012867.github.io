@@ -88,7 +88,7 @@ content/blog/2026/note.md                    → /blog/2026/note/
 content/notes/source/ta_timestep_control.md  → /notes/source/ta_timestep_control/
 ```
 
-静态页复制入口外壳（同一份脚本、样式、订阅发现与主题设置），并逐篇写入 `canonical`、`og:title`、`og:description`、`og:type=article`、`og:url`、`og:image`、`twitter:card=summary_large_image` 以及 `article:published_time`、`article:modified_time`、`author`、`article:section`、`article:tag`；`<noscript>` 显示标题、摘要与原文链接。首页与两个列表页使用首页分享图，并写入各自的 `canonical` 与 `og:url`。旧的 `?post=` 地址仍可阅读；浏览器执行 JavaScript 后同步标题、`og:type`、`canonical`、分享图与对应 `alt`。分享给社交平台时应使用静态地址：不执行 JavaScript 的爬虫访问查询参数地址时仍会读到列表页的元信息。所有公开链接与图片绝对地址统一使用 `https://nymphilia.com/`，本地预览也保持该正式域名。
+静态页复制入口外壳（同一份脚本、样式、订阅发现与主题设置），并逐篇写入 `canonical`、`og:title`、`og:description`、`og:type=article`、`og:url`、`og:image`、`twitter:card=summary_large_image` 以及 `article:published_time`、`article:modified_time`、`author`、`article:section`、`article:tag`；`<noscript>` 显示标题、摘要与原文链接。静态页头部还列出该篇的阅读器、正文与公式样式，浏览器与入口脚本同时下载，慢速手机上正文约早 0.57 秒显示（见 [性能与验证](docs/performance.md)）。首页与两个列表页使用首页分享图，并写入各自的 `canonical` 与 `og:url`。旧的 `?post=` 地址仍可阅读；浏览器执行 JavaScript 后同步标题、`og:type`、`canonical`、分享图与对应 `alt`。分享给社交平台时应使用静态地址：不执行 JavaScript 的爬虫访问查询参数地址时仍会读到列表页的元信息。所有公开链接与图片绝对地址统一使用 `https://nymphilia.com/`，本地预览也保持该正式域名。
 
 分享图沿用蓝天主视觉：`public/images/summer-sky.webp` 顶部对齐裁切后叠加柔和的左向渐变与底部淡出，沿用首页蓝色配色、衬线斜体标题、细线与花体署名；摘要使用常规字重无衬线字体。文件位于 `public/images/share/<集合>/<地址>.<摘要>.jpg`，摘要由标题、摘要、作者、分区、域名、卡片版本和蓝天图片内容决定。卡片不绘制 Git 日期，避免提交文章后图片立即过期；文章页和元信息仍保留发布时间与编辑时间。
 

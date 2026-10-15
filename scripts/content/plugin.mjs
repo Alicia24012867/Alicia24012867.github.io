@@ -9,11 +9,15 @@ import { serveGenerated } from './serve.mjs';
 import { feedFormats } from '../../src/config/feeds.mjs';
 import { summaryShare, skyDigest } from '../share/spec.mjs';
 
-/** @param {{ directory?: string, moduleId?: string, basePath?: string, feed?: typeof import('../../src/config/feeds.mjs').blogFeed, share?: boolean }} options */
+/**
+ * `reader` is the module that draws a document page, so its static page can fetch it early.
+ * @param {{ directory?: string, moduleId?: string, basePath?: string, reader?: string, feed?: typeof import('../../src/config/feeds.mjs').blogFeed, share?: boolean }} options
+ */
 export function articlesPlugin({
   directory = 'content/blog',
   moduleId = 'virtual:articles',
   basePath = '/blog/',
+  reader,
   feed,
   share = false,
 } = {}) {
@@ -120,7 +124,7 @@ export function articlesPlugin({
 
   return {
     name: `local-${directory}`,
-    api: { basePath, readCatalog, readArticle },
+    api: { basePath, moduleId, reader, readCatalog, readArticle },
     configResolved(config) {
       root = config.root;
       base = config.base;

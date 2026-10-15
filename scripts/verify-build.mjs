@@ -4,6 +4,7 @@ import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { decodeHTML } from 'entities';
 import { blogFeed, feedFormats } from '../src/config/feeds.mjs';
+import { decodeSlug } from '../src/config/sharing.mjs';
 import { jpegSize } from './share/jpeg.mjs';
 
 const report = process.argv.includes('--report');
@@ -91,6 +92,12 @@ const assertCard = (url, label) => {
   // A file that is not a JPEG has no size and fails here as well.
   assert.deepEqual(jpegSize(fs.readFileSync(file)), { width: 1200, height: 630 }, url);
 };
+// Each document's own script, by its path; a static page fetches its own early, and no other.
+const documentScripts = new Map(
+  Object.entries(manifest)
+    .filter(([key]) => /^virtual:[^/]+\/entry\//.test(key))
+    .map(([key, chunk]) => ['/' + chunk.file, key]),
+);
 const sharePages = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)]
   .map((match) => new URL(decodeHTML(match[1])))
   .filter((url) => url.origin === new URL(blogFeed.siteUrl).origin)
@@ -115,6 +122,12 @@ for (const pathname of sharePages) {
   assert.match(html, /<meta name="twitter:card" content="summary_large_image"\s*\/?>/, pathname);
   assert.match(html, /<meta property="article:published_time" content="[^"]+"\s*\/?>/, pathname);
   assert.match(html, /<script type="module"/, pathname + ' does not boot the site');
+  const [, collection, encoded] = pathname.match(/^\/(blog|notes)\/(.+)\/$/);
+  const own = `virtual:${collection === 'blog' ? 'articles' : 'notes'}/entry/${encodeURIComponent(decodeSlug(encoded))}`;
+  const early = [...html.matchAll(/<link rel="modulepreload" crossorigin href="([^"]+)">/g)]
+    .map((match) => documentScripts.get(decodeHTML(match[1])))
+    .filter(Boolean);
+  assert.deepEqual(early, [own], pathname + ' must fetch its own document early, and no other');
   assertCard(html.match(/<meta property="og:image" content="([^"]+)"\s*\/?>/)?.[1], pathname);
 }
 for (const page of ['index.html', 'blog/index.html', 'notes/index.html']) {

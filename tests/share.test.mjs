@@ -14,7 +14,12 @@ import path from 'node:path';
 import { build, createServer, preview } from 'vite';
 import { buildArticleCatalog } from '../scripts/content/catalog.mjs';
 import { articlesPlugin } from '../scripts/content/plugin.mjs';
-import { createSharePage, sharePageHtml, sharePlugin } from '../scripts/content/share.mjs';
+import {
+  createSharePage,
+  pagePreloads,
+  sharePageHtml,
+  sharePlugin,
+} from '../scripts/content/share.mjs';
 import { notFoundPlugin } from '../scripts/not-found.mjs';
 import { jpegSize } from '../scripts/share/jpeg.mjs';
 import {
@@ -137,6 +142,77 @@ test('one compiled entry shell renders each document independently', () => {
   );
   assert.doesNotMatch(sharePageHtml(formatted, article, { ...options, card }), /Please enable/);
   assert.throws(() => createSharePage(shell.replace('<title>', '\0<title>'), options), /NUL/);
+});
+
+test('a document page fetches its reader, its own body and formula styles early', () => {
+  const chunk = (fileName, facadeModuleId, imports = [], css = []) => ({
+    type: 'chunk',
+    fileName,
+    facadeModuleId,
+    imports,
+    viteMetadata: { importedCss: new Set(css) },
+  });
+  const outputs = [
+    chunk('assets/blog.js', '/site/blog/index.html', ['assets/shared.js'], ['assets/blog.css']),
+    chunk('assets/shared.js', null),
+    chunk('assets/Reader.js', '/site/src/blog/ArticleReader.tsx', [
+      'assets/shared.js',
+      'assets/blog.js',
+      'assets/comments.js',
+    ]),
+    chunk('assets/comments.js', null, ['assets/shared.js'], ['assets/comments.css']),
+    chunk('assets/post.js', '\0virtual:articles/entry/post'),
+    chunk('assets/other.js', '\0virtual:articles/entry/other'),
+    chunk('assets/中文.js', '\0virtual:articles/entry/' + encodeURIComponent('nested/中文 note')),
+    {
+      type: 'asset',
+      fileName: 'assets/katex.css',
+      originalFileNames: ['node_modules/katex/dist/katex.min.css'],
+    },
+  ];
+  const preloads = pagePreloads(
+    Object.fromEntries(outputs.map((output) => [output.fileName, output])),
+    { root: '/site', base: '/' },
+  );
+  // The entry shell already loads its own script, shared chunks and styles.
+  const entry =
+    '<script type="module" crossorigin src="/assets/blog.js"></script>' +
+    '<link rel="modulepreload" crossorigin href="/assets/shared.js">' +
+    '<link rel="stylesheet" crossorigin href="/assets/blog.css">';
+  const blog = { moduleId: 'virtual:articles', reader: 'src/blog/ArticleReader.tsx' };
+  const links = (html) =>
+    [...html.matchAll(/\n {4}<link ([^>]*) crossorigin href="([^"]+)">/g)].map(
+      ([, attributes, href]) => attributes + ' ' + href,
+    );
+  assert.deepEqual(links(preloads(entry, blog, { slug: 'post' })), [
+    'rel="modulepreload" /assets/Reader.js',
+    'rel="modulepreload" /assets/comments.js',
+    'rel="modulepreload" /assets/post.js',
+    'rel="preload" as="style" /assets/comments.css',
+  ]);
+  assert.deepEqual(links(preloads(entry, blog, { slug: 'nested/中文 note', hasMath: true })), [
+    'rel="modulepreload" /assets/Reader.js',
+    'rel="modulepreload" /assets/comments.js',
+    'rel="modulepreload" /assets/中文.js',
+    'rel="preload" as="style" /assets/comments.css',
+    'rel="preload" as="style" /assets/katex.css',
+  ]);
+  // Without a reader to name, a page still fetches its own body early.
+  assert.deepEqual(links(preloads(entry, { moduleId: 'virtual:articles' }, { slug: 'other' })), [
+    'rel="modulepreload" /assets/other.js',
+  ]);
+  assert.equal(preloads(entry, blog, { slug: 'missing' }).includes('missing'), false);
+  // The links go at the end of the page head.
+  const page = shell.replace('<title>', entry + '<title>');
+  const render = createSharePage(page, {
+    siteUrl,
+    basePath: '/blog/',
+    preload: (document) => preloads(page, blog, document),
+  });
+  assert.match(
+    render({ ...article, slug: 'post' }, card),
+    /<link rel="preload" as="style" crossorigin href="\/assets\/comments.css">\n {2}<\/head>/,
+  );
 });
 
 test('share cards stay valid when Git dates change during a commit', () => {

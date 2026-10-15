@@ -74,7 +74,11 @@ const slots = [
       escapeHtml(page.canonical) +
       '">Open the article</a>.</noscript>',
   },
-  { label: '</head>', pattern: /<\/head>/, render: (page) => page.articleMeta + '\n  </head>' },
+  {
+    label: '</head>',
+    pattern: /<\/head>/,
+    render: (page) => page.articleMeta + page.preloads + '\n  </head>',
+  },
 ];
 
 /**
@@ -103,8 +107,9 @@ function compileShell(shell) {
 /**
  * Article-specific head, cloned into a real static page for every published
  * document. Compile one entry shell, then render each document of the collection.
+ * `preload(article)` adds the links that fetch the document's own files early.
  */
-export function createSharePage(shell, { siteUrl, basePath }) {
+export function createSharePage(shell, { siteUrl, basePath, preload = () => '' }) {
   const collection = collectionByBase.get(basePath);
   if (!collection) throw new Error('未知的分享目录：' + basePath);
   const site = new URL(siteUrl);
@@ -123,12 +128,55 @@ export function createSharePage(shell, { siteUrl, basePath }) {
         metaTag('property', 'article:section', collection.sections.byId(article.section).label),
         ...article.tags.map((tag) => metaTag('property', 'article:tag', tag)),
       ].join('\n'),
+      preloads: preload(article),
     };
     let html = text[0];
     renders.forEach((render, index) => {
       html += render(page) + text[index + 1];
     });
     return html;
+  };
+}
+
+// ContentPage imports these styles for documents with formulas.
+const formulaStyles = 'node_modules/katex/dist/katex.min.css';
+
+/**
+ * Once a document page's script runs, it fetches the reader, the document itself and, with
+ * formulas, their styles. Naming those files in the page lets the browser fetch them
+ * alongside the script instead of after it. Files the entry shell already names are left
+ * out, and so is every other document.
+ */
+export function pagePreloads(bundle, { root, base = '/' }) {
+  const chunks = new Map();
+  let formulas;
+  for (const output of Object.values(bundle)) {
+    if (output.type === 'chunk' && output.facadeModuleId) chunks.set(output.facadeModuleId, output);
+    if (output.type === 'asset' && output.originalFileNames?.includes(formulaStyles))
+      formulas = output.fileName;
+  }
+  return (shell, { moduleId, reader }, article) => {
+    const named = new Set([...shell.matchAll(/\s(?:src|href)="([^"]*)"/g)].map(([, url]) => url));
+    const scripts = new Set();
+    const styles = new Set();
+    const visit = (chunk) => {
+      if (!chunk || scripts.has(chunk.fileName)) return;
+      scripts.add(chunk.fileName);
+      for (const file of chunk.viteMetadata?.importedCss ?? []) styles.add(file);
+      for (const file of chunk.imports) visit(bundle[file]);
+    };
+    if (reader) visit(chunks.get(path.resolve(root, reader)));
+    visit(chunks.get(`\0${moduleId}/entry/${encodeURIComponent(article.slug)}`));
+    if (article.hasMath && formulas) styles.add(formulas);
+    const links = (files, attributes) =>
+      [...files]
+        .map((file) => base + file)
+        .filter((url) => !named.has(url))
+        .map((url) => '\n    <link ' + attributes + ' crossorigin href="' + escapeHtml(url) + '">');
+    return [
+      ...links(scripts, 'rel="modulepreload"'),
+      ...links(styles, 'rel="preload" as="style"'),
+    ].join('');
   };
 }
 
@@ -150,6 +198,8 @@ export function sharePlugin(collections, { siteUrl }) {
     ]),
   );
   let publicRoot = 'public';
+  let root;
+  let base;
   let sky;
   let siteCard;
   const readSky = () => (sky ??= skyDigest(publicRoot));
@@ -203,6 +253,8 @@ export function sharePlugin(collections, { siteUrl }) {
     enforce: 'post',
     configResolved(config) {
       publicRoot = path.resolve(config.root, 'public');
+      root = config.root;
+      base = config.base;
     },
     transformIndexHtml: {
       order: 'post',
@@ -220,7 +272,9 @@ export function sharePlugin(collections, { siteUrl }) {
       },
     },
     generateBundle(_options, bundle) {
-      for (const { basePath, readCatalog } of collections) {
+      const preloads = pagePreloads(bundle, { root, base });
+      for (const collection of collections) {
+        const { basePath, readCatalog } = collection;
         const shell = bundle[basePath.slice(1) + 'index.html']?.source;
         if (typeof shell !== 'string')
           throw new Error('分享页需要先构建 ' + basePath + 'index.html 入口');
@@ -228,7 +282,11 @@ export function sharePlugin(collections, { siteUrl }) {
         let render;
         for (const article of readCatalog().articles) {
           const card = requireCard(article, basePath, { publicRoot, sky: readSky() });
-          render ??= createSharePage(shell, { siteUrl, basePath });
+          render ??= createSharePage(shell, {
+            siteUrl,
+            basePath,
+            preload: (document) => preloads(shell, collection, document),
+          });
           this.emitFile({
             type: 'asset',
             fileName: pageFile(basePath, article.slug),

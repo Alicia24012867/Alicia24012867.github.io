@@ -31,7 +31,7 @@
 | `author`、`article:section`、`article:tag`                  | 作者、分区与标签                       |
 | `<link rel="canonical">`                                    | 静态地址                               |
 
-`<noscript>` 会替换为标题、摘要和原文链接。首页、Blog 列表和 Notes 列表由构建写入各自的 `canonical`、`og:url` 与首页分享图，因此每个页面都有分享预览。
+`<noscript>` 会替换为标题、摘要和原文链接。构建时，头部末尾还会列出该篇脚本运行后才会请求的文件：阅读器（`articlesPlugin` 的 `reader` 选项）及其依赖、该篇正文，以及含公式文档的 KaTeX 样式（`modulepreload` / `preload`）。浏览器因此与入口脚本同时下载它们；外壳已引用的文件和其他文档的正文不会列出，`verify-build` 会检查每页只提前请求自己的正文。开发服务器不加这些链接。首页、Blog 列表和 Notes 列表由构建写入各自的 `canonical`、`og:url` 与首页分享图，因此每个页面都有分享预览。
 
 ## 分享图
 

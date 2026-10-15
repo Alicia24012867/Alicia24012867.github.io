@@ -7,11 +7,12 @@ import { notFoundPlugin } from './scripts/not-found.mjs';
 import { sitemapPlugin } from './scripts/content/sitemap.mjs';
 import { sharePlugin } from './scripts/content/share.mjs';
 
-const blog = articlesPlugin({ feed: blogFeed, share: true });
+const blog = articlesPlugin({ feed: blogFeed, share: true, reader: 'src/blog/ArticleReader.tsx' });
 const notes = articlesPlugin({
   directory: 'content/notes',
   moduleId: 'virtual:notes',
   basePath: '/notes/',
+  reader: 'src/notes/NoteReader.tsx',
   share: true,
 });
 
