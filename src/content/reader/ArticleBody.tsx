@@ -6,6 +6,7 @@ import ArticleToc from './ArticleToc';
 import ContinueReading from './ContinueReading';
 import FootnotePreview from './FootnotePreview';
 import LinkPreview, { type LinkPreviewSource } from './LinkPreview';
+import ListenPlayer from './ListenPlayer';
 import HandwrittenSignature from '../../components/signature/HandwrittenSignature';
 import PhotoViewer from './PhotoViewer';
 import QuoteLinks from './QuoteLinks';
@@ -46,6 +47,7 @@ export default function ArticleBody({
       {previews && <LinkPreview bodyRef={bodyRef} slug={article.slug} source={previews} />}
       <PhotoViewer bodyRef={bodyRef} slug={article.slug} />
       <QuoteLinks bodyRef={bodyRef} article={article} />
+      <ListenPlayer bodyRef={bodyRef} article={article} />
       <ReadingProgress bodyRef={bodyRef} />
     </div>
   );

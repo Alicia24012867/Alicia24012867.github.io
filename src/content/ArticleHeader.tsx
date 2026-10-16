@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import ArticleMeta from './ArticleMeta';
 import ArticleTags from './ArticleTags';
 import { textLanguage } from './language.mjs';
@@ -11,12 +12,15 @@ export default function ArticleHeader({
   metadata = true,
   showDetails = false,
   collection = 'blog',
+  actions,
 }: {
   article: ArticleSummary;
   eyebrow?: string;
   metadata?: boolean;
   showDetails?: boolean;
   collection?: Collection;
+  /** Controls for the open document, placed at the end of its details. */
+  actions?: ReactNode;
 }) {
   return (
     <header className="reading-header">
@@ -34,7 +38,9 @@ export default function ArticleHeader({
             showDetails={showDetails}
             readingTime
             collection={collection}
-          />
+          >
+            {actions}
+          </ArticleMeta>
           <ArticleTags article={article} collection={collection} />
         </>
       )}

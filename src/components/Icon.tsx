@@ -20,7 +20,10 @@ export type IconName =
   | 'heart'
   | 'pin'
   | 'globe'
-  | 'link';
+  | 'link'
+  | 'headphones'
+  | 'play'
+  | 'pause';
 
 const paths: Record<IconName, React.ReactNode> = {
   cloud: <path d="M6 18a5 5 0 0 1-.8-9.94 7 7 0 0 1 13.12-.68A5.5 5.5 0 0 1 18.5 18Z" />,
@@ -93,6 +96,20 @@ const paths: Record<IconName, React.ReactNode> = {
     <>
       <path d="M10 14a4.2 4.2 0 0 0 6 0l3.3-3.3a4.2 4.2 0 0 0-6-6L12 6" />
       <path d="M14 10a4.2 4.2 0 0 0-6 0l-3.3 3.3a4.2 4.2 0 0 0 6 6L12 18" />
+    </>
+  ),
+  headphones: (
+    <>
+      <path d="M4 18.5V13a8 8 0 0 1 16 0v5.5" />
+      <rect x="4" y="14" width="4" height="6.5" rx="1.6" />
+      <rect x="16" y="14" width="4" height="6.5" rx="1.6" />
+    </>
+  ),
+  play: <path d="M7.5 5.2v13.6L19 12Z" />,
+  pause: (
+    <>
+      <rect x="7" y="5.5" width="3.2" height="13" rx="1" />
+      <rect x="13.8" y="5.5" width="3.2" height="13" rx="1" />
     </>
   ),
 };

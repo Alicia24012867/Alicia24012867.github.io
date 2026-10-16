@@ -1,6 +1,7 @@
 import { blogIndex } from './catalog';
 import ArticleBody from '../content/reader/ArticleBody';
 import type { LinkPreviewSource } from '../content/reader/LinkPreview';
+import ListenButton from '../content/reader/ListenButton';
 import ArticleComments from '../content/reader/ArticleComments';
 import ArticleHeader from '../content/ArticleHeader';
 import Icon from '../components/Icon';
@@ -40,6 +41,7 @@ export default function ArticleReader({ article }: { article: Article }) {
         eyebrow={`BLOG / ${(section.english || section.label).toUpperCase()}`}
         collection="blog"
         showDetails
+        actions={<ListenButton />}
       />
       <ArticleBody article={article} previews={previews} />
       {(older || newer) && (

@@ -1089,8 +1089,10 @@
 [data-theme='night'] .reading-progress span::after {
   box-shadow: 0 0 8px 2px #8ebff0b3;
 }
-/* Offered on coming back to a document left part-way; it floats and moves nothing. */
-.continue-reading {
+/* Offered on coming back to a document left part-way; it floats and moves nothing. The
+   player that reads a document aloud takes the same place and shape. */
+.continue-reading,
+.listen-player {
   position: fixed;
   bottom: max(20px, calc(env(safe-area-inset-bottom) + 12px));
   left: 50%;
@@ -1109,7 +1111,8 @@
   transform: translateX(-50%);
   animation: continue-reading-in 0.24s ease-out;
 }
-.continue-reading-jump {
+.continue-reading-jump,
+.listen-toggle {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -1124,15 +1127,19 @@
   white-space: nowrap;
   transition: background 0.2s;
 }
-.continue-reading-jump:hover {
+.continue-reading-jump:hover,
+.listen-toggle:hover {
   background: var(--light-blue);
 }
 .continue-reading-jump .icon,
-.continue-reading-close .icon {
+.continue-reading-close .icon,
+.listen-toggle .icon,
+.listen-close .icon {
   width: 16px;
   height: 16px;
 }
-.continue-reading-section {
+.continue-reading-section,
+.listen-section {
   overflow: hidden;
   min-width: 0;
   max-width: 24em;
@@ -1143,8 +1150,53 @@
   font-weight: 400;
   text-overflow: ellipsis;
 }
-.continue-reading-close {
+.continue-reading-close,
+.listen-close {
   color: var(--muted);
+}
+.listen-rate {
+  min-width: 4.2em;
+  min-height: 36px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.listen-rate:hover {
+  background: var(--light-blue);
+  color: var(--blue-strong);
+}
+/* The sentence being read aloud, in the tint of the other marks, which shows on quotes too. */
+::highlight(speech) {
+  background-color: #d4eaff;
+}
+[data-theme='night'] ::highlight(speech) {
+  background-color: #2b557f;
+}
+/* At the end of a document's details: has it read aloud, then pauses and resumes it. */
+.article-listen button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-block: -6px;
+  padding: 6px 0;
+  background: none;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.article-listen button:hover,
+.article-listen .is-active {
+  color: var(--blue-strong);
+}
+.article-listen .icon {
+  align-self: center;
+  width: 15px;
+  height: 15px;
 }
 @keyframes continue-reading-in {
   from {
@@ -1158,7 +1210,9 @@
   .reader-popover,
   .quote-link,
   .article-body .heading-link,
-  .continue-reading {
+  .continue-reading,
+  .listen-player,
+  .article-listen {
     display: none;
   }
 }

@@ -1,8 +1,16 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type RefObject,
+} from 'react';
 import Icon from '../../components/Icon';
 import type { Article } from '../types';
 import { textLanguage } from '../language.mjs';
 import { holdPlace } from './hold';
+import { listening } from './listening';
 import { readingProgress } from './progress';
 import {
   finishedAt,
@@ -88,6 +96,14 @@ export default function ContinueReading({
     setOffer(null);
   }, []);
   useEffect(() => () => returning.current?.(), []);
+  // Reading aloud takes the offer's place at the foot of the screen.
+  const speaking = useSyncExternalStore(
+    listening.subscribe,
+    () => listening.get().status !== 'off',
+  );
+  useEffect(() => {
+    if (speaking) close();
+  }, [speaking, close]);
 
   useEffect(() => {
     // A link to a section or footnote already says where to read.

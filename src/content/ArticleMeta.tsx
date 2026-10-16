@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { blogSections } from '../config/sections.mjs';
 import { collectionBase, type Collection } from './urls';
 import type { ArticleSummary } from './types';
@@ -8,6 +9,7 @@ export default function ArticleMeta({
   readingTime = showDetails,
   collection = 'blog',
   compact = false,
+  children,
 }: {
   article: ArticleSummary;
   showDetails?: boolean;
@@ -15,6 +17,8 @@ export default function ArticleMeta({
   collection?: Collection;
   /** Listings: dates and reading time only; the author is the same on every entry. */
   compact?: boolean;
+  /** Controls at the end of the row, such as the reader's Listen button. */
+  children?: ReactNode;
 }) {
   const section = showDetails ? blogSections.byId(article.section) : undefined;
   return (
@@ -55,6 +59,7 @@ export default function ArticleMeta({
           </time>
         </span>
       )}
+      {children}
     </div>
   );
 }

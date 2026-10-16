@@ -112,7 +112,8 @@ const skipped = [
   'template',
   '[hidden]',
 ].join(', ');
-const blocks =
+/** Elements whose text stands apart from the text around them. */
+export const blocks =
   'address, article, aside, blockquote, caption, dd, details, div, dl, dt, figcaption, figure, footer, h1, h2, h3, h4, h5, h6, header, li, ol, p, pre, section, summary, table, tbody, td, tfoot, th, thead, tr, ul';
 
 export function articleText(root: HTMLElement): FlatText<Text> {
@@ -148,13 +149,18 @@ export const coveredBy = (range: Range) => (node: Text) => {
   return start < end ? ([start, end] as const) : undefined;
 };
 
-/** A range over a stretch of the article's text. */
-export function rangeOf(flat: FlatText<Text>, { from, to }: Stretch) {
+/**
+ * A range over a stretch of the article's text. An element in place of a text node, such as
+ * a formula read aloud, is taken in whole.
+ */
+export function rangeOf(flat: FlatText<Node>, { from, to }: Stretch) {
   const start = pointOf(flat, from);
   const end = pointOf(flat, to - 1);
   if (!start || !end) return undefined;
   const range = document.createRange();
-  range.setStart(start.node, start.offset);
-  range.setEnd(end.node, end.offset + 1);
+  if (start.node instanceof Text) range.setStart(start.node, start.offset);
+  else range.setStartBefore(start.node);
+  if (end.node instanceof Text) range.setEnd(end.node, end.offset + 1);
+  else range.setEndAfter(end.node);
   return range;
 }

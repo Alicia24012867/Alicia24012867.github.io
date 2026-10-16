@@ -355,3 +355,16 @@ node --expose-gc --experimental-strip-types scripts/benchmark-search.mjs --compa
 ```
 
 `--lowercase-text` 让基线使用当时构建写出的小写正文；不加时两版都使用原文大小写。
+
+## 第十轮：朗读
+
+基线提交为 `786d697`。朗读（Listen）的代码随阅读器一起提前下载，首页、列表页与 404 只多出三个图标和元信息行末尾的插槽。
+
+- 文章页提前下载的 JavaScript gzip 增加约 4.1 KB（thoughts_on_ai 96,873 → 101,000 字节，ta_timestep_control 笔记 98,301 → 102,423 字节），样式增加 170 字节。
+- 图标放在全站共用的图标组件中，各入口初始 JavaScript gzip 增加 105–118 字节（首页 74,370 → 74,476，Blog 71,693 → 71,811，Notes 71,673 → 71,790，404 66,046 → 66,151），CSS 不变。
+- 点 Listen 之前不读取正文；点下时才把正文切成句子（thoughts_on_ai 约 1,900 词，切成 179 句），朗读中每句开始时只测量这一句和上一句的位置。
+- 两个阅读器共用的文件以它们最后共同引入的模块命名，因此在评论区之前引入 `ListenButton`，文件名仍为 `ArticleComments-*`；`verify-build` 的延迟加载名单也加入了朗读模块，名称变化时仍能发现首页误加载阅读器。
+
+### 验证
+
+`tests/speech.test.mjs` 检查语音选择、分句与公式读法。在 macOS 的 Chrome 中用真实语音（Samantha、Tingting）朗读了英文与中文文章，并用替身语音快速走完整篇，确认跟随滚动、滚开后不再跟随、暂停后从屏幕处继续、读完收起、出错提示与无语音时隐藏按钮。没有在 Safari、Firefox、Windows 或手机系统的语音上实测。
