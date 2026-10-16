@@ -766,6 +766,61 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
+/* Offered beside a selected passage: a link to it, to copy or to share. */
+.quote-link {
+  position: absolute;
+  z-index: 15;
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow:
+    var(--shadow-card),
+    0 2px 8px #2047750f;
+  user-select: none;
+  animation: reader-popover-in 0.16s ease-out;
+}
+.quote-link.is-above {
+  animation-name: reader-popover-in-above;
+}
+.quote-link button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 13px 0 10px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--blue-strong);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.quote-link button:hover {
+  background: var(--light-blue);
+}
+.quote-link .icon {
+  width: 15px;
+  height: 15px;
+}
+@media (hover: none) {
+  .quote-link button {
+    min-height: 38px;
+    padding-inline: 13px 16px;
+  }
+}
+/* A passage opened from a quote link, marked until the next click or tap. */
+::highlight(quote) {
+  background-color: #d4eaff;
+  color: #203b58;
+}
+[data-theme='night'] ::highlight(quote) {
+  background-color: #2b557f;
+  color: #f2f8ff;
+}
 @keyframes reader-popover-in {
   from {
     opacity: 0;
@@ -780,6 +835,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .reader-popover,
+  .quote-link,
   .article-body .heading-link::after {
     animation: none;
   }
@@ -1093,6 +1149,7 @@
   .article-comments,
   .reading-progress,
   .reader-popover,
+  .quote-link,
   .article-body .heading-link,
   .continue-reading {
     display: none;

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import Icon from '../../components/Icon';
 import type { Article } from '../types';
 import { textLanguage } from '../language.mjs';
+import { holdPlace } from './hold';
 import { readingProgress } from './progress';
 import {
   finishedAt,
@@ -49,16 +50,9 @@ function sectionOf(root: HTMLElement, headings: Article['headings']) {
   return sectionAt(tops, threshold);
 }
 
-const interruptions = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
-/** How long the spot is held after the last movement, for diagrams that draw late. */
-const holdFor = 6000;
-
-/**
- * Scrolls back to a saved place and holds it there while content above it settles, such as
- * a diagram that draws as the page passes it, until the reader moves on or all is still.
- */
+/** Scrolls back to a saved place and holds it while content above it settles. */
 function returnTo(root: HTMLElement, bookmark: Bookmark) {
-  const spot = () => {
+  return holdPlace(root, () => {
     const view = measure(root);
     const distance = scrollToPlace(
       bookmark,
@@ -68,43 +62,7 @@ function returnTo(root: HTMLElement, bookmark: Bookmark) {
       view.viewBottom,
     );
     return Math.max(0, window.scrollY + distance);
-  };
-  const reachable = (top: number) =>
-    Math.min(top, document.documentElement.scrollHeight - window.innerHeight);
-  let target = spot();
-  let arrived = false;
-  let quiet = 0;
-  const wait = () => {
-    window.clearTimeout(quiet);
-    quiet = window.setTimeout(stop, holdFor);
-  };
-  const check = () => {
-    const next = spot();
-    if (Math.abs(next - target) > 1) {
-      // The text moved: aim the scroll anew on the way, or keep the line still once there.
-      target = next;
-      window.scrollTo({ top: target, behavior: arrived ? 'instant' : undefined });
-    } else if (Math.abs(window.scrollY - reachable(target)) <= 1) {
-      arrived = true;
-    } else if (arrived) {
-      // Leaving the spot after reaching it means the reader is scrolling on their own.
-      return stop();
-    }
-    wait();
-  };
-  const resize = new ResizeObserver(check);
-  const stop = () => {
-    window.clearTimeout(quiet);
-    resize.disconnect();
-    window.removeEventListener('scroll', check);
-    interruptions.forEach((type) => window.removeEventListener(type, stop));
-  };
-  window.scrollTo({ top: target });
-  resize.observe(root);
-  window.addEventListener('scroll', check, { passive: true });
-  interruptions.forEach((type) => window.addEventListener(type, stop, { passive: true }));
-  wait();
-  return stop;
+  });
 }
 
 /**

@@ -8,6 +8,7 @@ import FootnotePreview from './FootnotePreview';
 import LinkPreview, { type LinkPreviewSource } from './LinkPreview';
 import HandwrittenSignature from '../../components/signature/HandwrittenSignature';
 import PhotoViewer from './PhotoViewer';
+import QuoteLinks from './QuoteLinks';
 import ReadingProgress from './ReadingProgress';
 import { useArticleReader } from './useArticleReader';
 
@@ -44,6 +45,7 @@ export default function ArticleBody({
       <FootnotePreview bodyRef={bodyRef} slug={article.slug} />
       {previews && <LinkPreview bodyRef={bodyRef} slug={article.slug} source={previews} />}
       <PhotoViewer bodyRef={bodyRef} slug={article.slug} />
+      <QuoteLinks bodyRef={bodyRef} article={article} />
       <ReadingProgress bodyRef={bodyRef} />
     </div>
   );

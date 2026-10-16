@@ -19,7 +19,8 @@ export type IconName =
   | 'pen'
   | 'heart'
   | 'pin'
-  | 'globe';
+  | 'globe'
+  | 'link';
 
 const paths: Record<IconName, React.ReactNode> = {
   cloud: <path d="M6 18a5 5 0 0 1-.8-9.94 7 7 0 0 1 13.12-.68A5.5 5.5 0 0 1 18.5 18Z" />,
@@ -86,6 +87,12 @@ const paths: Record<IconName, React.ReactNode> = {
     <>
       <circle cx="12" cy="12" r="9" />
       <path d="M3 12h18M12 3c2.4 2.5 3.6 5.5 3.6 9s-1.2 6.5-3.6 9c-2.4-2.5-3.6-5.5-3.6-9S9.6 5.5 12 3Z" />
+    </>
+  ),
+  link: (
+    <>
+      <path d="M10 14a4.2 4.2 0 0 0 6 0l3.3-3.3a4.2 4.2 0 0 0-6-6L12 6" />
+      <path d="M14 10a4.2 4.2 0 0 0-6 0l-3.3 3.3a4.2 4.2 0 0 0 6 6L12 18" />
     </>
   ),
 };

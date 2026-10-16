@@ -1,5 +1,6 @@
 import { useEffect, type RefObject } from 'react';
 import type { Article } from '../types';
+import { isQuoteHash } from './quote';
 import { useHeadingLinks } from './useHeadingLinks';
 
 type BodyRef = RefObject<HTMLElement | null>;
@@ -129,7 +130,8 @@ function useMermaid(bodyRef: BodyRef, slug: string) {
 
 export function useArticleReader(bodyRef: BodyRef, article: Article) {
   useEffect(() => {
-    if (!window.location.hash) return;
+    // A quoted passage is found by its words instead (see QuoteLinks).
+    if (!window.location.hash || isQuoteHash(window.location.hash)) return;
     let anchor: string;
     try {
       anchor = decodeURIComponent(window.location.hash.slice(1));
