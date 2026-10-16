@@ -1,6 +1,7 @@
 import { useEffect, type RefObject } from 'react';
 import type { Article } from '../types';
 import { isQuoteHash } from './quote';
+import { useFormulaCopy } from './useFormulaCopy';
 import { useHeadingLinks } from './useHeadingLinks';
 import { useSearchMarks } from './useSearchMarks';
 
@@ -143,6 +144,7 @@ export function useArticleReader(bodyRef: BodyRef, article: Article) {
     return () => cancelAnimationFrame(frame);
   }, [article.slug]);
   useCodeCopy(bodyRef, article.slug);
+  useFormulaCopy(bodyRef, article.html);
   useHeadingLinks(bodyRef, article);
   useMermaid(bodyRef, article.slug);
   useSearchMarks(bodyRef, article.html);
