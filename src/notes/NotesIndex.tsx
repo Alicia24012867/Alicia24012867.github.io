@@ -4,6 +4,8 @@ import { useNoteSearch } from './useNoteSearch';
 import Icon from '../components/Icon';
 import ArticleTags from '../content/ArticleTags';
 import ArticleMeta from '../content/ArticleMeta';
+import Marked from '../content/Marked';
+import { excerptOf } from '../content/search';
 import { articleUrl } from '../content/urls';
 import { textLanguage } from '../content/language.mjs';
 import { useListingQuery } from '../hooks/useListingQuery';
@@ -11,24 +13,45 @@ import { noteIndex, noteTopics } from './catalog';
 
 const noteCount = (count: number) => `${count} ${count === 1 ? 'note' : 'notes'}`;
 
+/** Where the note's text matches the search, around the first match. */
+function NoteExcerpt({ body, query }: { body: string; query: string }) {
+  const excerpt = excerptOf(body, query);
+  if (!excerpt) return null;
+  const { text, match } = excerpt;
+  return (
+    <p className="search-excerpt" lang={textLanguage(text)}>
+      {excerpt.before && '…'}
+      {text.slice(0, match[0])}
+      <mark className="search-mark">{text.slice(match[0], match[1])}</mark>
+      {text.slice(match[1])}
+      {excerpt.after && '…'}
+    </p>
+  );
+}
+
 function NoteEntry({
   note,
   onTag,
   query,
+  body,
 }: {
   note: ArticleSummary;
   onTag: (tag: string) => void;
   query: string;
+  body: string;
 }) {
   return (
     <article className="note-entry">
       <div>
         <h3 className="article-title">
           <a href={articleUrl('notes', note.slug, query)} lang={textLanguage(note.title)}>
-            {note.title}
+            <Marked text={note.title} query={query} />
           </a>
         </h3>
-        <p lang={textLanguage(note.description)}>{note.description}</p>
+        <p lang={textLanguage(note.description)}>
+          <Marked text={note.description} query={query} />
+        </p>
+        <NoteExcerpt body={body} query={query} />
         <ArticleMeta article={note} compact />
         <ArticleTags article={note} onTag={onTag} />
       </div>
@@ -47,13 +70,15 @@ const NoteEntries = memo(function NoteEntries({
   entries,
   onTag,
   query,
+  bodyOf,
 }: {
   entries: ArticleSummary[];
   onTag: (tag: string) => void;
   query: string;
+  bodyOf: (slug: string) => string;
 }) {
   return entries.map((note) => (
-    <NoteEntry note={note} onTag={onTag} query={query} key={note.slug} />
+    <NoteEntry note={note} onTag={onTag} query={query} body={bodyOf(note.slug)} key={note.slug} />
   ));
 });
 
@@ -172,7 +197,12 @@ export default function NotesIndex() {
                   </h3>
                   {topic.description && <p>{topic.description}</p>}
                 </div>
-                <NoteEntries entries={entries} onTag={setQuery} query={deferredQuery} />
+                <NoteEntries
+                  entries={entries}
+                  onTag={setQuery}
+                  query={deferredQuery}
+                  bodyOf={index.bodyOf}
+                />
               </section>
             ))}
         </div>

@@ -20,6 +20,13 @@ const text = Object.fromEntries(
     'A repeatable note about numerical methods and memory access. '.repeat(20),
   ]),
 );
+// Each version searches the full text its build writes: the original case now. With
+// --lowercase-text, the baseline gets the lowercased text that builds wrote before.
+const lowercased = Object.fromEntries(
+  Object.entries(text).map(([slug, value]) => [slug, value.toLowerCase()]),
+);
+const textFor = (variant) =>
+  variant.name !== 'current' && process.argv.includes('--lowercase-text') ? lowercased : text;
 const variants = [{ name: 'current', create: createContentIndex, filter: createContentFilter }];
 const compareArg = process.argv.indexOf('--compare-ref');
 if (compareArg !== -1) {
@@ -76,7 +83,7 @@ const expected = queries.map((query) =>
   ),
 );
 for (const variant of variants) {
-  const index = build(variant, text);
+  const index = build(variant, textFor(variant));
   queries.forEach((query, i) => assert.deepEqual(index.filter(query).get('learn'), expected[i]));
   variant.results = {
     listingMs: [],
@@ -93,12 +100,12 @@ function measure(variant, record) {
   const listingMs = performance.now() - start;
   start = performance.now();
   const upgraded = variant.filter
-    ? { ...listing, filter: variant.filter(listing.groups, labels, text) }
-    : build(variant, text);
+    ? { ...listing, filter: variant.filter(listing.groups, labels, textFor(variant)) }
+    : build(variant, textFor(variant));
   const fullTextUpgradeMs = performance.now() - start;
   assert.equal(upgraded.bySlug.size, count);
   start = performance.now();
-  const index = build(variant, text);
+  const index = build(variant, textFor(variant));
   const fullTextIndexMs = performance.now() - start;
   start = performance.now();
   index.filter('cuda');
@@ -124,17 +131,14 @@ for (let i = 0; i < samples; i++)
   for (const variant of i % 2 ? [...variants].reverse() : variants) measure(variant, true);
 const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 // With --expose-gc, also report the heap a full-text filter keeps after it has
-// normalized every document. The build lowercases full text, so measure that input.
-const normalized = Object.fromEntries(
-  Object.entries(text).map(([slug, value]) => [slug, value.toLowerCase()]),
-);
+// normalized every document.
 function retainedBytes(variant) {
   const listing = build(variant);
   globalThis.gc();
   const before = process.memoryUsage().heapUsed;
   const index = variant.filter
-    ? { filter: variant.filter(listing.groups, labels, normalized) }
-    : build(variant, normalized);
+    ? { filter: variant.filter(listing.groups, labels, textFor(variant)) }
+    : build(variant, textFor(variant));
   index.filter('absent');
   globalThis.gc();
   const bytes = process.memoryUsage().heapUsed - before;

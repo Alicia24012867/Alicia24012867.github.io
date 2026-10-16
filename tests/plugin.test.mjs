@@ -33,13 +33,13 @@ test('an absent content folder loads empty and refreshes when files are added or
     server.watcher.emit('add', file);
     assert.match((await server.transformRequest('virtual:notes')).code, /Authored note/);
     assert.match((await server.transformRequest('virtual:notes/entry/note')).code, /Unique body/);
-    assert.match((await server.transformRequest('virtual:notes/search')).code, /unique body/);
+    assert.match((await server.transformRequest('virtual:notes/search')).code, /Unique body/);
     rmSync(directory, { recursive: true });
     server.watcher.emit('unlink', file);
     assert.match((await server.transformRequest('virtual:notes')).code, /const articles = \[\]/);
     assert.doesNotMatch(
       (await server.transformRequest('virtual:notes/search')).code,
-      /unique body/,
+      /Unique body/,
     );
     await assert.rejects(server.transformRequest('virtual:notes/entry/note'), /Unknown article/);
   } finally {
@@ -140,7 +140,7 @@ test('watched edits refresh section metadata, lazy bodies and search text', asyn
     server.watcher.emit('change', file);
     assert.match((await server.transformRequest('virtual:articles')).code, /"section":"读书笔记"/);
     assert.match((await server.transformRequest('virtual:articles/entry/note')).code, /After edit/);
-    assert.match((await server.transformRequest('virtual:articles/search')).code, /after edit/);
+    assert.match((await server.transformRequest('virtual:articles/search')).code, /After edit/);
     await assert.rejects(
       server.transformRequest('virtual:articles/entry/missing'),
       /Unknown article/,

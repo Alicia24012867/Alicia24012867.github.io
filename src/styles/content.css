@@ -542,6 +542,25 @@
   font-size: var(--text-base);
   line-height: 1.8;
 }
+.note-entry .search-excerpt {
+  display: -webkit-box;
+  margin-top: 8px;
+  overflow: hidden;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+/* Search matches in listing titles, summaries and excerpts. */
+.search-mark {
+  border-radius: 2px;
+  background: #d4eaff;
+  color: inherit;
+}
+[data-theme='night'] .search-mark {
+  background: #2b557f;
+  color: #f2f8ff;
+}
 .note-entry .article-tags {
   margin-top: 14px;
 }

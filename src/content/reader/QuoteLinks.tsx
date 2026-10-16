@@ -40,7 +40,10 @@ const sameRange = (a: Range, b: Range) =>
 /** Marks the quoted passage; where highlights are not supported, it is selected instead. */
 function mark(range: Range) {
   if (typeof CSS !== 'undefined' && 'highlights' in CSS) {
-    CSS.highlights.set('quote', new Highlight(range));
+    const highlight = new Highlight(range);
+    // Over the lighter marks of a search, the quoted passage shows through.
+    highlight.priority = 1;
+    CSS.highlights.set('quote', highlight);
     return () => CSS.highlights.delete('quote');
   }
   const selection = document.getSelection();

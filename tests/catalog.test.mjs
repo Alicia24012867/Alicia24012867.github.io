@@ -300,14 +300,16 @@ test('backlinks are deduplicated, stay within their collection, and ignore self-
 test('search text includes readable prose, code and formulas without generated controls or markup', (t) => {
   const root = fixture(t, {
     'note.md':
-      '# Title\n\nOnlyBodyToken &amp; 中文\n\n```cpp\ncudaDeviceSynchronize();\n```\n\n$E=mc^2$\n\nA footnote[^n].\n\n[^n]: FootnoteToken.',
+      '# Title\n\nOnlyBodyToken &amp; 中文\n\n```cpp\ncudaDeviceSynchronize();\n```\n\nInline $E=mc^2$ and\n\n$$\na < b\n$$\n\nA footnote[^n].\n\n[^n]: FootnoteToken.',
   });
   const article = buildArticleCatalog(root).articles[0];
-  assert.match(article.searchText, /onlybodytoken & 中文/);
-  assert.match(article.searchText, /cudadevicesynchronize/);
-  assert.match(article.searchText, /footnotetoken/);
-  assert.match(article.searchText, /e/);
-  assert.doesNotMatch(article.searchText, /<[^>]+>|copy code|hljs|__ALICIA/i);
+  // Case is kept for excerpts; searches ignore it.
+  assert.match(article.searchText, /OnlyBodyToken & 中文/);
+  assert.match(article.searchText, /cudaDeviceSynchronize/);
+  assert.match(article.searchText, /FootnoteToken/);
+  // Formulas read as the TeX they were written in, not KaTeX's three renderings.
+  assert.match(article.searchText, /Inline \$E=mc\^2\$ and \$\$a < b\$\$ A footnote/);
+  assert.doesNotMatch(article.searchText, /mc2|<[^>]+>|copy code|hljs|__ALICIA/i);
 });
 
 test('generated catalogs replace every attachment marker and escape URLs for HTML attributes', async () => {

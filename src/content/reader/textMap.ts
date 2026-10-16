@@ -10,6 +10,8 @@ export interface Piece<T> {
   node: T;
   /** Where each of the node's characters went in the string; -1 for collapsed whitespace. */
   at: Int32Array;
+  /** Where its first kept character went, or would have. */
+  start: number;
 }
 
 export interface FlatText<T> {
@@ -33,6 +35,7 @@ export function flatten<T>(parts: Iterable<Part<T>>): FlatText<T> {
   const pieces: Piece<T>[] = [];
   for (const part of parts) {
     if (part.gap && text && !text.endsWith(' ')) text += ' ';
+    const start = text.length;
     const at = new Int32Array(part.text.length);
     for (let index = 0; index < part.text.length; index++) {
       const char = part.text[index];
@@ -44,7 +47,7 @@ export function flatten<T>(parts: Iterable<Part<T>>): FlatText<T> {
         text += ' ';
       } else at[index] = -1;
     }
-    pieces.push({ node: part.node, at });
+    pieces.push({ node: part.node, at, start });
   }
   return { text, pieces };
 }
@@ -80,11 +83,17 @@ export function stretchOf<T>(
 
 /** The node and offset of the character at `index` of the string. */
 export function pointOf<T>(flat: FlatText<T>, index: number) {
-  for (const piece of flat.pieces) {
-    const offset = piece.at.indexOf(index);
-    if (offset >= 0) return { node: piece.node, offset };
+  // Pieces start in order: the character belongs to the last one starting at or before it.
+  let low = 0;
+  let high = flat.pieces.length - 1;
+  while (low < high) {
+    const middle = (low + high + 1) >> 1;
+    if (flat.pieces[middle].start <= index) low = middle;
+    else high = middle - 1;
   }
-  return undefined;
+  const piece = flat.pieces[low];
+  const offset = piece ? piece.at.indexOf(index) : -1;
+  return offset >= 0 ? { node: piece.node, offset } : undefined;
 }
 
 /** Text that is not prose: formulas, diagrams, interactive figures, controls, note marks. */

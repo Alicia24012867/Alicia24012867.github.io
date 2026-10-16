@@ -20,6 +20,10 @@ test('the flattened text keeps one space per whitespace run and sets blocks apar
   assert.deepEqual(at(flat, 'b'), [6, 7, 8, 9, 10]);
   // The gap before a new block is a space no node owns.
   assert.deepEqual(at(flat, 'c'), [12, 13, 14, 15]);
+  assert.deepEqual(
+    flat.pieces.map((piece) => piece.start),
+    [0, 6, 12, 16, 21],
+  );
   assert.equal(flatten([part('x', 'one', true), part('y', ' two', true)]).text, 'one two');
 });
 
@@ -39,10 +43,18 @@ test('a selection maps to the stretch it covers, without spaces at its ends', ()
     stretchOf(flat, (node) => (node === 'a' ? [6, 8] : undefined)),
     undefined,
   );
+  assert.deepEqual(pointOf(flat, 0), { node: 'a', offset: 0 });
+  assert.deepEqual(pointOf(flat, 5), { node: 'a', offset: 5 });
   assert.deepEqual(pointOf(flat, 6), { node: 'b', offset: 0 });
   assert.deepEqual(pointOf(flat, 13), { node: 'c', offset: 1 });
   // The space between blocks belongs to no node.
   assert.equal(pointOf(flat, 11), undefined);
+  assert.equal(pointOf(flat, 16), undefined);
+  // Nodes left with only collapsed whitespace own nothing either.
+  const sparse = flatten([part('x', 'one ', true), part('y', '  '), part('z', 'two')]);
+  assert.equal(sparse.text, 'one two');
+  assert.deepEqual(pointOf(sparse, 4), { node: 'z', offset: 0 });
+  assert.deepEqual(pointOf(sparse, 3), { node: 'x', offset: 3 });
 });
 
 const text =

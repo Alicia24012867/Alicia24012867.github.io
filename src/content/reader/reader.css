@@ -821,6 +821,13 @@
   background-color: #2b557f;
   color: #f2f8ff;
 }
+/* Where the query of the search that led here comes up. */
+::highlight(search) {
+  background-color: #d4eaff;
+}
+[data-theme='night'] ::highlight(search) {
+  background-color: #2b557f;
+}
 @keyframes reader-popover-in {
   from {
     opacity: 0;

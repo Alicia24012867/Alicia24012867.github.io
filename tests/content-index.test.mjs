@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createContentFilter, createContentIndex } from '../src/content/search.ts';
+import {
+  bodyLookup,
+  createContentFilter,
+  createContentIndex,
+  excerptOf,
+  matchesIn,
+} from '../src/content/search.ts';
 
 const articles = [
   {
@@ -212,4 +218,78 @@ test('independent filters share immutable groups and normalize only when first s
   assert.equal(filter(''), groups);
   assert.equal(reads, 1);
   assert.equal(createContentFilter(new Map(), labels)('anything').size, 0);
+});
+
+test('full text keeps its case and is matched in place, symbols and all', () => {
+  const entries = [
+    { slug: 'step', section: 'learn', title: 'Timestep', description: '', tags: [] },
+    { slug: 'math', section: 'learn', title: 'Taylor', description: '', tags: [] },
+  ];
+  const body = {
+    step: 'Call CKTtrunc(ckt, &newDelta) after DCtran. 步长控制',
+    math: 'The error is O($h^3$) / h = O($h^2$) and (k+1)! grows. a.b',
+  };
+  const filter = createContentFilter(new Map([['learn', entries]]), labels, body);
+  const found = (query) =>
+    filter(query)
+      .get('learn')
+      .map((entry) => entry.slug);
+  assert.deepEqual(found('ckttrunc(ckt'), ['step']);
+  assert.deepEqual(found('DCTRAN'), ['step']);
+  assert.deepEqual(found('步长'), ['step']);
+  // Pattern characters in a query are only themselves.
+  assert.deepEqual(found('(k+1)!'), ['math']);
+  assert.deepEqual(found('$h^3$'), ['math']);
+  assert.deepEqual(found('a.b'), ['math']);
+  assert.deepEqual(found('a*b'), []);
+  assert.deepEqual(found('[k]'), []);
+  // A query can still run on from the section name into the text.
+  assert.deepEqual(found('learning call ckt'), ['step']);
+  assert.equal(body.step, 'Call CKTtrunc(ckt, &newDelta) after DCtran. 步长控制');
+});
+
+test('titles mark every match of the query, whatever its case', () => {
+  assert.deepEqual(matchesIn('CUDA memory and cuda streams', ' Cuda '), [
+    [0, 4],
+    [16, 20],
+  ]);
+  assert.deepEqual(matchesIn('写在20岁前', '20岁'), [[2, 5]]);
+  assert.deepEqual(matchesIn('O(h^2) error', 'h^2)'), [[2, 6]]);
+  assert.deepEqual(matchesIn('anything', '  '), []);
+  assert.deepEqual(matchesIn('aaaa', 'aa'), [
+    [0, 2],
+    [2, 4],
+  ]);
+});
+
+test('an excerpt shows the first match with whole words around it', () => {
+  const body =
+    'Numerical integration needs a step size. The local truncation error decides whether the step is accepted, and reltol scales the tolerance for every node in the circuit before the next step is tried. Rejected steps shrink by a factor of eight, and accepted ones may grow while the error stays well below the tolerance.';
+  const excerpt = excerptOf(body, 'RELTOL');
+  assert.equal(excerpt.text.slice(...excerpt.match), 'reltol');
+  assert.ok(excerpt.before && excerpt.after);
+  assert.ok(!excerpt.text.startsWith(' ') && !excerpt.text.endsWith(' '));
+  // The window begins and ends between words.
+  assert.equal(body[body.indexOf(excerpt.text) - 1], ' ');
+  assert.equal(body[body.indexOf(excerpt.text) + excerpt.text.length], ' ');
+  assert.ok(excerpt.match[0] <= 24);
+  const start = excerptOf(body, 'numerical');
+  assert.deepEqual(start.match, [0, 9]);
+  assert.equal(start.before, false);
+  const chinese = excerptOf('一'.repeat(40) + '步长控制' + '二'.repeat(200), '步长');
+  assert.equal(chinese.text.length, 24 + 2 + 140);
+  assert.equal(chinese.text.slice(...chinese.match), '步长');
+  assert.equal(excerptOf(body, 'absent'), undefined);
+  assert.equal(excerptOf(body, ' '), undefined);
+  // An emoji at either edge is never cut in half.
+  const emoji = excerptOf('😀'.repeat(20) + 'x' + '😀'.repeat(80), 'x', { before: 5, after: 5 });
+  assert.equal(emoji.text, '😀😀x😀😀');
+});
+
+test('only a document of its own name has full text', () => {
+  const bodyOf = bodyLookup({ constructor: 'A formula', note: 'Text' });
+  assert.equal(bodyOf('note'), 'Text');
+  assert.equal(bodyOf('constructor'), 'A formula');
+  assert.equal(bodyOf('toString'), '');
+  assert.equal(createContentIndex([], () => 'x', labels).bodyOf('hasOwnProperty'), '');
 });

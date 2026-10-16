@@ -5,6 +5,12 @@ import { createReferenceResolver } from './references.mjs';
 import { sanitizeArticleHtml, extractHeadings, decorateRichHtml, checkFigures } from './html.mjs';
 import { measureArticle, plainText, proseLanguage, slugFromFile } from './text.mjs';
 
+/** Formula placeholders as readable TeX between dollar signs, the way it was written. */
+const texOnly = (html) =>
+  html.replace(/<(span|div) data-math-index="\d+">([^<]*)<\/\1>/g, (_match, tag, tex) =>
+    tag === 'div' ? ` $$${tex}$$ ` : `$${tex}$`,
+  );
+
 /** Build-time pipeline; no Markdown parser or sanitizer is shipped to the homepage. */
 export function compileArticle(
   source,
@@ -53,6 +59,7 @@ export function compileArticle(
     html,
     hasMath: rendered.mathHtml.length > 0,
     headings: extracted.headings,
-    searchText: plainText(restoreMath(extracted.html + footnotes, rendered.mathHtml)).toLowerCase(),
+    // Search keeps the text's case for excerpts, and formulas as their TeX.
+    searchText: plainText(texOnly(extracted.html + footnotes)),
   };
 }

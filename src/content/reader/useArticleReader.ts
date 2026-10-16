@@ -2,6 +2,7 @@ import { useEffect, type RefObject } from 'react';
 import type { Article } from '../types';
 import { isQuoteHash } from './quote';
 import { useHeadingLinks } from './useHeadingLinks';
+import { useSearchMarks } from './useSearchMarks';
 
 type BodyRef = RefObject<HTMLElement | null>;
 
@@ -144,4 +145,5 @@ export function useArticleReader(bodyRef: BodyRef, article: Article) {
   useCodeCopy(bodyRef, article.slug);
   useHeadingLinks(bodyRef, article);
   useMermaid(bodyRef, article.slug);
+  useSearchMarks(bodyRef, article.html);
 }
