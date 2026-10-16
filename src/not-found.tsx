@@ -1,9 +1,19 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import blogTitles from 'virtual:articles/titles';
+import noteTitles from 'virtual:notes/titles';
 import SiteLayout from './components/layout/SiteLayout';
 import Icon from './components/Icon';
+import { textLanguage } from './content/language.mjs';
+import { suggestionsFor } from './content/suggest';
 import './styles/global.css';
 import './styles/not-found.css';
+
+// Only titles and slugs come along, so a wrong address can still point the way.
+const suggestions = suggestionsFor(window.location.pathname, {
+  blog: blogTitles,
+  notes: noteTitles,
+});
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -31,6 +41,26 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <br />
               There’s still plenty to explore under this sky.
             </p>
+            {suggestions.length > 0 && (
+              <nav className="not-found-suggestions" aria-labelledby="not-found-suggestions">
+                <p className="eyebrow" id="not-found-suggestions">
+                  PERHAPS YOU MEANT
+                </p>
+                <ul>
+                  {suggestions.map(({ collection, title, path }) => (
+                    <li key={path}>
+                      <a href={path}>
+                        <span className="not-found-suggestion-title" lang={textLanguage(title)}>
+                          {title}
+                        </span>
+                        <small>{collection === 'blog' ? 'Blog' : 'Notes'}</small>
+                        <Icon name="arrow" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            )}
             <nav className="not-found-links" aria-label="Find your way back">
               <a className="button button-primary" href="/">
                 Back to Home <Icon name="arrow" />

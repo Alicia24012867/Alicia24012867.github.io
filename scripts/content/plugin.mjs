@@ -2,7 +2,13 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { buildArticleCatalog } from './catalog.mjs';
-import { articleModule, latestModule, listingModule, searchModule } from './modules.mjs';
+import {
+  articleModule,
+  latestModule,
+  listingModule,
+  searchModule,
+  titlesModule,
+} from './modules.mjs';
 import { feedHtml, renderFeeds } from './feeds.mjs';
 import { withoutCopies, writePhotoCopy } from './resize.mjs';
 import { serveGenerated } from './serve.mjs';
@@ -151,6 +157,7 @@ export function articlesPlugin({
       }
       if (id === `${resolvedId}/search`) return searchModule(catalog);
       if (id === `${resolvedId}/latest`) return latestModule(catalog, basePath);
+      if (id === `${resolvedId}/titles`) return titlesModule(catalog);
       const prefix = `${resolvedId}/entry/`;
       if (!id.startsWith(prefix)) return null;
       const article = bySlug.get(decodeURIComponent(id.slice(prefix.length)));

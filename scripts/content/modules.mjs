@@ -31,6 +31,11 @@ export function latestModule({ articles }, basePath) {
   return `export default ${JSON.stringify(summary ?? null)};`;
 }
 
+/** Each document's slug and title, for suggesting one to a page that got its address wrong. */
+export function titlesModule({ articles }) {
+  return `export default ${JSON.stringify(articles.map(({ slug, title }) => [slug, title]))};`;
+}
+
 export function searchModule({ articles }) {
   return `export default ${JSON.stringify(Object.fromEntries(articles.map((article) => [article.slug, article.searchText])))};`;
 }

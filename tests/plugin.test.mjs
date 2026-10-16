@@ -383,3 +383,33 @@ test('the latest-post module carries only the newest published document', async 
   server.watcher.emit('unlink', path.join(blog, '2026/newest.md'));
   assert.equal(await latest(), null);
 });
+
+test('the titles module lists each published document by slug and title only', async (t) => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), 'alicia-titles-')));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const notes = path.join(root, 'content/notes');
+  mkdirSync(path.join(notes, 'source'), { recursive: true });
+  const note = (file, front, body = 'Private body text') =>
+    writeFileSync(path.join(notes, file), `---\n${front}\n---\n\n${body}`);
+  note('source/steps.md', 'title: Timestep control');
+  note('draft.md', 'title: Unfinished\ndraft: true');
+  const server = await createServer({
+    root,
+    configFile: false,
+    plugins: [
+      articlesPlugin({
+        moduleId: 'virtual:notes',
+        directory: 'content/notes',
+        basePath: '/notes/',
+      }),
+    ],
+    server: { middlewareMode: true, hmr: false, ws: false, watch: null },
+    optimizeDeps: { noDiscovery: true, include: [] },
+  });
+  t.after(() => server.close());
+  const { code } = await server.transformRequest('virtual:notes/titles');
+  assert.deepEqual(JSON.parse(code.match(/export default (.*);/)[1]), [
+    ['source/steps', 'Timestep control'],
+  ]);
+  assert.doesNotMatch(code, /Private body|Unfinished/);
+});

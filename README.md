@@ -159,4 +159,4 @@ GitHub 仓库 **Settings → Pages → Source** 选择 **GitHub Actions**。推�
 
 构建产物为 `dist/`，发布到 [nymphilia.com](https://nymphilia.com/)。GitHub Pages 的自定义域名与 DNS 需配置为 `nymphilia.com`；仓库内的站点配置只负责生成公开链接，不会修改 DNS 或 Pages 设置。`base: '/'` 对应域名根目录；多入口与查询参数路由无需服务器 SPA 回退。
 
-未知路径返回 `dist/404.html`，保留原地址和 HTTP 404 状态，提供首页、Blog、Notes 入口；未发布的静态地址同样返回 404。开发与预览服务采用相同的 404 行为；不存在的 `?post=` 显示各自集合的内容缺失提示。
+未知路径返回 `dist/404.html`，保留原地址和 HTTP 404 状态，提供首页、Blog、Notes 入口；未发布的静态地址同样返回 404。地址与某篇已发布的文章或笔记相近时（拼写有误、连字符与下划线混用、大小写不同、少了所在文件夹、带了日期，或写的是标题里的词），说明下方列出最多三篇“Perhaps you meant”；找不到相近的文档时页面与原来相同。推荐只用各文档的地址与标题（`virtual:articles/titles`、`virtual:notes/titles`），随 404 页的脚本一起下载，不加载列表、正文或草稿；匹配规则在 `src/content/suggest.ts`，有独立测试。开发与预览服务采用相同的 404 行为；不存在的 `?post=` 显示各自集合的内容缺失提示。

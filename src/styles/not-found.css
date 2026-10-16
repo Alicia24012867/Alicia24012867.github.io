@@ -83,6 +83,60 @@
   gap: 12px;
   margin-top: 30px;
 }
+/* Documents a wrong address probably meant, from their slugs and titles. */
+.not-found-suggestions {
+  margin-top: 26px;
+}
+.not-found-suggestions .eyebrow {
+  margin-bottom: 4px;
+  letter-spacing: 2px;
+}
+.not-found-suggestions ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.not-found-suggestions li + li {
+  border-top: 1px solid #d9e7f3;
+}
+.not-found-suggestions a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--control-height);
+  padding-block: 6px;
+  color: var(--heading);
+}
+.not-found-suggestion-title {
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-style: italic;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  transition: color 0.2s;
+}
+.not-found-suggestions small {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.not-found-suggestions .icon {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin-left: auto;
+  color: var(--blue-strong);
+  transition: transform 0.2s;
+}
+.not-found-suggestions a:hover .not-found-suggestion-title {
+  color: var(--blue-strong);
+}
+.not-found-suggestions a:hover .icon {
+  transform: translateX(3px);
+}
 [data-theme='night'] .not-found {
   --sky-wash: 22 40 62;
   --sky-background: #16283e;
@@ -96,6 +150,9 @@
 [data-theme='night'] .not-found .eyebrow,
 [data-theme='night'] .not-found-description {
   color: var(--muted);
+}
+[data-theme='night'] .not-found-suggestions li + li {
+  border-top-color: #2f4864;
 }
 @media (max-width: 800px) {
   .not-found-copy {
