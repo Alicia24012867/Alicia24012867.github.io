@@ -39,6 +39,15 @@
       } catch {
         document.documentElement.dataset.theme = 'day';
       }
+      // The reader's own text size, line spacing and font, as Text in a document sets them.
+      try {
+        const reading = JSON.parse(localStorage.getItem('alicia-reading-text')) ?? {};
+        for (const key of ['size', 'spacing', 'font'])
+          if (typeof reading[key] === 'string')
+            document.documentElement.setAttribute('data-reading-' + key, reading[key]);
+      } catch {
+        /* Without storage, documents keep the usual text. */
+      }
     </script>
     <!-- Chromium browsers load a page in the background once a link to it is hovered or
          pressed, so it opens at once; others ignore this. In-page anchors are left out. -->

@@ -25,7 +25,8 @@ export type IconName =
   | 'play'
   | 'pause'
   | 'share'
-  | 'image';
+  | 'image'
+  | 'text';
 
 const paths: Record<IconName, React.ReactNode> = {
   cloud: <path d="M6 18a5 5 0 0 1-.8-9.94 7 7 0 0 1 13.12-.68A5.5 5.5 0 0 1 18.5 18Z" />,
@@ -126,6 +127,10 @@ const paths: Record<IconName, React.ReactNode> = {
       <circle cx="9" cy="9.5" r="1.7" />
       <path d="m4 18 5-5 3.5 3.5L15 14l5 5" />
     </>
+  ),
+  // A large letter and a small one.
+  text: (
+    <path d="m2.5 19 5.5-14 5.5 14M4.6 14h6.8M15.5 19v-4.5a2.75 2.75 0 0 1 5.5 0V19m-5.5-2.5H21" />
   ),
 };
 

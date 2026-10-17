@@ -1,23 +1,11 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type KeyboardEvent,
-} from 'react';
+import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../../components/Icon';
 import type { Article } from '../types';
 import { absoluteUrl } from '../urls';
-import { popoverPlacement } from './popover';
 import { qrCode, qrPath } from './qr';
+import { useAnchoredCard } from './useAnchoredCard';
 
-type Place = ReturnType<typeof popoverPlacement>;
 type Status = 'ready' | 'copied' | 'failed';
 
 /** How long "Link copied" stays before the button offers to copy again. */
@@ -70,10 +58,7 @@ function ShareCode({ url }: { url: string }) {
  */
 export default function ShareButton({ article }: { article: Article }) {
   const [open, setOpen] = useState(false);
-  const [place, setPlace] = useState<Place | null>(null);
   const [status, setStatus] = useState<Status>('ready');
-  const trigger = useRef<HTMLButtonElement>(null);
-  const card = useRef<HTMLDivElement>(null);
   // How the button was last pressed; the keyboard presses no pointer.
   const pointer = useRef<string | undefined>(undefined);
   const timer = useRef(0);
@@ -81,61 +66,14 @@ export default function ShareButton({ article }: { article: Article }) {
   const systemShare = typeof navigator.share === 'function';
   const url = absoluteUrl(article.share?.path ?? window.location.pathname + window.location.search);
 
-  const close = useCallback((refocus = false) => {
-    if (refocus) trigger.current?.focus();
+  const dismiss = useCallback(() => {
     window.clearTimeout(timer.current);
     setOpen(false);
     setStatus('ready');
   }, []);
+  const { trigger, card, close, above, cardProps } = useAnchoredCard(open, dismiss);
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target instanceof Node ? event.target : null;
-      if (!card.current?.contains(target) && !trigger.current?.contains(target)) close();
-    };
-    const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') close(card.current?.contains(document.activeElement));
-    };
-    // Phones resize the height as their address bar slides away; only a new width moves the text.
-    const width = document.documentElement.clientWidth;
-    const onResize = () => {
-      if (document.documentElement.clientWidth !== width) close();
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    window.addEventListener('resize', onResize);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('resize', onResize);
-    };
-  }, [open, close]);
-
-  // Measure the rendered card, then place it below the button before the first paint.
-  useLayoutEffect(() => {
-    if (!open || !card.current || !trigger.current) {
-      setPlace(null);
-      return;
-    }
-    const header = document.querySelector('.site-header')?.getBoundingClientRect().bottom ?? 0;
-    const viewport = { width: document.documentElement.clientWidth, height: window.innerHeight };
-    const spot = popoverPlacement(
-      trigger.current.getBoundingClientRect(),
-      card.current.getBoundingClientRect(),
-      viewport,
-      { header },
-    );
-    setPlace({ ...spot, left: spot.left + window.scrollX, top: spot.top + window.scrollY });
-  }, [open]);
-
-  // Once the card shows, the keyboard carries on inside it.
-  const placed = !!place;
-  useEffect(() => {
-    if (placed) card.current?.querySelector('button')?.focus({ preventScroll: true });
-  }, [placed]);
 
   const share = async () => {
     try {
@@ -164,21 +102,6 @@ export default function ShareButton({ article }: { article: Article }) {
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setStatus('ready'), shownFor);
   };
-  // The card sits at the end of the page: leaving it goes on from the button instead.
-  const onCardKeyDown = (event: KeyboardEvent) => {
-    const buttons = card.current?.querySelectorAll('button');
-    if (event.key !== 'Tab' || !buttons?.length) return;
-    if (event.target !== (event.shiftKey ? buttons[0] : buttons[buttons.length - 1])) return;
-    if (event.shiftKey) event.preventDefault();
-    close(true);
-  };
-
-  const style = {
-    left: place?.left ?? 0,
-    top: place?.top ?? 0,
-    visibility: place ? undefined : 'hidden',
-    '--caret': `${place?.caret ?? 0}px`,
-  } as CSSProperties;
   return (
     <span className="article-share">
       <button
@@ -199,16 +122,10 @@ export default function ShareButton({ article }: { article: Article }) {
           <div
             ref={card}
             id={id}
-            className={`reader-popover share-card${place?.above ? ' is-above' : ''}`}
-            style={style}
+            className={`reader-popover share-card${above ? ' is-above' : ''}`}
             role="dialog"
             aria-label="Share"
-            onKeyDown={onCardKeyDown}
-            onBlur={(event) => {
-              // Focus taken elsewhere in the page closes it; the window losing focus does not.
-              const next = event.relatedTarget;
-              if (next && !event.currentTarget.contains(next) && next !== trigger.current) close();
-            }}
+            {...cardProps}
           >
             <p className="share-card-label">Scan to read on your phone</p>
             <ShareCode url={url} />

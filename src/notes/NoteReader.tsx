@@ -4,6 +4,7 @@ import ArticleBody from '../content/reader/ArticleBody';
 import type { LinkPreviewSource } from '../content/reader/LinkPreview';
 import ListenButton from '../content/reader/ListenButton';
 import ShareButton from '../content/reader/ShareButton';
+import TextButton from '../content/reader/TextButton';
 import ArticleComments from '../content/reader/ArticleComments';
 import { noteSections } from '../config/sections.mjs';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
@@ -38,6 +39,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
           <>
             <ListenButton />
             <ShareButton article={note} />
+            <TextButton />
           </>
         }
       />

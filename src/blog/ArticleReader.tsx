@@ -3,6 +3,7 @@ import ArticleBody from '../content/reader/ArticleBody';
 import type { LinkPreviewSource } from '../content/reader/LinkPreview';
 import ListenButton from '../content/reader/ListenButton';
 import ShareButton from '../content/reader/ShareButton';
+import TextButton from '../content/reader/TextButton';
 import ArticleComments from '../content/reader/ArticleComments';
 import ArticleHeader from '../content/ArticleHeader';
 import Icon from '../components/Icon';
@@ -47,6 +48,7 @@ export default function ArticleReader({ article }: { article: Article }) {
           <>
             <ListenButton />
             <ShareButton article={article} />
+            <TextButton />
           </>
         }
       />
