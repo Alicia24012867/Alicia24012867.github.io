@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readingProgress } from '../src/content/reader/progress.ts';
+import { minutesLeft, readingProgress } from '../src/content/reader/progress.ts';
 
 // A 3000px article below an 82px header on an 800px screen: 718px are visible at a time.
 const header = 82;
@@ -32,4 +32,23 @@ test('an article shorter than the screen is read once all of it is in view', () 
   assert.equal(readingProgress(-100, 400, header, screen), 1);
   // Exactly as tall as the visible page.
   assert.equal(readingProgress(header, screen - header, header, screen), 1);
+});
+
+test('the minutes left count down while reading, and only then', () => {
+  assert.equal(minutesLeft(9, 0), undefined);
+  assert.equal(minutesLeft(9, 0.049), undefined);
+  assert.equal(minutesLeft(9, 0.05), 9);
+  assert.equal(minutesLeft(9, 0.5), 5);
+  assert.equal(minutesLeft(9, 0.9), 1);
+  // Nearly done, the place is no longer kept and nothing is left to count.
+  assert.equal(minutesLeft(9, 0.95), undefined);
+  assert.equal(minutesLeft(9, 1), undefined);
+  // A short read needs no countdown.
+  assert.equal(minutesLeft(2, 0.5), undefined);
+  assert.equal(minutesLeft(3, 0.5), 2);
+  for (let progress = 0.05, last = Infinity; progress < 0.95; progress += 0.01) {
+    const left = minutesLeft(20, progress);
+    assert.ok(left >= 1 && left <= last);
+    last = left;
+  }
 });

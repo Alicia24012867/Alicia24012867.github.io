@@ -41,7 +41,7 @@ export default function ArticleBody({
         />
         <HandwrittenSignature />
       </div>
-      <ArticleToc headings={article.headings} bodyRef={bodyRef} />
+      <ArticleToc headings={article.headings} bodyRef={bodyRef} minutes={article.readingMinutes} />
       <ArticleFigures key={article.slug} bodyRef={bodyRef} />
       <FootnotePreview bodyRef={bodyRef} slug={article.slug} />
       {previews && <LinkPreview bodyRef={bodyRef} slug={article.slug} source={previews} />}

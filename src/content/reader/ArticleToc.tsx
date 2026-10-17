@@ -1,18 +1,53 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
+import { countsDown, minutesLeft, readingProgress } from './progress';
 import { useActiveHeading } from './useActiveHeading';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import Icon from '../../components/Icon';
 import { textLanguage } from '../language.mjs';
 import type { Article } from '../types';
 
+/** Minutes of reading left, kept up to date as the reader scrolls. */
+function useMinutesLeft(bodyRef: RefObject<HTMLElement | null>, minutes: number) {
+  const [left, setLeft] = useState<number>();
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!body || !countsDown(minutes)) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const header = document.querySelector('.site-header')?.getBoundingClientRect().bottom ?? 0;
+      const { top, height } = body.getBoundingClientRect();
+      // The same number again leaves the contents as they are.
+      setLeft(minutesLeft(minutes, readingProgress(top, height, Math.max(header, 0), innerHeight)));
+    };
+    const schedule = () => {
+      frame ||= requestAnimationFrame(update);
+    };
+    update();
+    addEventListener('scroll', schedule, { passive: true });
+    addEventListener('resize', schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      removeEventListener('scroll', schedule);
+      removeEventListener('resize', schedule);
+    };
+  }, [bodyRef, minutes]);
+  return left;
+}
+
 export default function ArticleToc({
   headings,
   bodyRef,
+  minutes,
 }: {
   headings: Article['headings'];
   bodyRef: RefObject<HTMLElement | null>;
+  /** The estimated reading time of the whole document. */
+  minutes: number;
 }) {
   const activeHeading = useActiveHeading(bodyRef, headings);
+  // Without headings there are no contents to show it in.
+  const left = useMinutesLeft(bodyRef, headings.length ? minutes : 0);
   const listRef = useRef<HTMLOListElement>(null);
   // Phones show the contents collapsed above the article; wider screens keep it open beside it.
   const compact = useMediaQuery('(max-width: 760px)');
@@ -45,6 +80,7 @@ export default function ArticleToc({
         >
           <summary tabIndex={compact ? undefined : -1}>
             On this page
+            {left !== undefined && <span className="toc-time-left">{left} min left</span>}
             <Icon name="arrow" />
           </summary>
           <ol ref={listRef}>

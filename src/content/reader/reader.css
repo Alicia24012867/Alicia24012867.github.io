@@ -32,6 +32,16 @@
 .article-toc details[open] summary .icon {
   transform: rotate(-90deg);
 }
+/* Shown once reading has begun, beside the title of the contents. */
+.article-toc .toc-time-left {
+  margin-left: auto;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .article-toc ol {
   list-style: none;
   padding: 3px;
