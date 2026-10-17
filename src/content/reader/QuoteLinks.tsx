@@ -17,7 +17,8 @@ import { popoverPlacement } from './popover';
 import { findQuote, parseQuote, quoteHash } from './quote';
 import QuoteCardViewer from './QuoteCardViewer';
 import type { QuoteCardText } from './quoteCard';
-import { articleText, coveredBy, rangeOf, stretchOf } from './textMap';
+import { writtenTex } from './tex';
+import { articleText, coveredBy, rangeOf, stretchOf, textWithFormulas } from './textMap';
 
 /** A link offered for the selected passage. */
 type Offer = {
@@ -266,6 +267,14 @@ export default function QuoteLinks({
   );
   if (!offer) return picture;
   const pageUrl = () => absoluteUrl(page ?? window.location.pathname + window.location.search);
+  // Shared or drawn, the passage keeps its formulas: as plain text where they are simple, else
+  // as the TeX they were written in.
+  const written = (offered: Offer) => {
+    const root = bodyRef.current;
+    return root
+      ? textWithFormulas(root, offered.range, (tex) => writtenTex(tex) ?? `$${tex}$`)
+      : offered.passage;
+  };
   const act = async () => {
     const offered = current.current;
     pressing.current = false;
@@ -273,7 +282,11 @@ export default function QuoteLinks({
     const url = pageUrl() + offered.hash;
     if (offered.share) {
       try {
-        await navigator.share({ title: article.title, text: `“${excerpt(offered.passage)}”`, url });
+        await navigator.share({
+          title: article.title,
+          text: `“${excerpt(written(offered))}”`,
+          url,
+        });
       } catch {
         // Closing the share sheet leaves things as they were.
       }
@@ -299,7 +312,7 @@ export default function QuoteLinks({
     setCard({
       text: {
         eyebrow,
-        passage: offered.passage,
+        passage: written(offered),
         title: article.title,
         author: article.author || 'Alicia',
         site: new URL(url).host,

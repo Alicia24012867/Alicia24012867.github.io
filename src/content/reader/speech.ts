@@ -1,3 +1,4 @@
+import { quiet, symbols } from './tex.ts';
 import type { Stretch } from './textMap.ts';
 
 /** What choosing a voice looks at, of the voices a browser lists. */
@@ -132,67 +133,6 @@ export function sentencesOf(text: string, lang: string, limit = 220): Stretch[] 
   return pieces;
 }
 
-const symbols: Record<string, string> = {
-  le: '≤',
-  leq: '≤',
-  ge: '≥',
-  geq: '≥',
-  ne: '≠',
-  neq: '≠',
-  approx: '≈',
-  equiv: '≡',
-  sim: '~',
-  times: '×',
-  cdot: '·',
-  div: '÷',
-  pm: '±',
-  in: '∈',
-  notin: '∉',
-  infty: '∞',
-  to: '→',
-  rightarrow: '→',
-  leftarrow: '←',
-  ldots: '…',
-  cdots: '…',
-  dots: '…',
-  alpha: 'α',
-  beta: 'β',
-  gamma: 'γ',
-  delta: 'δ',
-  epsilon: 'ε',
-  varepsilon: 'ε',
-  zeta: 'ζ',
-  eta: 'η',
-  theta: 'θ',
-  iota: 'ι',
-  kappa: 'κ',
-  lambda: 'λ',
-  mu: 'μ',
-  nu: 'ν',
-  xi: 'ξ',
-  pi: 'π',
-  rho: 'ρ',
-  sigma: 'σ',
-  tau: 'τ',
-  upsilon: 'υ',
-  phi: 'φ',
-  varphi: 'φ',
-  chi: 'χ',
-  psi: 'ψ',
-  omega: 'ω',
-  Gamma: 'Γ',
-  Delta: 'Δ',
-  Theta: 'Θ',
-  Lambda: 'Λ',
-  Xi: 'Ξ',
-  Pi: 'Π',
-  Sigma: 'Σ',
-  Phi: 'Φ',
-  Psi: 'Ψ',
-  Omega: 'Ω',
-};
-/** Commands that only space a formula out or set how its letters look. */
-const quiet = /^(quad|qquad|left|right|text|textrm|mathrm|mathit|mathbf|operatorname)$/;
 const superscripts = '⁰¹²³⁴⁵⁶⁷⁸⁹';
 
 /**

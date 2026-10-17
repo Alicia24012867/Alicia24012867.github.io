@@ -141,6 +141,39 @@ export function articleText(root: HTMLElement): FlatText<Text> {
   return flatten(parts);
 }
 
+/**
+ * The text a range takes in, set out as `articleText` sets it out, but with each formula
+ * the range touches written whole by `write` from its TeX instead of left out.
+ */
+export function textWithFormulas(root: HTMLElement, range: Range, write: (tex: string) => string) {
+  const parts: Part<Node>[] = [];
+  const covered = coveredBy(range);
+  let block: Element | undefined;
+  let lineBreak = false;
+  const add = (node: Node, text: string, from: Element) => {
+    const owner = from.closest(blocks) ?? root;
+    parts.push({ node, text, gap: lineBreak || owner !== block });
+    block = owner;
+    lineBreak = false;
+  };
+  const visit = (parent: Node) => {
+    for (const node of parent.childNodes) {
+      if (node instanceof Text) {
+        const span = covered(node);
+        if (span && node.parentElement) add(node, node.data.slice(...span), node.parentElement);
+      } else if (node instanceof Element) {
+        if (node.matches('.katex')) {
+          const tex = node.querySelector('annotation[encoding="application/x-tex"]')?.textContent;
+          if (tex != null && range.intersectsNode(node)) add(node, write(tex), node);
+        } else if (node.matches('br, hr')) lineBreak = true;
+        else if (!node.matches(skipped)) visit(node);
+      }
+    }
+  };
+  visit(root);
+  return collapse(flatten(parts).text);
+}
+
 /** The characters of each text node that a range takes in. */
 export const coveredBy = (range: Range) => (node: Text) => {
   if (!range.intersectsNode(node)) return undefined;
