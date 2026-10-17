@@ -28,7 +28,13 @@ export default function QuoteCardViewer({
   const [picture, setPicture] = useState<Picture | null>(null);
   const [failed, setFailed] = useState(false);
   const [status, setStatus] = useState<Status>('ready');
+  // The sky starts as the page's theme has it, and the other can be chosen.
+  const [night, setNight] = useState(() => document.documentElement.dataset.theme === 'night');
   const timer = useRef(0);
+  // The picture on screen, let go once another replaces it.
+  const shown = useRef('');
+  const name = night ? filename.replace(/\.png$/, '-night.png') : filename;
+  const skyLabel = night ? 'Switch to day sky' : 'Switch to night sky';
 
   useEffect(() => {
     const dialog = ref.current;
@@ -44,20 +50,30 @@ export default function QuoteCardViewer({
   }, []);
 
   useEffect(() => {
-    let url = '';
     let current = true;
-    drawQuoteCard(card, { body: fontStack('--font-body'), display: fontStack('--font-display') })
+    const fonts = { body: fontStack('--font-body'), display: fontStack('--font-display') };
+    // The picture already shown stays until the next one is drawn.
+    drawQuoteCard(card, fonts, { night })
       .then((blob) => {
         if (!current) return;
-        url = URL.createObjectURL(blob);
-        setPicture({ blob, url, file: new File([blob], filename, { type: 'image/png' }) });
+        const url = URL.createObjectURL(blob);
+        if (shown.current) URL.revokeObjectURL(shown.current);
+        shown.current = url;
+        setPicture({ blob, url, file: new File([blob], name, { type: 'image/png' }) });
+        setFailed(false);
       })
       .catch(() => current && setFailed(true));
     return () => {
       current = false;
-      if (url) URL.revokeObjectURL(url);
     };
-  }, [card, filename]);
+  }, [card, name, night]);
+
+  useEffect(
+    () => () => {
+      if (shown.current) URL.revokeObjectURL(shown.current);
+    },
+    [],
+  );
 
   const canCopy = typeof ClipboardItem === 'function' && !!navigator.clipboard?.write;
   const canShare =
@@ -104,6 +120,14 @@ export default function QuoteCardViewer({
         <button className="icon-button quote-card-close" aria-label="Close" onClick={onClose}>
           <Icon name="close" />
         </button>
+        <button
+          className="icon-button quote-card-sky"
+          aria-label={skyLabel}
+          title={skyLabel}
+          onClick={() => setNight((value) => !value)}
+        >
+          <Icon name={night ? 'moon' : 'sun'} />
+        </button>
         {picture ? (
           <img
             className="quote-card-picture"
@@ -125,7 +149,7 @@ export default function QuoteCardViewer({
           <a
             className={`button ${canShare ? 'quote-card-secondary' : 'button-primary'}`}
             href={picture?.url}
-            download={filename}
+            download={picture?.file.name}
             aria-disabled={!picture}
             onClick={(event) => !picture && event.preventDefault()}
           >

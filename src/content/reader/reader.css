@@ -930,6 +930,10 @@
   color: #fff;
   background: #ffffff2b;
 }
+.quote-card .quote-card-sky {
+  right: auto;
+  left: 16px;
+}
 .quote-card :focus-visible {
   outline-color: #9fd2ff;
 }

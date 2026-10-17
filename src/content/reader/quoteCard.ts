@@ -125,16 +125,35 @@ export const cardWidth = 1080;
 export const cardHeight = 1440;
 const margin = 84;
 const column = cardWidth - margin * 2;
-const ink = {
-  page: '#f5faff',
-  eyebrow: '#5286b4',
-  title: '#2e6fa8',
-  passage: '#34506d',
-  mark: '#c4dbef',
-  signature: '#527697',
-  site: '#6493b6',
-  rule: '#d6e6f4',
-  code: '#203b58',
+// The share cards' day colours, and the home page's night: the same sky, dimmed, over a
+// deep blue wash. The code keeps dark modules on a light tile either way, for cameras.
+const palettes = {
+  day: {
+    page: '#f5faff',
+    wash: '245 250 255',
+    eyebrow: '#5286b4',
+    title: '#2e6fa8',
+    passage: '#34506d',
+    mark: '#c4dbef',
+    signature: '#527697',
+    site: '#6493b6',
+    rule: '#d6e6f4',
+    tile: '#fff',
+    code: '#203b58',
+  },
+  night: {
+    page: '#16283e',
+    wash: '22 40 62',
+    eyebrow: '#a8c6df',
+    title: '#9cc8f0',
+    passage: '#d3e3f3',
+    mark: '#34547a',
+    signature: '#a4c9ed',
+    site: '#93abc2',
+    rule: '#2a3d55',
+    tile: '#dceafa',
+    code: '#142338',
+  },
 };
 // Where the sky gives way to the page.
 const skyFades = { from: 300, to: 620 };
@@ -158,15 +177,65 @@ const imageAt = (src: string) =>
     image.src = src;
   });
 
+/** A few faint stars over the dark left of the night sky, and a shooting star crossing it. */
+function drawNightSky(context: CanvasRenderingContext2D) {
+  // The same sky every time.
+  let seed = 11;
+  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  context.save();
+  context.fillStyle = '#e8f1ff';
+  context.shadowColor = '#d8e6ffcc';
+  for (let i = 0; i < 28; i++) {
+    const x = 24 + random() * cardWidth * 0.56;
+    const y = 24 + random() * 400;
+    const radius = 0.8 + random() * 1.5;
+    const alpha = 0.3 + random() * 0.6;
+    // The eyebrow keeps a clear band.
+    if (y > 78 && y < 136 && x < 560) continue;
+    context.globalAlpha = alpha;
+    context.shadowBlur = i % 5 === 0 ? 8 : 0;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+  }
+  // As on the home page: a bright head leading, its tail fading toward the upper right.
+  const head = { x: 318, y: 226 };
+  const angle = (22 * Math.PI) / 180;
+  const tail = { x: head.x + Math.cos(angle) * 176, y: head.y - Math.sin(angle) * 176 };
+  const streak = context.createLinearGradient(head.x, head.y, tail.x, tail.y);
+  streak.addColorStop(0, '#fff');
+  streak.addColorStop(0.28, '#cfe0ffa6');
+  streak.addColorStop(1, '#cfe0ff00');
+  context.globalAlpha = 1;
+  context.shadowBlur = 0;
+  context.strokeStyle = streak;
+  context.lineWidth = 3;
+  context.lineCap = 'round';
+  context.beginPath();
+  context.moveTo(head.x, head.y);
+  context.lineTo(tail.x, tail.y);
+  context.stroke();
+  context.fillStyle = '#fff';
+  context.shadowColor = '#d8e6ffcc';
+  context.shadowBlur = 16;
+  context.beginPath();
+  context.arc(head.x, head.y, 4, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
 /**
  * Draws the card and returns it as a PNG. `fonts.body` and `fonts.display` are the page's
- * font stacks; the sky is the picture the site's share cards are made from.
+ * font stacks; the sky is the picture the site's share cards are made from, at night dimmed
+ * as the home page dims it.
  */
 export async function drawQuoteCard(
   text: QuoteCardText,
   fonts: { body: string; display: string },
-  sky = '/images/summer-sky.webp',
+  { night = false, sky = '/images/summer-sky.webp' } = {},
 ) {
+  const ink = night ? palettes.night : palettes.day;
+  const wash = (alpha: number) => `rgb(${ink.wash} / ${alpha})`;
   const canvas = document.createElement('canvas');
   canvas.width = cardWidth;
   canvas.height = cardHeight;
@@ -187,17 +256,31 @@ export async function drawQuoteCard(
   context.fillRect(0, 0, cardWidth, cardHeight);
   if (image) {
     // As wide as the card and anchored at the top, like the homepage hero.
-    context.drawImage(image, 0, 0, cardWidth, (image.height * cardWidth) / image.width);
+    const skyHeight = (image.height * cardWidth) / image.width;
+    context.drawImage(image, 0, 0, cardWidth, skyHeight);
+    if (night) {
+      // The home page's brightness(0.64) saturate(0.72), in blends every canvas has.
+      context.globalCompositeOperation = 'saturation';
+      context.globalAlpha = 0.28;
+      context.fillStyle = '#808080';
+      context.fillRect(0, 0, cardWidth, skyHeight);
+      context.globalAlpha = 1;
+      context.globalCompositeOperation = 'multiply';
+      context.fillStyle = 'rgb(163 163 163)';
+      context.fillRect(0, 0, cardWidth, skyHeight);
+      context.globalCompositeOperation = 'source-over';
+    }
     const left = context.createLinearGradient(0, 0, cardWidth * 0.62, 0);
-    left.addColorStop(0, 'rgb(245 250 255 / 0.82)');
-    left.addColorStop(0.55, 'rgb(245 250 255 / 0.5)');
-    left.addColorStop(1, 'rgb(245 250 255 / 0)');
+    left.addColorStop(0, wash(night ? 0.9 : 0.82));
+    left.addColorStop(0.55, wash(night ? 0.62 : 0.5));
+    left.addColorStop(1, wash(0));
     context.fillStyle = left;
     context.fillRect(0, 0, cardWidth, skyFades.to);
   }
+  if (night) drawNightSky(context);
   const fade = context.createLinearGradient(0, skyFades.from, 0, skyFades.to);
-  fade.addColorStop(0, 'rgb(245 250 255 / 0)');
-  fade.addColorStop(0.6, 'rgb(245 250 255 / 0.86)');
+  fade.addColorStop(0, wash(0));
+  fade.addColorStop(0.6, wash(0.86));
   fade.addColorStop(1, ink.page);
   context.fillStyle = fade;
   context.fillRect(0, skyFades.from, cardWidth, cardHeight - skyFades.from);
@@ -257,12 +340,12 @@ export async function drawQuoteCard(
   context.font = body(24);
   context.fillText(text.site, margin, ruleY + 140);
 
-  // The code on a white tile, with the light margin a reader needs around it.
+  // The code on a light tile, with the light margin a reader needs around it.
   const code = cardCode(text.links);
   const tile = 156;
   const tileLeft = cardWidth - margin - tile;
   const tileTop = ruleY + 26;
-  context.fillStyle = '#fff';
+  context.fillStyle = ink.tile;
   context.beginPath();
   context.roundRect(tileLeft, tileTop, tile, tile, 14);
   context.fill();
