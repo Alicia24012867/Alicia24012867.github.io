@@ -30,6 +30,7 @@ export default function ArticleReader({ article }: { article: Article }) {
   const index = inSection.findIndex((item) => item.slug === article.slug);
   const newer = index > 0 ? inSection[index - 1] : undefined;
   const older = index >= 0 && index < inSection.length - 1 ? inSection[index + 1] : undefined;
+  const eyebrow = `BLOG / ${(section.english || section.label).toUpperCase()}`;
 
   return (
     <div className="journal-width reading-page">
@@ -39,7 +40,7 @@ export default function ArticleReader({ article }: { article: Article }) {
       </a>
       <ArticleHeader
         article={article}
-        eyebrow={`BLOG / ${(section.english || section.label).toUpperCase()}`}
+        eyebrow={eyebrow}
         collection="blog"
         showDetails
         actions={
@@ -49,7 +50,7 @@ export default function ArticleReader({ article }: { article: Article }) {
           </>
         }
       />
-      <ArticleBody article={article} previews={previews} />
+      <ArticleBody article={article} eyebrow={eyebrow} previews={previews} />
       {(older || newer) && (
         <nav className="article-pager" aria-label={`More posts in ${section.label}`}>
           {older ? (

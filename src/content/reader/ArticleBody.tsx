@@ -15,10 +15,13 @@ import { useArticleReader } from './useArticleReader';
 
 export default function ArticleBody({
   article,
+  eyebrow,
   label = 'Article content',
   previews,
 }: {
   article: Article;
+  /** The small capitals the header opens with, repeated on pictures of quoted passages. */
+  eyebrow: string;
   label?: string;
   /** Other documents whose links show a preview card. */
   previews?: LinkPreviewSource;
@@ -46,7 +49,7 @@ export default function ArticleBody({
       <FootnotePreview bodyRef={bodyRef} slug={article.slug} />
       {previews && <LinkPreview bodyRef={bodyRef} slug={article.slug} source={previews} />}
       <PhotoViewer bodyRef={bodyRef} slug={article.slug} />
-      <QuoteLinks bodyRef={bodyRef} article={article} />
+      <QuoteLinks bodyRef={bodyRef} article={article} eyebrow={eyebrow} />
       <ListenPlayer bodyRef={bodyRef} article={article} />
       <ReadingProgress bodyRef={bodyRef} />
     </div>

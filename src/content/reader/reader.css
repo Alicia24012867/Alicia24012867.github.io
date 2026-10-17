@@ -816,11 +816,122 @@
   width: 15px;
   height: 15px;
 }
+/* A hairline between the link and the picture. */
+.quote-link button + button {
+  position: relative;
+}
+.quote-link button + button::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: -1px;
+  width: 1px;
+  background: var(--line);
+}
 @media (hover: none) {
   .quote-link button {
     min-height: 38px;
     padding-inline: 13px 16px;
   }
+}
+/* The selected passage drawn as a picture, over the page like a photo. */
+.quote-card {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: #dceafa;
+}
+.quote-card::backdrop {
+  background: #0b1626e6;
+  backdrop-filter: blur(12px);
+}
+.quote-card-stage {
+  --room: calc(100dvh - 170px);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  width: 100%;
+  height: 100%;
+  padding: 64px 16px 28px;
+}
+/* As tall as the screen allows above the buttons, which wrap to two rows on a phone. */
+.quote-card-picture {
+  display: block;
+  max-width: 100%;
+  max-height: var(--room);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 80px #00000080;
+  animation: photo-in 0.22s ease-out;
+}
+@media (max-width: 600px) {
+  .quote-card-stage {
+    --room: calc(100dvh - 222px);
+  }
+}
+.quote-card-pending {
+  display: grid;
+  place-items: center;
+  height: var(--room);
+  aspect-ratio: 3 / 4;
+  background: #f5faff14;
+  color: #93abc2;
+  font-size: var(--text-sm);
+  letter-spacing: 1px;
+  box-shadow: none;
+}
+.quote-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.quote-card-actions .button {
+  min-height: 42px;
+  padding-inline: 18px;
+  gap: 9px;
+}
+.quote-card-actions .button:hover {
+  transform: none;
+}
+.quote-card .quote-card-secondary {
+  border: 1px solid #ffffff24;
+  background: #ffffff14;
+  color: #e3eefb;
+}
+.quote-card .quote-card-secondary:hover {
+  background: #ffffff2b;
+  color: #fff;
+}
+.quote-card-actions [aria-disabled='true'],
+.quote-card-actions :disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.quote-card .icon-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  color: #e3eefb;
+  background: #ffffff14;
+}
+.quote-card .icon-button:hover {
+  color: #fff;
+  background: #ffffff2b;
+}
+.quote-card :focus-visible {
+  outline-color: #9fd2ff;
 }
 /* A passage opened from a quote link, marked until the next click or tap. */
 ::highlight(quote) {
@@ -1294,6 +1405,7 @@
   .reading-progress,
   .reader-popover,
   .quote-link,
+  .quote-card,
   .article-body .heading-link,
   .continue-reading,
   .listen-player,

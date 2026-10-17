@@ -20,6 +20,7 @@ const previews: LinkPreviewSource = {
 export default function NoteReader({ article: note }: { article: Article }) {
   const query = queryFromSearch(window.location.search);
   const backUrl = listingUrl('notes', query);
+  const eyebrow = `KNOWLEDGE BASE / ${noteSections.byId(note.section).label.toUpperCase()}`;
   const backlinks = note.backlinks
     .map((slug) => noteIndex.bySlug.get(slug))
     .filter((item): item is ArticleSummary => !!item);
@@ -31,7 +32,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
       </a>
       <ArticleHeader
         article={note}
-        eyebrow={`KNOWLEDGE BASE / ${noteSections.byId(note.section).label.toUpperCase()}`}
+        eyebrow={eyebrow}
         collection="notes"
         actions={
           <>
@@ -40,7 +41,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
           </>
         }
       />
-      <ArticleBody article={note} label="Note content" previews={previews} />
+      <ArticleBody article={note} eyebrow={eyebrow} label="Note content" previews={previews} />
       <section className="note-backlinks" aria-labelledby="backlinks-title">
         <p className="eyebrow">LINKED REFERENCES</p>
         <h2 id="backlinks-title">Notes linking here</h2>

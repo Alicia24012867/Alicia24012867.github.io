@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from 'react';
 import { createPortal } from 'react-dom';
@@ -14,6 +15,8 @@ import { absoluteUrl } from '../urls';
 import { holdPlace } from './hold';
 import { popoverPlacement } from './popover';
 import { findQuote, parseQuote, quoteHash } from './quote';
+import QuoteCardViewer from './QuoteCardViewer';
+import type { QuoteCardText } from './quoteCard';
 import { articleText, coveredBy, rangeOf, stretchOf } from './textMap';
 
 /** A link offered for the selected passage. */
@@ -81,20 +84,24 @@ const excerpt = (text: string, limit = 280) => {
 };
 
 /**
- * Selecting words in an article offers a link to them: copied with a mouse, or shared from
- * a phone. Opening such a link scrolls to the passage and marks it until the next click or
- * tap. Like the links beside headings, the offer is a pointer shortcut kept out of the
- * accessibility tree, and anyone can still copy the words themselves.
+ * Selecting words in an article offers a link to them, copied with a mouse or shared from a
+ * phone, and a picture of them. Opening such a link scrolls to the passage and marks it
+ * until the next click or tap. Like the links beside headings, the offer is a pointer
+ * shortcut kept out of the accessibility tree, and anyone can still copy the words themselves.
  */
 export default function QuoteLinks({
   bodyRef,
   article,
+  eyebrow,
 }: {
   bodyRef: RefObject<HTMLElement | null>;
   article: Article;
+  /** The small capitals the document's header opens with, which the picture repeats. */
+  eyebrow: string;
 }) {
   const page = article.share?.path;
   const [offer, setOffer] = useState<Offer | null>(null);
+  const [card, setCard] = useState<{ text: QuoteCardText; filename: string } | null>(null);
   const [status, setStatus] = useState<Status>('ready');
   const [place, setPlace] = useState<Place | null>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -254,13 +261,16 @@ export default function QuoteLinks({
     });
   }, [offer, status]);
 
-  if (!offer) return null;
+  const picture = card && (
+    <QuoteCardViewer card={card.text} filename={card.filename} onClose={() => setCard(null)} />
+  );
+  if (!offer) return picture;
+  const pageUrl = () => absoluteUrl(page ?? window.location.pathname + window.location.search);
   const act = async () => {
     const offered = current.current;
     pressing.current = false;
     if (!offered) return;
-    const url =
-      absoluteUrl(page ?? window.location.pathname + window.location.search) + offered.hash;
+    const url = pageUrl() + offered.hash;
     if (offered.share) {
       try {
         await navigator.share({ title: article.title, text: `“${excerpt(offered.passage)}”`, url });
@@ -281,6 +291,32 @@ export default function QuoteLinks({
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => show(null), shownFor);
   };
+  const draw = () => {
+    const offered = current.current;
+    pressing.current = false;
+    if (!offered) return;
+    const url = pageUrl();
+    setCard({
+      text: {
+        eyebrow,
+        passage: offered.passage,
+        title: article.title,
+        author: article.author || 'Alicia',
+        site: new URL(url).host,
+        // The code leads to the passage, or to the document when that address is too long.
+        links: [url + offered.hash, url],
+      },
+      filename: `quote-${article.slug.replaceAll('/', '-')}.png`,
+    });
+    // The picture holds the passage now; the selection and its offer go.
+    document.getSelection()?.removeAllRanges();
+    show(null);
+  };
+  // Keeps the selection, and the focus where it was.
+  const hold = (event: ReactPointerEvent) => {
+    event.preventDefault();
+    pressing.current = true;
+  };
   const label =
     status === 'copied'
       ? 'Link copied'
@@ -294,27 +330,27 @@ export default function QuoteLinks({
     top: place?.top ?? 0,
     visibility: place ? undefined : 'hidden',
   } as CSSProperties;
-  return createPortal(
-    <div
-      ref={box}
-      className={`quote-link${place?.above ? ' is-above' : ''}`}
-      style={style}
-      aria-hidden="true"
-    >
-      <button
-        type="button"
-        tabIndex={-1}
-        onPointerDown={(event) => {
-          // Keeps the selection, and the focus where it was.
-          event.preventDefault();
-          pressing.current = true;
-        }}
-        onClick={act}
-      >
-        <Icon name={status === 'copied' ? 'check' : 'link'} />
-        {label}
-      </button>
-    </div>,
-    document.body,
+  return (
+    <>
+      {createPortal(
+        <div
+          ref={box}
+          className={`quote-link${place?.above ? ' is-above' : ''}`}
+          style={style}
+          aria-hidden="true"
+        >
+          <button type="button" tabIndex={-1} onPointerDown={hold} onClick={act}>
+            <Icon name={status === 'copied' ? 'check' : 'link'} />
+            {label}
+          </button>
+          <button type="button" tabIndex={-1} onPointerDown={hold} onClick={draw}>
+            <Icon name="image" />
+            Image
+          </button>
+        </div>,
+        document.body,
+      )}
+      {picture}
+    </>
   );
 }

@@ -24,7 +24,8 @@ export type IconName =
   | 'headphones'
   | 'play'
   | 'pause'
-  | 'share';
+  | 'share'
+  | 'image';
 
 const paths: Record<IconName, React.ReactNode> = {
   cloud: <path d="M6 18a5 5 0 0 1-.8-9.94 7 7 0 0 1 13.12-.68A5.5 5.5 0 0 1 18.5 18Z" />,
@@ -117,6 +118,13 @@ const paths: Record<IconName, React.ReactNode> = {
     <>
       <path d="M12 15V3M8 7l4-4 4 4" />
       <path d="M8 10H7a3 3 0 0 0-3 3v5a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-5a3 3 0 0 0-3-3h-1" />
+    </>
+  ),
+  image: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="3" />
+      <circle cx="9" cy="9.5" r="1.7" />
+      <path d="m4 18 5-5 3.5 3.5L15 14l5 5" />
     </>
   ),
 };
