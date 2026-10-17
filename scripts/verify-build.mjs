@@ -13,7 +13,7 @@ const pages = ['index.html', 'blog/index.html', 'notes/index.html', '404.html'];
 const sizes = {};
 const manifest = JSON.parse(fs.readFileSync(path.join(root, '.vite/manifest.json'), 'utf8'));
 const deferred =
-  /virtual:|ArticleReader|NoteReader|ArticleBody|ArticleComments|ListenButton|ListenPlayer|giscus|renderMermaid|katex|content\/figures\//i;
+  /virtual:|ArticleReader|NoteReader|ArticleBody|ArticleComments|ListenButton|ListenPlayer|ShareButton|giscus|renderMermaid|katex|content\/figures\//i;
 // Entry pages share most chunks: read and compress each file once for the whole report.
 const fileSizes = new Map();
 function fileSize(file) {

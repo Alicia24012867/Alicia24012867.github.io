@@ -1188,8 +1188,10 @@
 [data-theme='night'] ::highlight(speech) {
   background-color: #2b557f;
 }
-/* At the end of a document's details: has it read aloud, then pauses and resumes it. */
-.article-listen button {
+/* At the end of a document's details: has it read aloud, then pauses and resumes it, and
+   shares it. */
+.article-listen button,
+.article-share button {
   display: inline-flex;
   align-items: baseline;
   gap: 5px;
@@ -1200,13 +1202,86 @@
   transition: color 0.2s;
 }
 .article-listen button:hover,
-.article-listen .is-active {
+.article-listen .is-active,
+.article-share button:hover,
+.article-share .is-active {
   color: var(--blue-strong);
 }
-.article-listen .icon {
+.article-listen .icon,
+.article-share .icon {
   align-self: center;
   width: 15px;
   height: 15px;
+}
+/* Opened from Share: a code that takes the page to a phone, and its link to copy. */
+.reader-popover.share-card {
+  width: min(264px, calc(100% - 32px));
+  padding: 13px 14px 12px;
+  text-align: center;
+}
+.share-card-label {
+  margin: 0 0 10px;
+  color: var(--heading);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-style: italic;
+  line-height: 1.4;
+}
+/* Dark on light in both themes, as cameras read codes best. */
+.share-code {
+  display: block;
+  width: 152px;
+  height: 152px;
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: #203b58;
+}
+[data-theme='night'] .share-code {
+  border-color: transparent;
+  background: #dceafa;
+  color: #142338;
+}
+.share-card-url {
+  margin: 8px 0 9px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.share-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.share-card-actions button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 13px 0 10px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--blue-strong);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.share-card-actions button:hover {
+  background: var(--light-blue);
+}
+.share-card-actions .icon {
+  width: 15px;
+  height: 15px;
+}
+@media (hover: none) {
+  .share-card-actions button {
+    min-height: 38px;
+  }
 }
 @keyframes continue-reading-in {
   from {
@@ -1222,7 +1297,8 @@
   .article-body .heading-link,
   .continue-reading,
   .listen-player,
-  .article-listen {
+  .article-listen,
+  .article-share {
     display: none;
   }
 }

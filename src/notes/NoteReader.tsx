@@ -3,6 +3,7 @@ import ArticleHeader from '../content/ArticleHeader';
 import ArticleBody from '../content/reader/ArticleBody';
 import type { LinkPreviewSource } from '../content/reader/LinkPreview';
 import ListenButton from '../content/reader/ListenButton';
+import ShareButton from '../content/reader/ShareButton';
 import ArticleComments from '../content/reader/ArticleComments';
 import { noteSections } from '../config/sections.mjs';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
@@ -32,7 +33,12 @@ export default function NoteReader({ article: note }: { article: Article }) {
         article={note}
         eyebrow={`KNOWLEDGE BASE / ${noteSections.byId(note.section).label.toUpperCase()}`}
         collection="notes"
-        actions={<ListenButton />}
+        actions={
+          <>
+            <ListenButton />
+            <ShareButton article={note} />
+          </>
+        }
       />
       <ArticleBody article={note} label="Note content" previews={previews} />
       <section className="note-backlinks" aria-labelledby="backlinks-title">
