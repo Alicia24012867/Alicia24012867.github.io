@@ -368,3 +368,14 @@ node --expose-gc --experimental-strip-types scripts/benchmark-search.mjs --compa
 ### 验证
 
 `tests/speech.test.mjs` 检查语音选择、分句与公式读法。在 macOS 的 Chrome 中用真实语音（Samantha、Tingting）朗读了英文与中文文章，并用替身语音快速走完整篇，确认跟随滚动、滚开后不再跟随、暂停后从屏幕处继续、读完收起、出错提示与无语音时隐藏按钮。没有在 Safari、Firefox、Windows 或手机系统的语音上实测。
+
+## 第十一轮：预先打开
+
+基线提交为 `ea33659`。四个 HTML 入口加入推测加载规则：Chromium 浏览器在鼠标停在站内页面链接上约 0.2 秒或按下链接时，在后台完整打开该页（prerender），点击后直接显示已经画好的页面。规则只匹配以 `/` 结尾的站内页面地址（含查询参数与锚点），排除页内锚点、带 `target` 或 `download` 的链接；订阅源、图片和外部链接本来就不匹配。规则不进入 JavaScript，各页初始脚本与样式不变。
+
+- 后台页面在显示前运行脚本：正文、目录和朗读按钮已经就绪；签名动画、流星和滚动相关的绘制等到页面可见才开始；giscus 的跨站 iframe 由浏览器推迟到显示时加载。首页的 Right now 卡片可能在后台请求 GitHub，沿用原有的半小时本地缓存。
+- 后台等待期间切换过主题时，页面显示（`prerenderingchange`）时重新读取；同一处理也覆盖从往返缓存返回的页面（`pageshow` 的 `persisted`）和其他标签页（`storage`）。此前从文章切换主题后按返回键，列表页仍是旧主题。
+
+### 验证
+
+有 DevTools 连接时 Chrome 不做 prerender（状态为 `PrerenderingDisabledByDevTools`），只先取回页面，因此分两步验证：带 DevTools 时确认三类页面上哪些链接是候选（导航、标签与文章链接是；锚点、外站、邮件和订阅源不是），并确认悬停会触发加载；再用一个不带 DevTools 的临时页面以 `immediate` 规则预先打开 thoughts_on_ai，等待期间把主题改为夜间，5 秒后跳转，之后才连接 DevTools：`activationStart` 为 4,980 ms（页面在后台已就绪约 5 秒），正文 17 段与 Listen 按钮已渲染，主题为夜间。悬停触发的完整 prerender 没有在不带 DevTools 的浏览器里测量，Safari 与 Firefox 不支持这项规则。
