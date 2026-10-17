@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Icon from '../Icon';
 import ThemeToggle from '../ThemeToggle';
+import SiteSearch from './SiteSearch';
 import { profile } from '../../config/profile';
 import { friendLinks, homepageLinks, visibleLinks } from '../../config/links';
 import { listingUrl, queryFromSearch, slugFromLocation } from '../../content/urls';
@@ -142,6 +143,7 @@ export default function SiteHeader({ section }: { section: SiteSection }) {
           ))}
         </nav>
         <div className="header-actions">
+          <SiteSearch />
           <ThemeToggle />
           <a
             className="icon-button github-button"

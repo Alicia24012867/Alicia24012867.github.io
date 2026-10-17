@@ -44,6 +44,31 @@ export function matchesIn(text: string, query: string) {
   return spans;
 }
 
+/**
+ * Matching documents in the order a quick search offers them: those whose title begins with
+ * the query, then those whose title holds it, then a tag that is the query, then the summary
+ * or a tag holding it, then the rest. Each kind keeps the order it was given in.
+ */
+export function byFit<T extends Pick<ArticleSummary, 'title' | 'description' | 'tags'>>(
+  entries: readonly T[],
+  query: string,
+): T[] {
+  const needle = searchTerm(query);
+  if (!needle) return [...entries];
+  const { find, begins } = caseless(needle);
+  const fit = (entry: T) => {
+    if (begins(entry.title)) return 0;
+    if (find(entry.title)) return 1;
+    if (entry.tags.some((tag) => tag.toLowerCase() === needle)) return 2;
+    if (find(entry.description) || entry.tags.some((tag) => find(tag))) return 3;
+    return 4;
+  };
+  return entries
+    .map((entry, order) => ({ entry, order, fit: fit(entry) }))
+    .sort((a, b) => a.fit - b.fit || a.order - b.order)
+    .map(({ entry }) => entry);
+}
+
 export interface Excerpt {
   text: string;
   /** Where the match lies in `text`. */
