@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from 'react';
 import Icon from '../../components/Icon';
+import { holdMusic } from '../../components/music/music';
 import { textLanguage } from '../language.mjs';
 import type { Article } from '../types';
 import { canSpeak, listening } from './listening';
@@ -306,6 +307,10 @@ export default function ListenPlayer({
       window.removeEventListener('pagehide', onHide);
     };
   }, [bodyRef, article]);
+
+  // The background music rests while the page reads aloud, paused or not.
+  const reading = status !== 'off';
+  useEffect(() => (reading ? holdMusic() : undefined), [reading]);
 
   if (status === 'off') return null;
   const changeRate = () => {

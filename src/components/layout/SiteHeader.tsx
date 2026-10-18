@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Icon from '../Icon';
 import ThemeToggle from '../ThemeToggle';
+import MusicButton from '../music/MusicButton';
 import SiteSearch from './SiteSearch';
 import { profile } from '../../config/profile';
 import { friendLinks, homepageLinks, visibleLinks } from '../../config/links';
@@ -144,6 +145,7 @@ export default function SiteHeader({ section }: { section: SiteSection }) {
         </nav>
         <div className="header-actions">
           <SiteSearch />
+          <MusicButton />
           <ThemeToggle />
           <a
             className="icon-button github-button"

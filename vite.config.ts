@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { blogFeed } from './src/config/feeds.mjs';
 import { articlesPlugin } from './scripts/content/plugin.mjs';
 import { notFoundPlugin } from './scripts/not-found.mjs';
+import { musicPlugin } from './scripts/music.mjs';
 import { sitemapPlugin } from './scripts/content/sitemap.mjs';
 import { sharePlugin } from './scripts/content/share.mjs';
 
@@ -25,6 +26,7 @@ export default defineConfig({
     notes,
     sharePlugin([blog.api, notes.api], { siteUrl: blogFeed.siteUrl }),
     sitemapPlugin([blog.api, notes.api], blogFeed.siteUrl),
+    musicPlugin(),
   ],
   base: '/',
   appType: 'mpa',

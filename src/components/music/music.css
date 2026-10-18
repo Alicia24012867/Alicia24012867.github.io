@@ -1,0 +1,38 @@
+.music-button {
+  color: var(--muted);
+}
+/* Blue while the music is on; the note fills while it plays. */
+.music-button[aria-pressed='true'],
+.music-button.is-paused {
+  color: var(--blue-strong);
+}
+.music-button ellipse {
+  fill: transparent;
+  transition: fill 0.2s;
+}
+.music-button[aria-pressed='true'] ellipse {
+  fill: currentColor;
+}
+/* With the note, the header has a fifth button: closer together where it would not fit. */
+@media (min-width: 801px) and (max-width: 900px) {
+  .header-inner:has(.music-button) {
+    gap: 18px;
+  }
+  .header-actions:has(.music-button) {
+    gap: 4px;
+    margin-left: 0;
+  }
+}
+@media (max-width: 359px) {
+  .header-actions:has(.music-button) {
+    gap: 0;
+  }
+  .header-actions:has(.music-button) .icon-button {
+    width: 32px;
+  }
+}
+@media print {
+  .icon-button.music-button {
+    display: none;
+  }
+}

@@ -27,7 +27,8 @@ export type IconName =
   | 'share'
   | 'image'
   | 'text'
-  | 'search';
+  | 'search'
+  | 'music';
 
 const paths: Record<IconName, React.ReactNode> = {
   cloud: <path d="M6 18a5 5 0 0 1-.8-9.94 7 7 0 0 1 13.12-.68A5.5 5.5 0 0 1 18.5 18Z" />,
@@ -137,6 +138,13 @@ const paths: Record<IconName, React.ReactNode> = {
     <>
       <circle cx="10.5" cy="10.5" r="6.5" />
       <path d="m15.5 15.5 5 5" />
+    </>
+  ),
+  // An eighth note, its head tilted as on a stave.
+  music: (
+    <>
+      <ellipse cx="8.8" cy="17.5" rx="3.4" ry="2.7" transform="rotate(-22 8.8 17.5)" />
+      <path d="M12.1 17V3.5c.4 2.2 2.2 3.3 3.9 4.4 1.6 1 2.4 2.9 1.5 5.1" />
     </>
   ),
 };

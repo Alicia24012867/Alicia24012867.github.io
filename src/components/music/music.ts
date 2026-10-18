@@ -1,0 +1,146 @@
+import tracks from 'virtual:music';
+import { musicKey, playableTracks, readMusic, type MusicState } from './tracks';
+
+/**
+ * `playing` once the reader turned the music on here; `paused` while it is on but waits, for a
+ * press where the browser lets only a press start sound, or for reading aloud to end.
+ */
+export type MusicStatus = 'off' | 'playing' | 'paused';
+
+/**
+ * The player itself, in its own file: loaded at the first sign of a press, or at once when the
+ * music was left on.
+ */
+export interface Player {
+  play(): void;
+  stop(): void;
+  /** Rests the music while the page reads aloud (`true`), and brings it back after. */
+  hold(on: boolean): void;
+}
+
+/** What a press began before the player arrived; see `prepare`. */
+export interface Prepared {
+  audio: HTMLAudioElement;
+  context?: AudioContext;
+}
+
+const probe = tracks.length ? document.createElement('audio') : undefined;
+/** The pieces this browser can play. Without any, there is no music button. */
+export const playable = probe ? playableTracks(tracks, (type) => !!probe.canPlayType(type)) : [];
+
+/**
+ * iPhones and iPads leave the loudness of a page's sound to the buttons on their side. There the
+ * music goes through the browser's audio graph, the one way a page can play it softly.
+ */
+export const fixedVolume =
+  /^iP(hone|ad|od)/.test(navigator.platform) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+/** The kept state; without storage, the music starts off on every page. */
+export function keptMusic(): MusicState {
+  try {
+    return readMusic(localStorage.getItem(musicKey));
+  } catch {
+    return { on: false };
+  }
+}
+
+let status: MusicStatus = playable.length && keptMusic().on ? 'paused' : 'off';
+const listeners = new Set<() => void>();
+let player: Player | undefined;
+let loading: Promise<Player> | undefined;
+let prepared: Prepared | undefined;
+let held = false;
+// What the last press asked for while the player was still on its way.
+let pressed = false;
+
+// Chrome remembers a failed load until the page reloads, so none is tried without a connection.
+function load() {
+  if (!navigator.onLine) return Promise.reject(new Error('The music needs a connection'));
+  loading ??= import('./MusicPlayer').then(
+    ({ createPlayer }) => (player = createPlayer(prepared)),
+    (error) => {
+      loading = undefined;
+      throw error;
+    },
+  );
+  return loading;
+}
+
+/**
+ * Safari lets a page begin sound only inside a press. Before the player arrives, the press
+ * begins what it will play with: an element, which may then play at any time, and on iPhones
+ * and iPads the audio graph's context, which keeps the music soft.
+ */
+function prepare(): Prepared {
+  const audio = new Audio();
+  audio.load();
+  const context = fixedVolume ? new AudioContext() : undefined;
+  context?.resume().catch(() => {});
+  return { audio, context };
+}
+
+export const music = {
+  subscribe(listener: () => void) {
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  },
+  get: () => status,
+  /** For the player: what the button shows. */
+  show(next: MusicStatus) {
+    if (next === status) return;
+    status = next;
+    listeners.forEach((listener) => listener());
+  },
+  /** Whether the page is reading aloud. */
+  held: () => held,
+  /**
+   * Fetches the player as a press approaches, so it is there for the press. With the music left
+   * on, it plays once here; failing that, the music is off on this page.
+   */
+  preload() {
+    if (playable.length) load().catch(() => music.show('off'));
+  },
+  press() {
+    const on = status !== 'playing';
+    if (player) return on ? player.play() : player.stop();
+    if (on && !navigator.onLine) return;
+    prepared ??= prepare();
+    pressed = on;
+    music.show(on ? 'playing' : 'off');
+    load().then(
+      (loaded) => (pressed ? loaded.play() : loaded.stop()),
+      () => music.show('off'),
+    );
+  },
+};
+
+/** Rests the music while the page reads aloud; the function returned brings it back. */
+export function holdMusic() {
+  held = true;
+  player?.hold(true);
+  return () => {
+    held = false;
+    player?.hold(false);
+  };
+}
+
+if (playable.length) {
+  // A page shown again, from the back button or from another tab, joins the music as it is now.
+  // Once the player is here, it sees to this itself.
+  const follow = () => {
+    if (loading || document.visibilityState !== 'visible') return;
+    const { on } = keptMusic();
+    music.show(on ? 'paused' : 'off');
+    if (on) music.preload();
+  };
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) follow();
+  });
+  document.addEventListener('visibilitychange', follow);
+}
+
+// Left on, the music goes on from where it was, on this page as on the last.
+if (status === 'paused') music.preload();
