@@ -14,7 +14,7 @@ export default function ArticleComments({
 }) {
   const container = useRef<HTMLElement>(null);
   const { term, backlink } = commentIdentity(collection, slug);
-  const { Widget, failed, theme } = useCommentWidget(container, backlink);
+  const { Widget, failed, offline, theme } = useCommentWidget(container, backlink);
 
   return (
     <section
@@ -55,7 +55,7 @@ export default function ArticleComments({
           </div>
         ) : (
           <p className="comments-status" role="status">
-            Loading comments…
+            {offline ? 'Comments will load once you’re back online.' : 'Loading comments…'}
           </p>
         )}
       </div>

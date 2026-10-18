@@ -1,0 +1,22 @@
+{
+  "id": "/",
+  "name": "Alicia · Between code and blue skies",
+  "short_name": "Alicia",
+  "description": "Alicia’s blog and notes: code, learning, and little discoveries worth sharing.",
+  "lang": "en",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5faff",
+  "theme_color": "#f5faff",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -10,15 +10,25 @@ import { commentTheme } from '../content/reader/comments';
 export function useCommentWidget(container: RefObject<HTMLElement | null>, backlink: string) {
   const [Widget, setWidget] = useState<ComponentType<GiscusProps>>();
   const [failed, setFailed] = useState(false);
+  const [offline, setOffline] = useState(false);
   const [theme, setTheme] = useState(() => commentTheme(document.documentElement.dataset.theme));
 
   useEffect(() => {
     let disposed = false;
     let started = false;
     setFailed(false);
+    setOffline(false);
     const load = () => {
       if (started) return;
+      // The widget comes from giscus.app, so without a connection it waits for one.
+      if (!navigator.onLine) {
+        setOffline(true);
+        window.addEventListener('online', load);
+        return;
+      }
       started = true;
+      setOffline(false);
+      window.removeEventListener('online', load);
       observer?.disconnect();
       import('@giscus/react').then(
         ({ default: Giscus }) => {
@@ -43,6 +53,7 @@ export function useCommentWidget(container: RefObject<HTMLElement | null>, backl
     return () => {
       disposed = true;
       observer?.disconnect();
+      window.removeEventListener('online', load);
     };
   }, [container]);
 
@@ -65,5 +76,5 @@ export function useCommentWidget(container: RefObject<HTMLElement | null>, backl
     return () => meta.remove();
   }, [backlink]);
 
-  return { Widget, failed, theme };
+  return { Widget, failed, offline, theme };
 }

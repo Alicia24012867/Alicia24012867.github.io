@@ -4,10 +4,13 @@ import ContentPage from '../content/ContentPage';
 import ArticleIndex from './ArticleIndex';
 import { blogIndex } from './catalog';
 import { loadArticle } from 'virtual:articles';
+import { keepForOffline } from '../offline';
 import '../styles/global.css';
 import '../styles/content.css';
 
 const loadReader = () => import('./ArticleReader');
+
+keepForOffline();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

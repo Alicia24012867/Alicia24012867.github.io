@@ -6,6 +6,7 @@ import SiteLayout from './components/layout/SiteLayout';
 import Icon from './components/Icon';
 import { textLanguage } from './content/language.mjs';
 import { suggestionsFor } from './content/suggest';
+import { keepForOffline } from './offline';
 import './styles/global.css';
 import './styles/not-found.css';
 
@@ -14,6 +15,8 @@ const suggestions = suggestionsFor(window.location.pathname, {
   blog: blogTitles,
   notes: noteTitles,
 });
+
+keepForOffline();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

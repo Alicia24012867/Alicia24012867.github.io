@@ -1,4 +1,5 @@
 import {
+  Component,
   lazy,
   Suspense,
   useCallback,
@@ -8,6 +9,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../Icon';
@@ -16,9 +18,38 @@ import './site-search.css';
 /** One result the keyboard can choose, and where it leads. */
 export type SearchOption = { id: string; href: string };
 
-// The catalogs and their full text load only once a search opens, or is about to.
-const loadResults = () => import('../../content/SearchResults');
-const SearchResults = lazy(loadResults);
+// The catalogs and their full text load only once a search opens, or is about to. A load that
+// fails stays failed until the page reloads, so none is tried without a connection.
+const loadResults = () =>
+  navigator.onLine
+    ? import('../../content/SearchResults')
+    : Promise.reject(new Error('Search needs a connection'));
+const preloadResults = () => void loadResults().catch(() => {});
+let SearchResults = lazy(loadResults);
+
+type Failure = { failed: false } | { failed: true; offline: boolean };
+
+/** Keeps the box open, with a word, when the results cannot load. */
+class ResultsBoundary extends Component<{ children: ReactNode }, Failure> {
+  state: Failure = { failed: false };
+  static getDerivedStateFromError(): Failure {
+    return { failed: true, offline: !navigator.onLine };
+  }
+  componentDidCatch() {
+    // Nothing was asked for offline, so the next search asks again.
+    SearchResults = lazy(loadResults);
+  }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <p className="site-search-hint" role="alert">
+        {this.state.offline
+          ? 'Search needs a connection the first time. Try again once you’re back online.'
+          : 'Search couldn’t load. Reload the page to try again.'}
+      </p>
+    );
+  }
+}
 
 const shortcut = /Mac|iPhone|iPad|iPod/.test(navigator.platform) ? '⌘K' : 'Ctrl+K';
 
@@ -127,15 +158,17 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
         </button>
       </div>
       <div className="site-search-body">
-        <Suspense fallback={<p className="site-search-hint">Loading…</p>}>
-          <SearchResults
-            query={query}
-            id={id}
-            active={current}
-            onActive={setActive}
-            onOptions={onOptions}
-          />
-        </Suspense>
+        <ResultsBoundary>
+          <Suspense fallback={<p className="site-search-hint">Loading…</p>}>
+            <SearchResults
+              query={query}
+              id={id}
+              active={current}
+              onActive={setActive}
+              onOptions={onOptions}
+            />
+          </Suspense>
+        </ResultsBoundary>
       </div>
       <p className="site-search-keys" aria-hidden="true">
         <span>
@@ -166,7 +199,7 @@ export default function SiteSearch() {
       const slash = event.key === '/' && !event.metaKey && !event.ctrlKey && !typing(event.target);
       if (!command && !slash) return;
       event.preventDefault();
-      void loadResults();
+      preloadResults();
       setOpen((value) => (command ? !value : true));
     };
     document.addEventListener('keydown', onKeyDown);
@@ -183,9 +216,9 @@ export default function SiteSearch() {
         aria-haspopup="dialog"
         aria-keyshortcuts={shortcut === '⌘K' ? 'Meta+K' : 'Control+K'}
         title={label}
-        onPointerEnter={() => void loadResults()}
-        onPointerDown={() => void loadResults()}
-        onFocus={() => void loadResults()}
+        onPointerEnter={preloadResults}
+        onPointerDown={preloadResults}
+        onFocus={preloadResults}
         onClick={() => setOpen(true)}
       >
         <Icon name="search" />

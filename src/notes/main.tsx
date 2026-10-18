@@ -4,10 +4,13 @@ import ContentPage from '../content/ContentPage';
 import NotesIndex from './NotesIndex';
 import { noteIndex } from './catalog';
 import { loadArticle } from 'virtual:notes';
+import { keepForOffline } from '../offline';
 import '../styles/global.css';
 import '../styles/content.css';
 
 const loadReader = () => import('./NoteReader');
+
+keepForOffline();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

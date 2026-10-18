@@ -67,6 +67,21 @@ for (const { path: pathname, type } of feedFormats) {
 const sitemap = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
 assert.match(sitemap, /<urlset xmlns="http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9">/);
 assert.doesNotMatch(sitemap, /404\.html|[?&](?:q|sort)=/);
+// Reading offline: the worker, its note and the home screen manifest ship with every build.
+for (const file of [
+  'sw.js',
+  'offline.html',
+  'manifest.webmanifest',
+  'icon-192.png',
+  'icon-512.png',
+  'icon-maskable-512.png',
+])
+  assert.ok(fs.existsSync(path.join(root, file)), 'Missing offline file: ' + file);
+for (const [page, html] of entries)
+  assert.ok(
+    html.includes('<link rel="manifest" href="/manifest.webmanifest"'),
+    `${page} has no manifest`,
+  );
 const robots = fs.readFileSync(path.join(root, 'robots.txt'), 'utf8');
 assert.ok(robots.includes(`Sitemap: ${new URL('/sitemap.xml', blogFeed.siteUrl).href}`));
 const notFound = entries.get('404.html');

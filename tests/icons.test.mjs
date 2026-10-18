@@ -21,3 +21,27 @@ test('the home screen icon is an opaque 180 px square PNG', () => {
   // Colour type 2 is RGB without alpha: iPhones would fill transparent corners with black.
   assert.equal(png[25], 2);
 });
+
+test('every page names the manifest, whose icons are there at their sizes', () => {
+  for (const entry of entries)
+    assert.match(
+      read(entry, 'utf8'),
+      /<link rel="manifest" href="%BASE_URL%manifest\.webmanifest" \/>/,
+    );
+  const manifest = JSON.parse(read('public/manifest.webmanifest', 'utf8'));
+  assert.equal(manifest.start_url, '/');
+  assert.equal(manifest.scope, '/');
+  assert.equal(manifest.display, 'standalone');
+  assert.ok(manifest.name && manifest.short_name.length <= 12);
+  for (const icon of manifest.icons) {
+    const png = read('public' + icon.src);
+    const [width, height] = icon.sizes.split('x').map(Number);
+    assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [width, height], icon.src);
+    assert.equal(png[25], 2, `${icon.src} is opaque`);
+  }
+  const sizes = manifest.icons
+    .filter((icon) => icon.purpose !== 'maskable')
+    .map((icon) => icon.sizes);
+  assert.deepEqual(sizes, ['192x192', '512x512']);
+  assert.ok(manifest.icons.some((icon) => icon.purpose === 'maskable' && icon.sizes === '512x512'));
+});

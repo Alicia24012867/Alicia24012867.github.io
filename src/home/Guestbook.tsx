@@ -10,7 +10,7 @@ const backlink = absoluteUrl('/#guestbook');
 /** Notes from visitors under Contact, kept in the same GitHub discussions as post comments. */
 export default function Guestbook() {
   const container = useRef<HTMLElement>(null);
-  const { Widget, failed, theme } = useCommentWidget(container, backlink);
+  const { Widget, failed, offline, theme } = useCommentWidget(container, backlink);
 
   return (
     <section ref={container} id="guestbook" className="guestbook" aria-labelledby="guestbook-title">
@@ -52,7 +52,9 @@ export default function Guestbook() {
           </div>
         ) : (
           <p className="guestbook-status" role="status">
-            Opening the guestbook…
+            {offline
+              ? 'The guestbook will open once you’re back online.'
+              : 'Opening the guestbook…'}
           </p>
         )}
       </div>
