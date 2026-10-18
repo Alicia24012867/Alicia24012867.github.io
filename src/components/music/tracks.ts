@@ -18,6 +18,15 @@ export interface MusicState {
 
 export const musicKey = 'alicia-music';
 
+/** What follows a piece: the next round the list, the same piece again, or another at random. */
+export const musicModes = ['all', 'one', 'shuffle'] as const;
+export type MusicMode = (typeof musicModes)[number];
+export const musicModeKey = 'alicia-music-mode';
+
+/** The kept order; anything else counts as round the list. */
+export const readMode = (saved: string | null): MusicMode =>
+  (musicModes as readonly string[]).includes(saved ?? '') ? (saved as MusicMode) : 'all';
+
 /** The pieces this browser can play, each in only the formats it can play. */
 export function playableTracks(tracks: readonly Track[], canPlay: (type: string) => boolean) {
   return tracks

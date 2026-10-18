@@ -5,8 +5,20 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createServer } from 'vite';
 import { audioTypes, findTracks, musicPlugin } from '../scripts/music.mjs';
-import { resumePoint, startAt, writtenMusic } from '../src/components/music/place.ts';
-import { musicKey, pieceTitle, playableTracks, readMusic } from '../src/components/music/tracks.ts';
+import {
+  followingPiece,
+  resumePoint,
+  startAt,
+  writtenMusic,
+} from '../src/components/music/place.ts';
+import {
+  musicKey,
+  musicModeKey,
+  pieceTitle,
+  playableTracks,
+  readMode,
+  readMusic,
+} from '../src/components/music/tracks.ts';
 
 const folder = (t) => {
   const root = realpathSync(mkdtempSync(path.join(tmpdir(), 'alicia-music-test-')));
@@ -202,4 +214,28 @@ test('a kept place at the very end of a piece moves on to the next', () => {
   // Until the length is known, the kept place stands.
   assert.equal(startAt(42.5, NaN), 42.5);
   assert.equal(startAt(42.5, Infinity), 42.5);
+});
+
+test('the order of play: round the list, the same piece again, or another at random', () => {
+  assert.equal(followingPiece(4, 1, 'all'), 2);
+  assert.equal(followingPiece(4, 3, 'all'), 0);
+  assert.equal(followingPiece(4, 2, 'one'), 2);
+  // Shuffled, any piece but the one just played, each as likely.
+  const picks = (index) =>
+    [0, 0.25, 0.5, 0.74, 0.999999].map((r) => followingPiece(4, index, 'shuffle', () => r));
+  assert.deepEqual(picks(0), [1, 1, 2, 3, 3]);
+  assert.deepEqual(picks(2), [0, 0, 1, 3, 3]);
+  assert.deepEqual(picks(3), [0, 0, 1, 2, 2]);
+  // One piece alone plays again.
+  assert.equal(
+    followingPiece(1, 0, 'shuffle', () => 0.5),
+    0,
+  );
+  assert.equal(followingPiece(1, 0, 'all'), 0);
+});
+
+test('the kept order is one of the three, or round the list', () => {
+  assert.equal(musicModeKey, 'alicia-music-mode');
+  for (const mode of ['all', 'one', 'shuffle']) assert.equal(readMode(mode), mode);
+  for (const broken of [null, '', 'random', 'ONE', '{}']) assert.equal(readMode(broken), 'all');
 });

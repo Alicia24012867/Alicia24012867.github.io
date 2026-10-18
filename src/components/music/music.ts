@@ -1,6 +1,14 @@
 import tracks from 'virtual:music';
 import { resumePoint, writtenMusic } from './place';
-import { musicKey, playableTracks, readMusic, type MusicState } from './tracks';
+import {
+  musicKey,
+  musicModeKey,
+  playableTracks,
+  readMode,
+  readMusic,
+  type MusicMode,
+  type MusicState,
+} from './tracks';
 
 /**
  * `playing` once the reader turned the music on here; `paused` while it is on but waits, for a
@@ -17,8 +25,10 @@ export interface Player {
   stop(): void;
   /** Rests the music while the page reads aloud (`true`), and brings it back after. */
   hold(on: boolean): void;
-  /** Goes `step` pieces along the list, round and round. */
+  /** Goes to the next piece (`1`) or the one before (`-1`), as the order has them. */
   skip(step: number): void;
+  /** Plays piece `index` of the list from its start. */
+  choose(index: number): void;
   /** Moves to `time` seconds into the piece. */
   seek(time: number): void;
   /** Readies the piece shown in the panel, so that its length is known before it plays. */
@@ -111,6 +121,42 @@ function prepare(): Prepared {
   return { audio, context };
 }
 
+function storedMode() {
+  try {
+    return readMode(localStorage.getItem(musicModeKey));
+  } catch {
+    return 'all';
+  }
+}
+let mode: MusicMode = storedMode();
+const modeWatchers = new Set<() => void>();
+
+/** The order the pieces play in, kept in this browser and followed by every page. */
+export const musicMode = {
+  subscribe(watcher: () => void) {
+    modeWatchers.add(watcher);
+    return () => {
+      modeWatchers.delete(watcher);
+    };
+  },
+  get: () => mode,
+  set(next: MusicMode) {
+    mode = next;
+    try {
+      if (next === 'all') localStorage.removeItem(musicModeKey);
+      else localStorage.setItem(musicModeKey, next);
+    } catch {
+      // Without storage, the order lasts as long as the page.
+    }
+    modeWatchers.forEach((watcher) => watcher());
+  },
+};
+window.addEventListener('storage', (event) => {
+  if (event.key !== musicModeKey && event.key !== null) return;
+  mode = storedMode();
+  modeWatchers.forEach((watcher) => watcher());
+});
+
 let place: MusicPlace | undefined;
 const watchers = new Set<() => void>();
 
@@ -173,6 +219,18 @@ export const music = {
   },
   seek(time: number) {
     player?.seek(time);
+  },
+  /** A piece picked from the list plays at once. */
+  choose(index: number) {
+    if (player) return player.choose(index);
+    if (!navigator.onLine) return;
+    prepared ??= prepare();
+    pressed = true;
+    music.show('playing');
+    load().then(
+      (loaded) => loaded.choose(index),
+      () => music.show('off'),
+    );
   },
   press() {
     const on = status !== 'playing';

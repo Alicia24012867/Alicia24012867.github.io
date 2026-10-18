@@ -2,13 +2,14 @@ import {
   fixedVolume,
   keptMusic,
   music,
+  musicMode,
   musicPlace,
   playable,
   startingPoint,
   type Player,
   type Prepared,
 } from './music';
-import { resumePoint, startAt, writtenMusic } from './place';
+import { followingPiece, resumePoint, startAt, writtenMusic } from './place';
 import { musicKey, pieceTitle, readMusic } from './tracks';
 
 /** Soft enough to read by. */
@@ -230,27 +231,55 @@ export function createPlayer(prepared?: Prepared): Player {
     if (ours && !audio.paused && performance.now() - kept > keepEvery) save();
   });
   for (const type of ['durationchange', 'seeked']) audio.addEventListener(type, tell);
-  // One piece after another, round and round, each loaded afresh: the element's own looping, or
-  // going back to the start, can leave iPhones reporting a time that no longer moves.
+  // The pieces played on this page, the latest last, for going back in a shuffled order.
+  const played: number[] = [];
+  const leave = (from: number) => {
+    played.push(from);
+    if (played.length > 50) played.shift();
+  };
+  // One piece after another in the reader's order, each loaded afresh, even the same one again:
+  // the element's own looping, or going back to the start, can leave iPhones reporting a time
+  // that no longer moves.
   const next = () => {
-    load((index + 1) % playable.length, 0);
+    if (index >= 0) leave(index);
+    load(followingPiece(playable.length, Math.max(index, 0), musicMode.get()), 0);
     if (playing) audio.play().catch(() => {});
     if (ours) save();
   };
   audio.addEventListener('ended', next);
 
   // Another piece from the panel. Playing, it fades in from silence; otherwise it waits there.
-  const skip = (step: number) => {
-    const from = index < 0 ? startingPoint().index : index;
+  const moveTo = (to: number) => {
     if (playing) {
       endFade?.(false);
       target = 0;
       setVolume(gain ? 0 : 0.001);
     }
     audio.preload = 'metadata';
-    load((((from + step) % playable.length) + playable.length) % playable.length, 0);
+    load(to, 0);
     if (playing) audio.play().catch(() => {});
     save();
+  };
+  const current = () => (index < 0 ? startingPoint().index : index);
+  // Repeating one piece, the buttons still go along the list; shuffled, back retraces the way.
+  const skip = (step: number) => {
+    const from = current();
+    const order = musicMode.get();
+    if (step > 0) {
+      leave(from);
+      return moveTo(followingPiece(playable.length, from, order === 'one' ? 'all' : order));
+    }
+    const back = order === 'shuffle' ? played.pop() : undefined;
+    moveTo(back ?? (from - 1 + playable.length) % playable.length);
+  };
+  const choose = (to: number) => {
+    if (!playable[to]) return;
+    const from = current();
+    if (to !== from || index < 0) {
+      if (to !== from) leave(from);
+      moveTo(to);
+    }
+    if (!playing) play(true);
   };
   const seek = (time: number) => {
     if (index < 0 || !Number.isFinite(audio.duration)) return;
@@ -351,6 +380,7 @@ export function createPlayer(prepared?: Prepared): Player {
       else if (playing) stop('paused', fadeOut / 2);
     },
     skip,
+    choose,
     seek,
     peek() {
       if (index >= 0) return tell();

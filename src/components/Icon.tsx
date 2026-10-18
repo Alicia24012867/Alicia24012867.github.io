@@ -30,7 +30,11 @@ export type IconName =
   | 'search'
   | 'music'
   | 'previous'
-  | 'next';
+  | 'next'
+  | 'repeat'
+  | 'repeatOne'
+  | 'shuffle'
+  | 'list';
 
 const paths: Record<IconName, React.ReactNode> = {
   cloud: <path d="M6 18a5 5 0 0 1-.8-9.94 7 7 0 0 1 13.12-.68A5.5 5.5 0 0 1 18.5 18Z" />,
@@ -125,6 +129,34 @@ const paths: Record<IconName, React.ReactNode> = {
       <path d="M5.5 5.8v12.4l9-6.2Z" />
     </>
   ),
+  // Round and round the list; with a 1, the same piece again.
+  repeat: (
+    <>
+      <path d="M4.5 11V9.5A3.5 3.5 0 0 1 8 6h11.5" />
+      <path d="m16.5 3 3 3-3 3" />
+      <path d="M19.5 13v1.5A3.5 3.5 0 0 1 16 18H4.5" />
+      <path d="m7.5 21-3-3 3-3" />
+    </>
+  ),
+  repeatOne: (
+    <>
+      <path d="M4.5 11V9.5A3.5 3.5 0 0 1 8 6h11.5" />
+      <path d="m16.5 3 3 3-3 3" />
+      <path d="M19.5 13v1.5A3.5 3.5 0 0 1 16 18H4.5" />
+      <path d="m7.5 21-3-3 3-3" />
+      <path d="M11 10.3 12.4 9.5v5" />
+    </>
+  ),
+  shuffle: (
+    <>
+      <path d="M3.5 17H6a4 4 0 0 0 3.3-1.7l4.4-6.6A4 4 0 0 1 17 7h3.5" />
+      <path d="m17.5 4 3 3-3 3" />
+      <path d="M3.5 7H6a4 4 0 0 1 3.3 1.7l.5.8" />
+      <path d="m13.7 14.5.5.8A4 4 0 0 0 17.5 17h3" />
+      <path d="m17.5 14 3 3-3 3" />
+    </>
+  ),
+  list: <path d="M9 6.5h11M9 12h11M9 17.5h11M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01" />,
   pause: (
     <>
       <rect x="7" y="5.5" width="3.2" height="13" rx="1" />

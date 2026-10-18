@@ -9,14 +9,22 @@ import {
 } from 'react';
 import Icon from '../Icon';
 import { textLanguage } from '../../content/language.mjs';
-import { music, musicPlace, playable } from './music';
-import { pieceTitle } from './tracks';
+import { music, musicMode, musicPlace, playable } from './music';
+import { musicModes, pieceTitle, type MusicMode } from './tracks';
 import './music.css';
 
 /** How long the mouse rests on the note before the panel opens, and may stray before it closes. */
 const hoverOpen = 450;
 const hoverClose = 350;
 const margin = 16;
+
+const orders: Record<MusicMode, { name: string; icon: 'repeat' | 'repeatOne' | 'shuffle' }> = {
+  all: { name: 'Repeat all', icon: 'repeat' },
+  one: { name: 'Repeat one', icon: 'repeatOne' },
+  shuffle: { name: 'Shuffle', icon: 'shuffle' },
+};
+// Whether the list of pieces shows, kept while the page is open.
+let listShown = false;
 
 const clock = (seconds: number) => {
   const whole = Math.max(0, Math.floor(seconds));
@@ -27,8 +35,10 @@ const clock = (seconds: number) => {
 function MusicPanel({ id, style }: { id: string; style: CSSProperties }) {
   const status = useSyncExternalStore(music.subscribe, music.get);
   const place = useSyncExternalStore(musicPlace.subscribe, musicPlace.get);
+  const mode = useSyncExternalStore(musicMode.subscribe, musicMode.get);
   // Where the reader drags the bar to, until they let go.
   const [drag, setDrag] = useState<number>();
+  const [list, setList] = useState(listShown);
   const bar = useRef<HTMLInputElement>(null);
   const title = pieceTitle(playable[place.index]?.name ?? '');
   const known = Number.isFinite(place.duration) && place.duration > 0;
@@ -92,6 +102,17 @@ function MusicPanel({ id, style }: { id: string; style: CSSProperties }) {
       <div className="music-panel-controls">
         <button
           type="button"
+          className="icon-button music-panel-option"
+          aria-label={`Order: ${orders[mode].name}`}
+          title={orders[mode].name}
+          onClick={() =>
+            musicMode.set(musicModes[(musicModes.indexOf(mode) + 1) % musicModes.length])
+          }
+        >
+          <Icon name={orders[mode].icon} />
+        </button>
+        <button
+          type="button"
           className="icon-button"
           aria-label="Previous piece"
           disabled={!several}
@@ -116,7 +137,44 @@ function MusicPanel({ id, style }: { id: string; style: CSSProperties }) {
         >
           <Icon name="next" />
         </button>
+        <button
+          type="button"
+          className="icon-button music-panel-option"
+          aria-label="All pieces"
+          title="All pieces"
+          aria-expanded={list}
+          aria-controls={`${id}-list`}
+          onClick={() => {
+            listShown = !list;
+            setList(!list);
+          }}
+        >
+          <Icon name="list" />
+        </button>
       </div>
+      {list && (
+        <ol id={`${id}-list`} className="music-panel-list" aria-label="All pieces">
+          {playable.map((track, index) => {
+            const name = pieceTitle(track.name);
+            const here = index === place.index;
+            return (
+              <li key={track.name}>
+                <button
+                  type="button"
+                  aria-current={here || undefined}
+                  className={here && playing ? 'is-playing' : undefined}
+                  onClick={() => music.choose(index)}
+                >
+                  <span className="music-panel-number" aria-hidden="true">
+                    {here && playing ? <Icon name="music" /> : index + 1}
+                  </span>
+                  <span lang={textLanguage(name)}>{name}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      )}
     </div>
   );
 }
