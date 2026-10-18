@@ -1,5 +1,3 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
 import blogTitles from 'virtual:articles/titles';
 import noteTitles from 'virtual:notes/titles';
 import SiteLayout from './components/layout/SiteLayout';
@@ -7,19 +5,19 @@ import Icon from './components/Icon';
 import { textLanguage } from './content/language.mjs';
 import { suggestionsFor } from './content/suggest';
 import { keepForOffline } from './offline';
+import { showPage } from './pages';
 import './styles/global.css';
 import './styles/not-found.css';
 
-// Only titles and slugs come along, so a wrong address can still point the way.
-const suggestions = suggestionsFor(window.location.pathname, {
-  blog: blogTitles,
-  notes: noteTitles,
-});
-
 keepForOffline();
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
+showPage(import.meta.url, () => {
+  // Only titles and slugs come along, so a wrong address can still point the way.
+  const suggestions = suggestionsFor(window.location.pathname, {
+    blog: blogTitles,
+    notes: noteTitles,
+  });
+  return (
     <SiteLayout section="not-found">
       <section className="not-found" aria-labelledby="not-found-title">
         <img
@@ -79,5 +77,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </div>
       </section>
     </SiteLayout>
-  </React.StrictMode>,
-);
+  );
+});

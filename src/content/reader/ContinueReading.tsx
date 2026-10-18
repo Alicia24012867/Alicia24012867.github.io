@@ -7,6 +7,7 @@ import {
   type RefObject,
 } from 'react';
 import Icon from '../../components/Icon';
+import { pageLeave } from '../../pages';
 import type { Article } from '../types';
 import { textLanguage } from '../language.mjs';
 import { holdPlace } from './hold';
@@ -152,11 +153,13 @@ export default function ContinueReading({
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('pagehide', save);
+    window.addEventListener(pageLeave, save);
     document.addEventListener('visibilitychange', onHidden);
     return () => {
       window.clearTimeout(timer);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('pagehide', save);
+      window.removeEventListener(pageLeave, save);
       document.removeEventListener('visibilitychange', onHidden);
     };
   }, [bodyRef, page, headings]);

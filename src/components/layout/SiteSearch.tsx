@@ -14,6 +14,7 @@ import {
 import { createPortal } from 'react-dom';
 import Icon from '../Icon';
 import { textLanguage } from '../../content/language.mjs';
+import { openPage } from '../../pages';
 import './site-search.css';
 
 /** One result the keyboard can choose, and where it leads. */
@@ -108,7 +109,7 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
       event.preventDefault();
       const { href } = list[current];
       if (event.metaKey || event.ctrlKey) window.open(href, '_blank', 'noopener');
-      else window.location.assign(href);
+      else openPage(href);
     }
   };
 

@@ -50,23 +50,6 @@
         /* Without storage, documents keep the usual text. */
       }
     </script>
-    <!-- Chromium browsers load a page in the background once a link to it is hovered or
-         pressed, so it opens at once; others ignore this. In-page anchors are left out. -->
-    <script type="speculationrules">
-      {
-        "prerender": [
-          {
-            "where": {
-              "and": [
-                { "or": [{ "href_matches": "/" }, { "href_matches": "/*/" }] },
-                { "not": { "selector_matches": "[href^='#'], [target], [download]" } }
-              ]
-            },
-            "eagerness": "moderate"
-          }
-        ]
-      }
-    </script>
   </head>
   <body>
     <div id="root"></div>
