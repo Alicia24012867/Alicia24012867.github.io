@@ -226,7 +226,7 @@ dialog.site-search::backdrop {
   }
 }
 @media print {
-  .search-button {
+  .icon-button.search-button {
     display: none;
   }
 }
