@@ -45,6 +45,20 @@
   --surface: #fff;
   --header: rgba(255, 255, 255, 0.93);
 }
+/* Chinese text sets the curly quotes ‘ ’ “ ” full width; other text takes their Latin-width
+   forms from the last face in fonts.css, so an apostrophe leaves no gap after it. Only that
+   family has the set, so no other font's punctuation changes. */
+@font-feature-values 'Noto Sans SC' {
+  @styleset {
+    latin-quotes: 1;
+  }
+}
+:lang(zh) {
+  font-variant-alternates: normal;
+}
+:not(:lang(zh)) {
+  font-variant-alternates: styleset(latin-quotes);
+}
 
 * {
   box-sizing: border-box;

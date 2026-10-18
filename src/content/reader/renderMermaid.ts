@@ -37,6 +37,19 @@ function clearMermaidArtifacts(id: string) {
   document.getElementById(`d${id}`)?.remove();
 }
 
+// Mermaid sizes labels by drawing them at the end of the page. Doing that in the diagram's
+// language measures the glyphs it shows: curly quotes are narrower outside Chinese text.
+async function renderInLanguageOf(block: HTMLElement, id: string, source: string) {
+  const scratch = document.createElement('div');
+  scratch.lang = block.closest<HTMLElement>('[lang]')?.lang ?? '';
+  document.body.append(scratch);
+  try {
+    return await mermaid.render(id, source, scratch);
+  } finally {
+    scratch.remove();
+  }
+}
+
 // Mermaid has global configuration: serialize initialization AND rendering across theme changes.
 let renderQueue: Promise<void> = Promise.resolve();
 const cache = new WeakMap<HTMLElement, Map<string, { source: string; svg: string }>>();
@@ -84,7 +97,8 @@ async function drawDiagrams(
     const id = `aliciaMermaid${index}${Math.random().toString(36).slice(2, 8)}`;
     try {
       const stored = cache.get(block)?.get(theme);
-      const { svg } = stored?.source === source ? stored : await mermaid.render(id, source);
+      const { svg } =
+        stored?.source === source ? stored : await renderInLanguageOf(block, id, source);
       if (shouldAbort?.()) {
         clearMermaidArtifacts(id);
         return;
