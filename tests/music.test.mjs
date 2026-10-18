@@ -6,7 +6,7 @@ import path from 'node:path';
 import { createServer } from 'vite';
 import { audioTypes, findTracks, musicPlugin } from '../scripts/music.mjs';
 import { resumePoint, startAt, writtenMusic } from '../src/components/music/place.ts';
-import { musicKey, playableTracks, readMusic } from '../src/components/music/tracks.ts';
+import { musicKey, pieceTitle, playableTracks, readMusic } from '../src/components/music/tracks.ts';
 
 const folder = (t) => {
   const root = realpathSync(mkdtempSync(path.join(tmpdir(), 'alicia-music-test-')));
@@ -171,6 +171,27 @@ test('the music goes on from the kept place, or from the first piece', () => {
     time: 0,
   });
   assert.deepEqual(resumePoint(tracks, { on: false }), { index: 0, time: 0 });
+  // With nothing kept, the music begins at the piece picked for it.
+  assert.deepEqual(resumePoint(tracks, { on: false }, 2), { index: 2, time: 0 });
+  assert.deepEqual(resumePoint(tracks, { on: true, track: 'gone', time: 9 }, 1), {
+    index: 1,
+    time: 0,
+  });
+  assert.deepEqual(resumePoint(tracks, { on: true, track: 'a', time: 3 }, 2), {
+    index: 0,
+    time: 3,
+  });
+});
+
+test('a piece is shown without the number that sets its place in the list', () => {
+  assert.equal(pieceTitle('01 花月夜 - Flowery Moonlit Night'), '花月夜 - Flowery Moonlit Night');
+  assert.equal(pieceTitle('2. Dawn'), 'Dawn');
+  assert.equal(pieceTitle('10 - 夜曲'), '夜曲');
+  assert.equal(pieceTitle('天門 - Solitude'), '天門 - Solitude');
+  // A name that is only a number, or begins with one that belongs to it, stays as it is.
+  assert.equal(pieceTitle('1984'), '1984');
+  assert.equal(pieceTitle('99 '), '99 ');
+  assert.equal(pieceTitle('7th Heaven'), '7th Heaven');
 });
 
 test('a kept place at the very end of a piece moves on to the next', () => {

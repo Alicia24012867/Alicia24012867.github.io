@@ -25,6 +25,9 @@ export function playableTracks(tracks: readonly Track[], canPlay: (type: string)
     .filter((track) => track.sources.length);
 }
 
+/** A piece's name as the reader sees it, without the number that sets its place in the list. */
+export const pieceTitle = (name: string) => name.replace(/^\d+\s*[.)_-]?\s+(?=\S)/, '');
+
 const text = (value: unknown) => (typeof value === 'string' && value ? value : undefined);
 
 /** The kept state; anything missing or broken counts as off, from the beginning. */

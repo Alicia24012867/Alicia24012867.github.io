@@ -1,4 +1,5 @@
 import tracks from 'virtual:music';
+import { resumePoint, writtenMusic } from './place';
 import { musicKey, playableTracks, readMusic, type MusicState } from './tracks';
 
 /**
@@ -16,6 +17,19 @@ export interface Player {
   stop(): void;
   /** Rests the music while the page reads aloud (`true`), and brings it back after. */
   hold(on: boolean): void;
+  /** Goes `step` pieces along the list, round and round. */
+  skip(step: number): void;
+  /** Moves to `time` seconds into the piece. */
+  seek(time: number): void;
+  /** Readies the piece shown in the panel, so that its length is known before it plays. */
+  peek(): void;
+}
+
+/** The piece in the panel and how far into it the music is; `duration` is NaN until known. */
+export interface MusicPlace {
+  index: number;
+  time: number;
+  duration: number;
 }
 
 /** What a press began before the player arrived; see `prepare`. */
@@ -43,6 +57,23 @@ export function keptMusic(): MusicState {
   } catch {
     return { on: false };
   }
+}
+
+/**
+ * Where the music goes on: the kept piece at its kept place. With none kept yet, the first piece
+ * is picked at random, and kept at once so that every page begins with the same one.
+ */
+export function startingPoint() {
+  const state = keptMusic();
+  const point = resumePoint(playable, state, Math.floor(Math.random() * playable.length));
+  const track = playable[point.index]?.name;
+  if (track && track !== state.track)
+    try {
+      localStorage.setItem(musicKey, writtenMusic({ ...state, track, time: 0 }));
+    } catch {
+      // Without storage, each page picks its own.
+    }
+  return point;
 }
 
 let status: MusicStatus = playable.length && keptMusic().on ? 'paused' : 'off';
@@ -80,6 +111,29 @@ function prepare(): Prepared {
   return { audio, context };
 }
 
+let place: MusicPlace | undefined;
+const watchers = new Set<() => void>();
+
+/** For the panel: the piece and the time in it, told by the player as the music goes on. */
+export const musicPlace = {
+  subscribe(watcher: () => void) {
+    watchers.add(watcher);
+    return () => {
+      watchers.delete(watcher);
+    };
+  },
+  get: () => (place ??= { ...startingPoint(), duration: NaN }),
+  /** For the player. */
+  tell(next: MusicPlace) {
+    const now = musicPlace.get();
+    const same =
+      now.index === next.index && now.time === next.time && Object.is(now.duration, next.duration);
+    if (same) return;
+    place = next;
+    watchers.forEach((watcher) => watcher());
+  },
+};
+
 export const music = {
   subscribe(listener: () => void) {
     listeners.add(listener);
@@ -102,6 +156,23 @@ export const music = {
    */
   preload() {
     if (playable.length) load().catch(() => music.show('off'));
+  },
+  /** The panel opened: the player comes, and readies the piece it shows. */
+  open() {
+    if (playable.length)
+      load().then(
+        (loaded) => loaded.peek(),
+        () => {},
+      );
+  },
+  skip(step: number) {
+    load().then(
+      (loaded) => loaded.skip(step),
+      () => {},
+    );
+  },
+  seek(time: number) {
+    player?.seek(time);
   },
   press() {
     const on = status !== 'playing';

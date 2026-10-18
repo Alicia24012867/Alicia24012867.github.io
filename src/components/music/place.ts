@@ -10,10 +10,10 @@ export function writtenMusic({ on, track, time, owner }: MusicState) {
   });
 }
 
-/** Where to go on: the kept piece at its kept time, or the first piece from its start. */
-export function resumePoint(tracks: readonly Track[], { track, time }: MusicState) {
+/** Where to go on: the kept piece at its kept time, or else piece `first` from its start. */
+export function resumePoint(tracks: readonly Track[], { track, time }: MusicState, first = 0) {
   const index = track === undefined ? -1 : tracks.findIndex(({ name }) => name === track);
-  return index < 0 ? { index: 0, time: 0 } : { index, time: time ?? 0 };
+  return index < 0 ? { index: first, time: 0 } : { index, time: time ?? 0 };
 }
 
 /** Where to begin in a piece `duration` seconds long, or -1 when its end was reached. */

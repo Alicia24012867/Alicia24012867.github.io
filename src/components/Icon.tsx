@@ -28,7 +28,9 @@ export type IconName =
   | 'image'
   | 'text'
   | 'search'
-  | 'music';
+  | 'music'
+  | 'previous'
+  | 'next';
 
 const paths: Record<IconName, React.ReactNode> = {
   cloud: <path d="M6 18a5 5 0 0 1-.8-9.94 7 7 0 0 1 13.12-.68A5.5 5.5 0 0 1 18.5 18Z" />,
@@ -111,6 +113,18 @@ const paths: Record<IconName, React.ReactNode> = {
     </>
   ),
   play: <path d="M7.5 5.2v13.6L19 12Z" />,
+  previous: (
+    <>
+      <path d="M6.5 5.5v13" />
+      <path d="M18.5 5.8v12.4L9.5 12Z" />
+    </>
+  ),
+  next: (
+    <>
+      <path d="M17.5 5.5v13" />
+      <path d="M5.5 5.8v12.4l9-6.2Z" />
+    </>
+  ),
   pause: (
     <>
       <rect x="7" y="5.5" width="3.2" height="13" rx="1" />

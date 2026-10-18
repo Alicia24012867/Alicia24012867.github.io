@@ -1,6 +1,15 @@
-import { fixedVolume, keptMusic, music, playable, type Player, type Prepared } from './music';
+import {
+  fixedVolume,
+  keptMusic,
+  music,
+  musicPlace,
+  playable,
+  startingPoint,
+  type Player,
+  type Prepared,
+} from './music';
 import { resumePoint, startAt, writtenMusic } from './place';
-import { musicKey, readMusic } from './tracks';
+import { musicKey, pieceTitle, readMusic } from './tracks';
 
 /** Soft enough to read by. */
 const level = 0.3;
@@ -106,12 +115,30 @@ export function createPlayer(prepared?: Prepared): Player {
     });
   };
 
+  // What the panel shows: before the piece has loaded, the time it is to begin at.
+  const tell = () => {
+    if (index < 0) return;
+    musicPlace.tell({
+      index,
+      time: audio.readyState ? audio.currentTime : start,
+      duration: audio.duration,
+    });
+  };
   const load = (next: number, time: number) => {
     index = next;
     format = 0;
     start = time;
     audio.src = playable[next].sources[0].src;
     audio.currentTime = time;
+    tell();
+    try {
+      if (navigator.mediaSession && 'MediaMetadata' in window)
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: pieceTitle(playable[next].name),
+        });
+    } catch {
+      // The system's controls then show the page instead.
+    }
   };
   // The music sounds here now: it fades in, and this page keeps the place.
   const begin = () => {
@@ -128,9 +155,8 @@ export function createPlayer(prepared?: Prepared): Player {
     started = performance.now();
     route();
     // Another page may have played on since this one did.
-    const state = keptMusic();
-    if (state.track || index < 0) {
-      const point = resumePoint(playable, state);
+    if (keptMusic().track || index < 0) {
+      const point = startingPoint();
       if (point.index !== index || audio.error) load(point.index, point.time);
       else if (Math.abs(audio.currentTime - point.time) > 1) audio.currentTime = point.time;
     } else if (audio.error) load(index, start);
@@ -200,8 +226,10 @@ export function createPlayer(prepared?: Prepared): Player {
     else if (Math.abs(audio.currentTime - at) > 1) audio.currentTime = at;
   });
   audio.addEventListener('timeupdate', () => {
+    tell();
     if (ours && !audio.paused && performance.now() - kept > keepEvery) save();
   });
+  for (const type of ['durationchange', 'seeked']) audio.addEventListener(type, tell);
   // One piece after another, round and round, each loaded afresh: the element's own looping, or
   // going back to the start, can leave iPhones reporting a time that no longer moves.
   const next = () => {
@@ -210,6 +238,27 @@ export function createPlayer(prepared?: Prepared): Player {
     if (ours) save();
   };
   audio.addEventListener('ended', next);
+
+  // Another piece from the panel. Playing, it fades in from silence; otherwise it waits there.
+  const skip = (step: number) => {
+    const from = index < 0 ? startingPoint().index : index;
+    if (playing) {
+      endFade?.(false);
+      target = 0;
+      setVolume(gain ? 0 : 0.001);
+    }
+    audio.preload = 'metadata';
+    load((((from + step) % playable.length) + playable.length) % playable.length, 0);
+    if (playing) audio.play().catch(() => {});
+    save();
+  };
+  const seek = (time: number) => {
+    if (index < 0 || !Number.isFinite(audio.duration)) return;
+    start = Math.max(0, Math.min(time, audio.duration));
+    audio.currentTime = start;
+    tell();
+    save();
+  };
   audio.addEventListener('error', () => {
     if (index < 0 || !audio.getAttribute('src')) return;
     // When nothing plays, perhaps for want of a connection, the button waits for a press.
@@ -285,6 +334,8 @@ export function createPlayer(prepared?: Prepared): Player {
   try {
     navigator.mediaSession?.setActionHandler('play', () => play(true));
     navigator.mediaSession?.setActionHandler('pause', () => stop('off'));
+    navigator.mediaSession?.setActionHandler('previoustrack', () => skip(-1));
+    navigator.mediaSession?.setActionHandler('nexttrack', () => skip(1));
   } catch {
     // Without them, the system pauses the element itself, and the button follows.
   }
@@ -298,6 +349,14 @@ export function createPlayer(prepared?: Prepared): Player {
     hold(rest) {
       if (!rest) goOn();
       else if (playing) stop('paused', fadeOut / 2);
+    },
+    skip,
+    seek,
+    peek() {
+      if (index >= 0) return tell();
+      const point = startingPoint();
+      audio.preload = 'metadata';
+      load(point.index, point.time);
     },
   };
 }
