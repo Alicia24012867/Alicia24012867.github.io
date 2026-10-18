@@ -33,7 +33,7 @@ export default function LinkPreview({
       const details = [
         source.section(summary),
         summary.date.slice(0, 10),
-        `${summary.readingMinutes} min read`,
+        summary.locked ? 'Locked' : `${summary.readingMinutes} min read`,
       ];
       return (
         <>

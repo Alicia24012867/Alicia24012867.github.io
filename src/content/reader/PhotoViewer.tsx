@@ -1,5 +1,6 @@
 import { useEffect, useRef, type PointerEvent, type RefObject } from 'react';
 import Icon from '../../components/Icon';
+import { fetchAhead, useShownSrc } from '../locked/files';
 import { swipeStep, wrapIndex } from './photos';
 import { usePhotoViewer } from './usePhotoViewer';
 
@@ -19,6 +20,8 @@ export default function PhotoViewer({
   const open = view !== null;
   const count = view?.photos.length ?? 0;
   const photo = view?.photos[view.index];
+  // A locked document's photo shows once its sealed file is open.
+  const shown = useShownSrc(photo?.src);
 
   useEffect(() => {
     if (photo) opener.current = photo.opener;
@@ -44,7 +47,7 @@ export default function PhotoViewer({
   // The neighbours are fetched ahead, so stepping through feels instant.
   useEffect(() => {
     if (!view || count < 2) return;
-    for (const by of [1, -1]) new Image().src = view.photos[wrapIndex(view.index + by, count)].src;
+    for (const by of [1, -1]) fetchAhead(view.photos[wrapIndex(view.index + by, count)].src);
   }, [view, count]);
 
   const step = (by: number) => {
@@ -90,7 +93,7 @@ export default function PhotoViewer({
             <Icon name="close" />
           </button>
           <figure>
-            <img key={photo.src} src={photo.src} alt={photo.alt} decoding="async" />
+            <img key={photo.src} src={shown} alt={photo.alt} decoding="async" />
             {(photo.caption || count > 1) && (
               <figcaption>
                 {photo.caption && <span>{photo.caption}</span>}

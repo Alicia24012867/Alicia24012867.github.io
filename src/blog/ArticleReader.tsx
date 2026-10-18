@@ -77,7 +77,8 @@ export default function ArticleReader({ article }: { article: Article }) {
           )}
         </nav>
       )}
-      <ArticleComments collection="blog" slug={article.slug} />
+      {/* Comments are public on GitHub, so a locked post has none. */}
+      {!article.locked && <ArticleComments collection="blog" slug={article.slug} />}
       <div className="reading-end">
         <span>✧</span>
         <p>Thanks for reading.</p>

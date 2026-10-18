@@ -8,13 +8,20 @@ import { musicPlugin } from './scripts/music.mjs';
 import { sitemapPlugin } from './scripts/content/sitemap.mjs';
 import { sharePlugin } from './scripts/content/share.mjs';
 
-const blog = articlesPlugin({ feed: blogFeed, share: true, reader: 'src/blog/ArticleReader.tsx' });
+// Locked documents come from a private repository, checked out at content/locked.
+const blog = articlesPlugin({
+  feed: blogFeed,
+  share: true,
+  reader: 'src/blog/ArticleReader.tsx',
+  lockedDirectory: 'content/locked/blog',
+});
 const notes = articlesPlugin({
   directory: 'content/notes',
   moduleId: 'virtual:notes',
   basePath: '/notes/',
   reader: 'src/notes/NoteReader.tsx',
   share: true,
+  lockedDirectory: 'content/locked/notes',
 });
 
 // This repository is deployed as a GitHub User Page at the domain root.
@@ -24,7 +31,10 @@ export default defineConfig({
     notFoundPlugin(),
     blog,
     notes,
-    sharePlugin([blog.api, notes.api], { siteUrl: blogFeed.siteUrl }),
+    sharePlugin([blog.api, notes.api], {
+      siteUrl: blogFeed.siteUrl,
+      lockedReader: 'src/content/locked/LockedArticle.tsx',
+    }),
     sitemapPlugin([blog.api, notes.api], blogFeed.siteUrl),
     musicPlugin(),
   ],

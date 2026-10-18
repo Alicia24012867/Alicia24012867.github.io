@@ -48,23 +48,44 @@ function publicFile(publicDir, src) {
   return file.startsWith(`${publicDir}${path.sep}`) ? file : undefined;
 }
 
-/** Filesystem discovery and cross-file validation, independent of Vite. */
+/** The folder's real path, or undefined while it does not exist. */
+function realFolder(directory) {
+  try {
+    return fs.realpathSync.native(directory);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    return undefined;
+  }
+}
+
+/**
+ * Filesystem discovery and cross-file validation, independent of Vite. `lockedRoot` holds the
+ * collection's locked documents, from a private repository: they join the collection under
+ * their own addresses, and the content plugin seals them before they ship.
+ */
 export function buildArticleCatalog(
   articleRoot,
   watch = () => {},
-  { basePath = '/blog/', cache = new Map(), changedFiles, publicDir, copyDirectory } = {},
+  {
+    basePath = '/blog/',
+    cache = new Map(),
+    changedFiles,
+    publicDir,
+    copyDirectory,
+    lockedRoot,
+  } = {},
 ) {
-  let root;
-  try {
-    root = fs.realpathSync.native(articleRoot);
-  } catch (error) {
-    if (error.code !== 'ENOENT') throw error;
-    // Git does not retain empty folders; a collection can have no authored files yet.
+  // Git does not retain empty folders; a collection can have no authored files yet.
+  const roots = [
+    { root: realFolder(articleRoot), locked: false },
+    { root: lockedRoot && realFolder(lockedRoot), locked: true },
+  ].filter(({ root }) => root);
+  if (!roots.length) {
     cache.clear();
     return { articles: [], assets: new Map(), copies: new Map() };
   }
   const sections = basePath === '/notes/' ? noteSections : blogSections;
-  const resolveDates = createArticleDateResolver(root);
+  const dateResolvers = new Map(roots.map(({ root }) => [root, createArticleDateResolver(root)]));
   const articles = [];
   const assets = new Map();
   const links = [];
@@ -75,7 +96,7 @@ export function buildArticleCatalog(
   const assetFiles = new Map();
   const copies = new Map();
 
-  function checkedFile(relative, owner, isFile = false) {
+  function checkedFile(relative, owner, root, isFile = false) {
     const absolute = path.resolve(root, relative);
     if (checked.has(absolute)) return absolute;
     const stat = isFile ? undefined : fs.statSync(absolute, { throwIfNoEntry: false });
@@ -112,12 +133,11 @@ export function buildArticleCatalog(
     });
 
   // Only files belong in Vite's module graph. The plugin watches the directory separately.
-  const files = new Map();
-  function discover(directory = '') {
+  function discover(root, directory = '', files = new Map()) {
     for (const entry of fs.readdirSync(path.join(root, directory), { withFileTypes: true })) {
       if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
       const file = directory ? `${directory}/${entry.name}` : entry.name;
-      if (entry.isDirectory()) discover(file);
+      if (entry.isDirectory()) discover(root, file, files);
       else if (/\.(md|html)$/i.test(entry.name) && !/^README\.md$/i.test(entry.name)) {
         // Match regular files and file symlinks, without following directory symlinks.
         if (
@@ -127,33 +147,53 @@ export function buildArticleCatalog(
           files.set(file, entry.isFile());
       }
     }
+    return files;
   }
-  discover();
-  for (const file of [...files.keys()].sort()) {
-    const absolute = checkedFile(file, file, files.get(file));
+  // Public documents first, so a collection without locked ones numbers its files as before.
+  const sources = roots.flatMap(({ root, locked }) => {
+    const files = discover(root);
+    return [...files.keys()]
+      .sort()
+      .map((file) => ({ root, locked, file, isFile: files.get(file) }));
+  });
+  const lockedSlugs = new Set();
+  for (const { root, locked, file, isFile } of sources) {
+    // Errors name the folder a locked file sits in, since its path matches a public one.
+    const owner = locked ? `加密文章 ${file}` : file;
+    const absolute = checkedFile(file, owner, root, isFile);
     visited.add(absolute);
     let compiled = cache.get(absolute);
+    // Watchers report paths from the public folder, locked ones included.
+    const changeKey = locked
+      ? path.relative(articleRoot, path.join(lockedRoot, file)).replaceAll('\\', '/')
+      : file;
     // Only a complete watcher change set permits skipping reads; standalone builds reread.
     const source =
-      compiled && changedFiles && !changedFiles.has(file)
+      compiled && changedFiles && !changedFiles.has(changeKey)
         ? compiled.source
         : fs.readFileSync(absolute, 'utf8');
     if (!compiled || compiled.source !== source || compiled.basePath !== basePath) {
       const localAssets = new Map();
       const localLinks = [];
-      const article = compileArticle(
-        source,
-        file,
-        (asset) => {
-          if (/\.(?:md|html|[cm]?js|ts|tsx|jsx)$/i.test(asset))
-            throw new Error(`${file}: 图片或附件不能引用文章源码或脚本：${asset}`);
-          if (!localAssets.has(asset))
-            localAssets.set(asset, `__ALICIA_ARTICLE_ASSET_${localAssets.size}__`);
-          return localAssets.get(asset);
-        },
-        (slug, link) => localLinks.push({ owner: file, slug, link }),
-        { basePath },
-      );
+      let article;
+      try {
+        article = compileArticle(
+          source,
+          file,
+          (asset) => {
+            if (/\.(?:md|html|[cm]?js|ts|tsx|jsx)$/i.test(asset))
+              throw new Error(`${file}: 图片或附件不能引用文章源码或脚本：${asset}`);
+            if (!localAssets.has(asset))
+              localAssets.set(asset, `__ALICIA_ARTICLE_ASSET_${localAssets.size}__`);
+            return localAssets.get(asset);
+          },
+          (slug, link) => localLinks.push({ owner, slug, link, locked }),
+          { basePath },
+        );
+      } catch (error) {
+        if (locked) error.message = `加密文章 ${error.message}`;
+        throw error;
+      }
       compiled = {
         source,
         basePath,
@@ -167,7 +207,7 @@ export function buildArticleCatalog(
     // Revalidate assets and targets even when the unchanged source reuses compiled HTML.
     const replacements = new Map();
     for (const [asset, marker] of compiled.localAssets) {
-      const assetPath = checkedFile(asset, file);
+      const assetPath = checkedFile(asset, owner, root);
       if (!assets.has(assetPath)) assets.set(assetPath, `__ALICIA_ARTICLE_ASSET_${assets.size}__`);
       replacements.set(marker, assets.get(assetPath));
       assetFiles.set(assets.get(assetPath), assetPath);
@@ -189,9 +229,30 @@ export function buildArticleCatalog(
       ),
     };
     if (!article) continue;
-    Object.assign(article, resolveDates(article, file, absolute, compiled));
+    // A public file is readable in the public repository whatever it says, and a locked one is
+    // always sealed: either flag in the wrong folder would promise something false.
+    if (!locked && article.locked)
+      throw new Error(
+        `${file}: 公开目录里的文章任何人都能读到，不会加密；要加密，请把它移到加密文章目录 content/locked/`,
+      );
+    if (locked && article.locked === false)
+      throw new Error(
+        `${owner}: 加密文章目录里的文章总会加密；要公开发布，请把它移到公开目录，并去掉 locked`,
+      );
+    if (!locked && article.unlisted)
+      throw new Error(`${file}: unlisted 只能用于加密文章，公开文章总会出现在列表里`);
+    delete article.locked;
+    if (locked) {
+      article.locked = true;
+      lockedSlugs.add(article.slug);
+    }
+    Object.assign(article, dateResolvers.get(root)(article, owner, absolute, compiled));
     if (slugs.has(article.slug))
-      throw new Error(`文章地址重复：${article.slug}，请勿使用同名 .md 和 .html 文件`);
+      throw new Error(
+        locked || lockedSlugs.has(article.slug)
+          ? `文章地址重复：${article.slug}，加密文章不能与公开文章同名`
+          : `文章地址重复：${article.slug}，请勿使用同名 .md 和 .html 文件`,
+      );
     slugs.add(article.slug);
     articles.push(article);
     if (compiled.references?.basePath !== basePath)
@@ -199,8 +260,13 @@ export function buildArticleCatalog(
     outgoing.set(article.slug, compiled.references.targets);
   }
   for (const file of cache.keys()) if (!visited.has(file)) cache.delete(file);
-  for (const { owner, slug, link } of links) {
+  for (const { owner, slug, link, locked } of links) {
     if (!slugs.has(slug)) throw new Error(`${owner}: 链接 ${link} 指向不存在或未发布的文章`);
+    // Builds without the private repository must still find every target of a public file.
+    if (!locked && lockedSlugs.has(slug))
+      throw new Error(
+        `${owner}: 公开文章不能用文件链接 ${link} 指向加密文章，请改用它的网址，例如 ${basePath}<地址>/`,
+      );
   }
   articles.sort(
     (a, b) =>
@@ -209,8 +275,10 @@ export function buildArticleCatalog(
   // Rebuild incoming edges from cached targets, including explicit ?post links.
   const incoming = new Map(articles.map((article) => [article.slug, new Set()]));
   for (const article of articles) {
+    // A public document never names a locked one that links to it.
     for (const target of outgoing.get(article.slug))
-      if (target !== article.slug) incoming.get(target)?.add(article.slug);
+      if (target !== article.slug && (!article.locked || lockedSlugs.has(target)))
+        incoming.get(target)?.add(article.slug);
   }
   for (const article of articles) article.backlinks = [...incoming.get(article.slug)];
   return { articles, assets, copies };

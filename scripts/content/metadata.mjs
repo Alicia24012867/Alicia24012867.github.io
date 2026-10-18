@@ -33,8 +33,10 @@ export function parseArticleSource(source, filename) {
   if (metadata.draft != null && typeof metadata.draft !== 'boolean')
     throw new Error(`${filename}: draft 必须是布尔值 true 或 false，不要加引号`);
   if (metadata.draft === true) return null;
-  if (Object.hasOwn(metadata, 'pin') && typeof metadata.pin !== 'boolean')
-    throw new Error(`${filename}: pin 必须是布尔值 true 或 false，不要加引号`);
+  for (const field of ['pin', 'locked', 'unlisted']) {
+    if (Object.hasOwn(metadata, field) && typeof metadata[field] !== 'boolean')
+      throw new Error(`${filename}: ${field} 必须是布尔值 true 或 false，不要加引号`);
+  }
   for (const field of [
     'title',
     'date',
@@ -72,6 +74,9 @@ export function parseArticleSource(source, filename) {
       tags: [...new Set((metadata.tags || []).map((tag) => tag.trim()).filter(Boolean))],
       section: metadata.section?.trim() || '',
       lang,
+      // Written only when given: the catalog checks them against the folder a file is in.
+      ...(Object.hasOwn(metadata, 'locked') && { locked: metadata.locked }),
+      ...(metadata.unlisted === true && { unlisted: true }),
     },
   };
 }
@@ -84,8 +89,9 @@ const git = (cwd, args) =>
     maxBuffer: 16 * 1024 * 1024,
   });
 
-// Blog and Notes share one snapshot. Retain only the most recently used repository/revision.
-let cachedHistory;
+// Blog and Notes share one snapshot; locked documents come from a repository of their own.
+// Each repository keeps only its most recently used revision.
+const cachedHistories = new Map();
 function articleHistory(root) {
   let repository;
   let revision;
@@ -97,8 +103,8 @@ function articleHistory(root) {
   } catch {
     return { repository: root, files: new Map() };
   }
-  if (cachedHistory?.repository === repository && cachedHistory.revision === revision)
-    return cachedHistory;
+  const cachedHistory = cachedHistories.get(repository);
+  if (cachedHistory?.revision === revision) return cachedHistory;
 
   const tokens = git(repository, [
     'log',
@@ -146,8 +152,9 @@ function articleHistory(root) {
     });
   }
   applyCommit();
-  cachedHistory = { repository, revision, files };
-  return cachedHistory;
+  const history = { repository, revision, files };
+  cachedHistories.set(repository, history);
+  return history;
 }
 
 // Date-only metadata describes a calendar day, so an edit on that day is valid.

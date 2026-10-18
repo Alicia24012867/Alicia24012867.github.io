@@ -66,7 +66,8 @@ export default function NoteReader({ article: note }: { article: Article }) {
           <p>No other notes link here yet.</p>
         )}
       </section>
-      <ArticleComments collection="notes" slug={note.slug} />
+      {/* Comments are public on GitHub, so a locked note has none. */}
+      {!note.locked && <ArticleComments collection="notes" slug={note.slug} />}
     </div>
   );
 }

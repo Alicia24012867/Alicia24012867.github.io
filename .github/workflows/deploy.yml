@@ -17,11 +17,25 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Locked documents live in a private repository, read with a deploy key. Builds without
+      # the key, such as pull requests from forks, publish the public documents alone.
+      HAS_LOCKED_ARTICLES: ${{ secrets.LOCKED_ARTICLES_KEY != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+      - name: Check out locked documents
+        if: env.HAS_LOCKED_ARTICLES == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: Alicia24012867/locked-articles
+          ssh-key: ${{ secrets.LOCKED_ARTICLES_KEY }}
+          path: content/locked
+          # Dates come from each document's history, as they do for public documents.
+          fetch-depth: 0
+          persist-credentials: false
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -31,6 +45,9 @@ jobs:
         run: npm ci
       - name: Typecheck and build
         run: npm run format:check && npm run check
+        env:
+          # Seals locked documents; a build that has some and no password fails.
+          LOCKED_PASSWORD: ${{ secrets.LOCKED_PASSWORD }}
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5

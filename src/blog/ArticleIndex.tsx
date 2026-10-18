@@ -36,7 +36,14 @@ function JournalEntry({
       </span>
       <div className="journal-entry-content">
         {article.pin && <span className="article-pin">Pinned</span>}
-        <ArticleMeta article={article} readingTime compact />
+        {article.locked && (
+          <span className="article-lock">
+            <Icon name="lock" />
+            Locked
+          </span>
+        )}
+        {/* A locked post's length is sealed with it. */}
+        <ArticleMeta article={article} readingTime={!article.locked} compact />
         <h3 className="article-title">
           <a
             href={articleUrl('blog', article.slug, query, sort)}
@@ -45,9 +52,11 @@ function JournalEntry({
             <Marked text={article.title} query={query} />
           </a>
         </h3>
-        <p lang={textLanguage(article.description)}>
-          <Marked text={article.description} query={query} />
-        </p>
+        {article.description && (
+          <p lang={textLanguage(article.description)}>
+            <Marked text={article.description} query={query} />
+          </p>
+        )}
         <ArticleTags article={article} onTag={onTag} />
       </div>
       <a

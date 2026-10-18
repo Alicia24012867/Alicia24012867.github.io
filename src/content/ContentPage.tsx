@@ -1,9 +1,10 @@
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import SiteLayout from '../components/layout/SiteLayout';
 import Icon from '../components/Icon';
-import ArticleHeader from './ArticleHeader';
+import ArticleLoading from './ArticleLoading';
 import { usePageMeta } from '../hooks/usePageMeta';
 import { contentPageMeta } from './meta';
+import { unlistedSummary } from './locked/unlisted';
 import { listingUrl, queryFromSearch, slugFromLocation, type Collection } from './urls';
 import { sortFromSearch } from './sort';
 import type { Article, ArticleBody, ArticleSummary } from './types';
@@ -13,6 +14,10 @@ type Loaders = {
   loadBody: (slug: string) => Promise<ArticleBody>;
   loadReader: () => Promise<{ default: Reader }>;
 };
+type Locked = typeof import('./locked/LockedArticle').default;
+
+// The form that opens locked documents loads only for them.
+const loadLocked = () => import('./locked/LockedArticle');
 
 /** Shared static routing; collection-specific lists and readers keep their own presentation. */
 export default function ContentPage({
@@ -31,7 +36,10 @@ export default function ContentPage({
   Listing: ComponentType;
 }) {
   const slug = slugFromLocation(section);
-  const summary = slug ? bySlug.get(slug) : undefined;
+  const summary = useMemo(
+    () => (slug ? (bySlug.get(slug) ?? unlistedSummary(section, slug)) : undefined),
+    [slug, bySlug, section],
+  );
   // Both addresses of one document share the same title, canonical and share card.
   usePageMeta(contentPageMeta({ section, slug, summary, titles, description }));
   const kind = section === 'blog' ? 'post' : 'note';
@@ -39,6 +47,15 @@ export default function ContentPage({
     <SiteLayout section={section}>
       {!slug ? (
         <Listing />
+      ) : summary?.locked ? (
+        <LockedPage
+          key={summary.slug}
+          summary={summary}
+          url={summary.locked}
+          section={section}
+          loadReader={loadReader}
+          titleSuffix={titles.suffix}
+        />
       ) : summary ? (
         <ArticlePage
           key={summary.slug}
@@ -100,22 +117,29 @@ function ArticlePage({
   }, [summary, loadBody, loadReader]);
 
   if (page) return <page.Reader article={page.article} />;
-  return (
-    <div
-      className={`journal-width reading-page${failed ? '' : ' reading-loading'}`}
-      aria-busy={!failed}
-    >
-      <ArticleHeader article={summary} metadata={false} collection={section} />
-      {failed ? (
-        <div role="alert">
-          <p>This page could not be loaded. Please try again.</p>
-          <button className="button button-primary" onClick={() => window.location.reload()}>
-            Reload page
-          </button>
-        </div>
-      ) : (
-        <p role="status">Loading article…</p>
-      )}
-    </div>
-  );
+  return <ArticleLoading summary={summary} section={section} failed={failed} />;
+}
+
+/** A locked document, behind the form that opens it. */
+function LockedPage(props: Parameters<Locked>[0]) {
+  const [Locked, setLocked] = useState<Locked>();
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadLocked().then(
+      (module) => {
+        if (!cancelled) setLocked(() => module.default);
+      },
+      () => {
+        if (!cancelled) setFailed(true);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (Locked) return <Locked {...props} />;
+  return <ArticleLoading summary={props.summary} section={props.section} failed={failed} />;
 }

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { decodeHTML } from 'entities';
+import { lockedDescription, lockedTitle } from '../../src/config/locked.mjs';
 import { decodeSlug } from '../../src/config/sharing.mjs';
 import { lastModified } from './metadata.mjs';
 import { escapeHtml } from './text.mjs';
@@ -107,28 +108,48 @@ function compileShell(shell) {
 /**
  * Article-specific head, cloned into a real static page for every published
  * document. Compile one entry shell, then render each document of the collection.
- * `preload(article)` adds the links that fetch the document's own files early.
+ * `preload(article, lockedUrl)` adds the links that fetch the document's own files early.
+ *
+ * A locked document's page says only what its listing entry does, with the site's card, and
+ * names its sealed file, `lockedUrl`; an unlisted one's page does not even give its title.
  */
 export function createSharePage(shell, { siteUrl, basePath, preload = () => '' }) {
   const collection = collectionByBase.get(basePath);
   if (!collection) throw new Error('未知的分享目录：' + basePath);
   const site = new URL(siteUrl);
   const { text, renders } = compileShell(shell);
-  return (article, card) => {
+  const dates = (article) => [
+    metaTag('property', 'article:published_time', new Date(article.date).toISOString()),
+    metaTag('property', 'article:modified_time', lastModified(article)),
+  ];
+  const section = (article) =>
+    metaTag('property', 'article:section', collection.sections.byId(article.section).label);
+  return (article, card, lockedUrl) => {
+    const locked = article.locked === true;
+    if (locked && !lockedUrl) throw new Error('加密文章缺少密文文件：' + article.slug);
+    const title = article.unlisted ? lockedTitle(collection.id) : article.title;
     const page = {
-      title: article.title + collection.titleSuffix,
-      description: article.description || collection.tagline,
+      title: title + collection.titleSuffix,
+      description: locked
+        ? lockedDescription(collection.id)
+        : article.description || collection.tagline,
       canonical: new URL(sharePath(basePath, article.slug), site).href,
       image: new URL(card.url, site).href,
-      cardAlt: 'Share card for ' + article.title,
-      articleMeta: [
-        metaTag('property', 'article:published_time', new Date(article.date).toISOString()),
-        metaTag('property', 'article:modified_time', lastModified(article)),
-        metaTag('name', 'author', article.author || 'Alicia'),
-        metaTag('property', 'article:section', collection.sections.byId(article.section).label),
-        ...article.tags.map((tag) => metaTag('property', 'article:tag', tag)),
-      ].join('\n'),
-      preloads: preload(article),
+      cardAlt: locked ? SITE_TITLE : 'Share card for ' + article.title,
+      articleMeta: (locked
+        ? [
+            metaTag('name', 'robots', 'noindex'),
+            metaTag('name', 'locked-article', lockedUrl),
+            ...(article.unlisted ? [] : [...dates(article), section(article)]),
+          ]
+        : [
+            ...dates(article),
+            metaTag('name', 'author', article.author || 'Alicia'),
+            section(article),
+            ...article.tags.map((tag) => metaTag('property', 'article:tag', tag)),
+          ]
+      ).join('\n'),
+      preloads: preload(article, lockedUrl),
     };
     let html = text[0];
     renders.forEach((render, index) => {
@@ -145,9 +166,10 @@ const formulaStyles = 'node_modules/katex/dist/katex.min.css';
  * Once a document page's script runs, it fetches the reader, the document itself and, with
  * formulas, their styles. Naming those files in the page lets the browser fetch them
  * alongside the script instead of after it. Files the entry shell already names are left
- * out, and so is every other document.
+ * out, and so is every other document. A locked document's page fetches the form that opens
+ * it, `lockedReader`, and its sealed file instead, and nothing that tells what it holds.
  */
-export function pagePreloads(bundle, { root, base = '/' }) {
+export function pagePreloads(bundle, { root, base = '/', lockedReader }) {
   const chunks = new Map();
   let formulas;
   for (const output of Object.values(bundle)) {
@@ -155,7 +177,7 @@ export function pagePreloads(bundle, { root, base = '/' }) {
     if (output.type === 'asset' && output.originalFileNames?.includes(formulaStyles))
       formulas = output.fileName;
   }
-  return (shell, { moduleId, reader }, article) => {
+  return (shell, { moduleId, reader }, article, lockedUrl) => {
     const named = new Set([...shell.matchAll(/\s(?:src|href)="([^"]*)"/g)].map(([, url]) => url));
     const scripts = new Set();
     const styles = new Set();
@@ -166,8 +188,12 @@ export function pagePreloads(bundle, { root, base = '/' }) {
       for (const file of chunk.imports) visit(bundle[file]);
     };
     if (reader) visit(chunks.get(path.resolve(root, reader)));
-    visit(chunks.get(`\0${moduleId}/entry/${encodeURIComponent(article.slug)}`));
-    if (article.hasMath && formulas) styles.add(formulas);
+    if (article.locked) {
+      if (lockedReader) visit(chunks.get(path.resolve(root, lockedReader)));
+    } else {
+      visit(chunks.get(`\0${moduleId}/entry/${encodeURIComponent(article.slug)}`));
+      if (article.hasMath && formulas) styles.add(formulas);
+    }
     const links = (files, attributes) =>
       [...files]
         .map((file) => base + file)
@@ -176,20 +202,23 @@ export function pagePreloads(bundle, { root, base = '/' }) {
     return [
       ...links(scripts, 'rel="modulepreload"'),
       ...links(styles, 'rel="preload" as="style"'),
+      // Fetched by fetch(), which the page's address matches only with crossorigin.
+      ...(lockedUrl ? links([lockedUrl.slice(base.length)], 'rel="preload" as="fetch"') : []),
     ].join('');
   };
 }
 
 /** One document from one shell; builds reuse createSharePage across a collection. */
-export const sharePageHtml = (shell, article, { siteUrl, basePath, card }) =>
-  createSharePage(shell, { siteUrl, basePath })(article, card);
+export const sharePageHtml = (shell, article, { siteUrl, basePath, card, lockedUrl }) =>
+  createSharePage(shell, { siteUrl, basePath })(article, card, lockedUrl);
 
 /**
  * Every published document gets a real static page and a matching title card, so
  * link previews and crawlers never need JavaScript. Entry pages carry the site
- * defaults; each clone rewrites them for one article.
+ * defaults; each clone rewrites them for one article. `lockedReader` is the module that
+ * opens locked documents.
  */
-export function sharePlugin(collections, { siteUrl }) {
+export function sharePlugin(collections, { siteUrl, lockedReader }) {
   const site = new URL(siteUrl);
   const routes = new Map(
     ['/', ...cardCollections.map((collection) => collection.basePath)].map((route) => [
@@ -242,6 +271,13 @@ export function sharePlugin(collections, { siteUrl }) {
   };
 
   const readArticle = (match) => collectionFor(match.basePath)?.readArticle(match.slug);
+  // A locked document shows the site's card: its own would show what it is about.
+  const cardFor = (article, basePath) =>
+    article.locked
+      ? readSiteCard()
+      : requireCard(article, basePath, { publicRoot, sky: readSky() });
+  const lockedUrlOf = (collection, article) =>
+    article.locked ? collection.readLocked(article.slug) : undefined;
 
   const pageFile = (basePath, slug) =>
     basePath.slice(1) + shareSegments(slug).join('/') + '/index.html';
@@ -271,8 +307,8 @@ export function sharePlugin(collections, { siteUrl }) {
         };
       },
     },
-    generateBundle(_options, bundle) {
-      const preloads = pagePreloads(bundle, { root, base });
+    async generateBundle(_options, bundle) {
+      const preloads = pagePreloads(bundle, { root, base, lockedReader });
       for (const collection of collections) {
         const { basePath, readCatalog } = collection;
         const shell = bundle[basePath.slice(1) + 'index.html']?.source;
@@ -281,16 +317,16 @@ export function sharePlugin(collections, { siteUrl }) {
         // Compiled after the first card check, so a missing card is still reported first.
         let render;
         for (const article of readCatalog().articles) {
-          const card = requireCard(article, basePath, { publicRoot, sky: readSky() });
+          const card = cardFor(article, basePath);
           render ??= createSharePage(shell, {
             siteUrl,
             basePath,
-            preload: (document) => preloads(shell, collection, document),
+            preload: (document, lockedUrl) => preloads(shell, collection, document, lockedUrl),
           });
           this.emitFile({
             type: 'asset',
             fileName: pageFile(basePath, article.slug),
-            source: render(article, card),
+            source: render(article, card, await lockedUrlOf(collection, article)),
           });
         }
       }
@@ -313,11 +349,12 @@ export function sharePlugin(collections, { siteUrl }) {
             path.join(server.config.root, match.basePath, 'index.html'),
             'utf8',
           );
-          const card = requireCard(article, match.basePath, { publicRoot, sky: readSky() });
+          const card = cardFor(article, match.basePath);
+          const lockedUrl = await lockedUrlOf(collectionFor(match.basePath), article);
           const html = sharePageHtml(
             await server.transformIndexHtml(match.basePath, shell),
             article,
-            { siteUrl, basePath: match.basePath, card },
+            { siteUrl, basePath: match.basePath, card, lockedUrl },
           );
           res.statusCode = 200;
           res.setHeader('Content-Type', 'text/html; charset=utf-8');

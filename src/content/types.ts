@@ -18,12 +18,19 @@ export interface ArticleSummary {
   hasMath: boolean;
   /** Static share address and card, added by the content plugin when enabled. */
   share?: { path: string; image: string };
+  /**
+   * A locked document's sealed file. Until the password opens it, its entry gives only its
+   * title, dates and section, with nothing for the rest.
+   */
+  locked?: string;
 }
 
 export interface ArticleBody {
   html: string;
   backlinks: string[];
   headings: { id: string; text: string; level: number }[];
+  /** A locked document's attachments: each sealed file's own name, by its address. */
+  files?: Record<string, string>;
 }
 
 export interface Article extends ArticleSummary, ArticleBody {}

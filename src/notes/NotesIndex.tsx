@@ -43,14 +43,22 @@ function NoteEntry({
   return (
     <article className="note-entry">
       <div>
+        {note.locked && (
+          <span className="article-lock">
+            <Icon name="lock" />
+            Locked
+          </span>
+        )}
         <h3 className="article-title">
           <a href={articleUrl('notes', note.slug, query)} lang={textLanguage(note.title)}>
             <Marked text={note.title} query={query} />
           </a>
         </h3>
-        <p lang={textLanguage(note.description)}>
-          <Marked text={note.description} query={query} />
-        </p>
+        {note.description && (
+          <p lang={textLanguage(note.description)}>
+            <Marked text={note.description} query={query} />
+          </p>
+        )}
         <NoteExcerpt body={body} query={query} />
         <ArticleMeta article={note} compact />
         <ArticleTags article={note} onTag={onTag} />

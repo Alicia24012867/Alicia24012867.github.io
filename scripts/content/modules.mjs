@@ -1,14 +1,54 @@
 import { sharePath } from '../../src/config/sharing.mjs';
 
-/** Small listing metadata and lazy, per-document payloads. */
-export function listingModule({ articles }, moduleId) {
-  const summaries = articles.map(
-    ({ html, headings, backlinks, searchText, ...summary }) => summary,
-  );
-  const loaders = articles.map(
-    ({ slug }) =>
-      `[${JSON.stringify(slug)}, () => import(${JSON.stringify(`${moduleId}/entry/${encodeURIComponent(slug)}`)}).then(module => module.default)]`,
-  );
+/**
+ * What a listing may say about a locked document: its address, title, dates and section. The
+ * rest is in its sealed file, at `url`, with placeholders here so every reader keeps one shape.
+ */
+function lockedSummary({ slug, title, date, updated, pin, section, share }, url) {
+  return {
+    slug,
+    title,
+    date,
+    updated,
+    pin,
+    description: '',
+    tags: [],
+    section,
+    format: 'Markdown',
+    lang: '',
+    readingMinutes: 0,
+    wordCount: 0,
+    hasMath: false,
+    ...(share && { share }),
+    locked: url,
+  };
+}
+
+/**
+ * Everything a locked document's reader needs, for sealing: `html` names its sealed files,
+ * and `files` gives each one's own name, for saving it.
+ */
+export function lockedPayload({ searchText, locked, unlisted, share, ...article }, html, files) {
+  return { ...article, html, files };
+}
+
+/**
+ * Small listing metadata and lazy, per-document payloads. Locked documents open from their
+ * sealed file, `lockedUrl(slug)`, instead of a module; unlisted ones only from their own page.
+ */
+export function listingModule({ articles }, moduleId, lockedUrl = () => undefined) {
+  const listed = articles.filter((article) => !article.unlisted);
+  const summaries = listed.map((article) => {
+    if (article.locked) return lockedSummary(article, lockedUrl(article.slug));
+    const { html, headings, backlinks, searchText, ...summary } = article;
+    return summary;
+  });
+  const loaders = listed
+    .filter((article) => !article.locked)
+    .map(
+      ({ slug }) =>
+        `[${JSON.stringify(slug)}, () => import(${JSON.stringify(`${moduleId}/entry/${encodeURIComponent(slug)}`)}).then(module => module.default)]`,
+    );
   return `const articles = ${JSON.stringify(summaries)};
 let loaders;
 export function loadArticle(slug) {
@@ -22,7 +62,7 @@ export default articles;`;
 
 /** Only the newest document's title, date and address, for pages that just link to it. */
 export function latestModule({ articles }, basePath) {
-  const [latest] = articles;
+  const latest = articles.find((article) => !article.unlisted);
   const summary = latest && {
     title: latest.title,
     date: latest.date,
@@ -33,11 +73,14 @@ export function latestModule({ articles }, basePath) {
 
 /** Each document's slug and title, for suggesting one to a page that got its address wrong. */
 export function titlesModule({ articles }) {
-  return `export default ${JSON.stringify(articles.map(({ slug, title }) => [slug, title]))};`;
+  const listed = articles.filter((article) => !article.unlisted);
+  return `export default ${JSON.stringify(listed.map(({ slug, title }) => [slug, title]))};`;
 }
 
+/** Full text for searching; a locked document's text never leaves its sealed file. */
 export function searchModule({ articles }) {
-  return `export default ${JSON.stringify(Object.fromEntries(articles.map((article) => [article.slug, article.searchText])))};`;
+  const open = articles.filter((article) => !article.locked);
+  return `export default ${JSON.stringify(Object.fromEntries(open.map((article) => [article.slug, article.searchText])))};`;
 }
 
 export function articleModule(article, assetsByMarker) {

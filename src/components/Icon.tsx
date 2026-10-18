@@ -34,7 +34,9 @@ export type IconName =
   | 'repeat'
   | 'repeatOne'
   | 'shuffle'
-  | 'list';
+  | 'list'
+  | 'lock'
+  | 'key';
 
 const paths: Record<IconName, React.ReactNode> = {
   cloud: <path d="M6 18a5 5 0 0 1-.8-9.94 7 7 0 0 1 13.12-.68A5.5 5.5 0 0 1 18.5 18Z" />,
@@ -157,6 +159,19 @@ const paths: Record<IconName, React.ReactNode> = {
     </>
   ),
   list: <path d="M9 6.5h11M9 12h11M9 17.5h11M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01" />,
+  // A shut padlock with its keyhole, and the key that opens it.
+  lock: (
+    <>
+      <rect x="4.5" y="10.5" width="15" height="10.5" rx="2.5" />
+      <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3M12 14.5v2.5" />
+    </>
+  ),
+  key: (
+    <>
+      <circle cx="8" cy="15.5" r="4.5" />
+      <path d="m11.2 12.3 8.3-8.3m-3 3 2.5 2.5M14 9.5l2 2" />
+    </>
+  ),
   pause: (
     <>
       <rect x="7" y="5.5" width="3.2" height="13" rx="1" />

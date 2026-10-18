@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# Locked documents: a clone of the private locked-articles repository.
+content/locked/
 .DS_Store
 *.tsbuildinfo
 .env

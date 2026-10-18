@@ -3,13 +3,17 @@ import { lastModified } from './metadata.mjs';
 import { serveGenerated } from './serve.mjs';
 import { xml, declaration } from './xml.mjs';
 
-/** Catalogs already exclude drafts/private files and resolve authored or Git dates. */
+/**
+ * Catalogs already exclude drafts/private files and resolve authored or Git dates. Locked
+ * documents stay out: their pages hold only a password form.
+ */
 export function renderSitemap(collections, siteUrl) {
   const urls = new Map([[new URL('/', siteUrl).href, '']]);
   for (const { basePath, articles } of collections) {
     urls.set(new URL(basePath, siteUrl).href, '');
     for (const article of articles)
-      urls.set(new URL(sharePath(basePath, article.slug), siteUrl).href, lastModified(article));
+      if (!article.locked)
+        urls.set(new URL(sharePath(basePath, article.slug), siteUrl).href, lastModified(article));
   }
   return `${declaration}<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${[...urls].map(([url, date]) => `  <url><loc>${xml(url)}</loc>${date ? `<lastmod>${date}</lastmod>` : ''}</url>`).join('\n')}

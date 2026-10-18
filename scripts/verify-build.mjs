@@ -4,6 +4,7 @@ import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { decodeHTML } from 'entities';
 import { blogFeed, feedFormats } from '../src/config/feeds.mjs';
+import { lockedFilePrefix } from '../src/config/locked.mjs';
 import { decodeSlug } from '../src/config/sharing.mjs';
 import { jpegSize } from './share/jpeg.mjs';
 
@@ -13,7 +14,7 @@ const pages = ['index.html', 'blog/index.html', 'notes/index.html', '404.html'];
 const sizes = {};
 const manifest = JSON.parse(fs.readFileSync(path.join(root, '.vite/manifest.json'), 'utf8'));
 const deferred =
-  /virtual:|ArticleReader|NoteReader|ArticleBody|ArticleComments|ListenButton|ListenPlayer|ShareButton|TextButton|SearchResults|MusicPlayer|giscus|renderMermaid|katex|content\/figures\//i;
+  /virtual:|ArticleReader|NoteReader|ArticleBody|ArticleComments|ListenButton|ListenPlayer|ShareButton|TextButton|SearchResults|MusicPlayer|LockedArticle|giscus|renderMermaid|katex|content\/figures\//i;
 // Entry pages share most chunks: read and compress each file once for the whole report.
 const fileSizes = new Map();
 function fileSize(file) {
@@ -150,6 +151,51 @@ for (const page of ['index.html', 'blog/index.html', 'notes/index.html']) {
   assert.match(html, /<link rel="canonical" href="[^"]+"\s*\/?>/, page + ' has no canonical link');
   assertCard(html.match(/<meta property="og:image" content="([^"]+)"\s*\/?>/)?.[1], page);
 }
+// Locked documents: a page with the site's card that names only its sealed file, which is
+// sealed, and fetches no document script of its own.
+const sealedName = new RegExp(`^${lockedFilePrefix}[0-9a-f]{16}\\.[a-z0-9]+$`);
+const sealedFiles = fs
+  .readdirSync(path.join(root, 'assets'))
+  .filter((name) => sealedName.test(name));
+for (const name of sealedFiles) {
+  const head = fs.readFileSync(path.join(root, 'assets', name)).subarray(0, 6);
+  assert.ok(head[0] === 1 && head.readUInt32BE(1) >= 600_000, 'Not a sealed file: ' + name);
+}
+const pagesIn = (directory) =>
+  fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const file = path.join(directory, entry.name);
+    if (entry.isDirectory()) return pagesIn(file);
+    return entry.name === 'index.html' ? [file] : [];
+  });
+let lockedPages = 0;
+for (const file of ['blog', 'notes'].flatMap((collection) =>
+  pagesIn(path.join(root, collection)),
+)) {
+  const html = fs.readFileSync(file, 'utf8');
+  const sealed = html.match(/<meta name="locked-article" content="([^"]+)"\s*\/?>/)?.[1];
+  if (!sealed) continue;
+  lockedPages++;
+  const label = path.relative(root, file);
+  assert.ok(
+    sealedFiles.includes(path.basename(decodeHTML(sealed))),
+    label + ' names no sealed file',
+  );
+  assert.match(html, /<meta name="robots" content="noindex"\s*\/?>/, label);
+  assert.doesNotMatch(
+    html,
+    /article:tag|<meta name="author"/,
+    label + ' describes a locked document',
+  );
+  assert.ok(html.includes(`rel="preload" as="fetch" crossorigin href="${sealed}"`), label);
+  const early = [...html.matchAll(/<link rel="modulepreload" crossorigin href="([^"]+)">/g)].filter(
+    (match) => documentScripts.has(decodeHTML(match[1])),
+  );
+  assert.deepEqual(early, [], label + ' fetches a document script');
+  const card = html.match(/<meta property="og:image" content="([^"]+)"\s*\/?>/)?.[1];
+  assertCard(card, label);
+  assert.match(new URL(decodeHTML(card)).pathname, /^\/images\/share\/site\./, label);
+}
+assert.ok(!sealedFiles.length || lockedPages, 'Sealed files without locked pages');
 for (const [key, chunk] of Object.entries(manifest)) {
   if (!/virtual:.*\/entry\//.test(key)) continue;
   assert.ok(chunk.isDynamicEntry, `${key} is not lazy`);

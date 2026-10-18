@@ -7,7 +7,8 @@ type PhotoView = { photos: Photo[]; index: number };
 /**
  * Article images in reading order: images wrapped in a link to their full-size file,
  * and images without a link, which open their full-size file when the page shows a
- * smaller copy. Images that link elsewhere keep their link.
+ * smaller copy. Images that link elsewhere keep their link. A locked document's photo
+ * names its sealed file, which the viewer opens.
  */
 function photosIn(root: HTMLElement) {
   const photos: Photo[] = [];
@@ -15,7 +16,12 @@ function photosIn(root: HTMLElement) {
     const link = image.closest('a');
     if (link && !isImageFile(link.href)) continue;
     photos.push({
-      src: link?.href || image.dataset.fullSrc || image.currentSrc || image.src,
+      src:
+        link?.href ||
+        image.dataset.fullSrc ||
+        image.dataset.lockedSrc ||
+        image.currentSrc ||
+        image.src,
       alt: image.alt,
       caption: image.closest('figure')?.querySelector('figcaption')?.textContent?.trim() ?? '',
       opener: link ?? image,

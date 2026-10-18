@@ -158,7 +158,9 @@
   border-radius: var(--radius-sm);
   letter-spacing: 1px;
 }
-.article-pin {
+/* Locked: the post or note opens with a password. */
+.article-pin,
+.article-lock {
   display: inline-block;
   margin-bottom: 8px;
   padding: 3px 7px;
@@ -169,6 +171,19 @@
   font-weight: 500;
   line-height: 1.6;
   letter-spacing: 0;
+}
+.article-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.article-pin + .article-lock {
+  margin-left: 6px;
+}
+.article-lock .icon {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2;
 }
 .article-list-controls {
   display: flex;
