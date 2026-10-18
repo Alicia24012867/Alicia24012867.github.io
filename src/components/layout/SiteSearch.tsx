@@ -13,6 +13,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../Icon';
+import { textLanguage } from '../../content/language.mjs';
 import './site-search.css';
 
 /** One result the keyboard can choose, and where it leads. */
@@ -142,6 +143,8 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
           spellCheck={false}
           enterKeyHint="go"
           value={query}
+          // Typed quotes take the width of the language typed (global.css).
+          lang={textLanguage(query)}
           onChange={(event) => {
             setQuery(event.target.value);
             setActive(0);

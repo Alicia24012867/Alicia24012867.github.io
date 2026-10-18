@@ -51,3 +51,23 @@ test('code inside a Chinese article keeps the English typesetting it had', () =>
   const english = compileArticle('English.\n\n```c\nint x;\n```\n', 'english.md');
   assert.doesNotMatch(english.html, /<pre[^>]*\slang=/);
 });
+
+test('curly quotes take the width of the words beside them, not of the article', () => {
+  const english = compileArticle(
+    'She wrote “你好” and **“远大志向”**. It’s `“中”` code.\n',
+    'en-quotes.md',
+  );
+  assert.equal(english.lang, 'en');
+  assert.match(
+    english.html,
+    /wrote <span class="quote-cjk">“<\/span>你好<span class="quote-cjk">”<\/span> and <strong><span class="quote-cjk">“<\/span>远大志向<span class="quote-cjk">”<\/span><\/strong>\. It’s <code>“中”<\/code>/,
+  );
+  const chinese = compileArticle('他说“好的”，然后用英文写了 I’m fine。\n', 'zh-quotes.md');
+  assert.equal(chinese.lang, 'zh-CN');
+  assert.match(
+    chinese.html,
+    /他说“好的”，然后用英文写了 I<span class="quote-latin">’<\/span>m fine。/,
+  );
+  // Search and headings read the text as written.
+  assert.doesNotMatch(english.searchText, /quote-cjk/);
+});

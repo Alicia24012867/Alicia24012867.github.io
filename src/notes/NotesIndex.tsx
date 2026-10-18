@@ -136,6 +136,7 @@ export default function NotesIndex() {
               type="search"
               placeholder="Search formulas, APIs, keywords…"
               value={query}
+              lang={textLanguage(query)}
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>

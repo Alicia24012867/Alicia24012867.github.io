@@ -172,3 +172,70 @@ export function decorateRichHtml(html) {
     )
     .replaceAll('</table>', '</table></div>');
 }
+
+const curlyQuote = /[‘’“”]/g;
+const eastAsian = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}　-〿＀-￯]/u;
+// Neither code nor formulas are prose; a block starts its text afresh.
+const unmarked = /^<(code|pre|kbd|samp)\b|^<(span|div)\b[^>]*\sdata-math-index=/i;
+const block =
+  /^<\/?(?:p|li|ul|ol|h[1-6]|blockquote|div|section|figure|figcaption|table|tr|td|th|details|summary|br|hr|img)\b/i;
+
+/**
+ * The curly quotes ‘ ’ “ ” are full width in Chinese text and narrow in other text. Pages
+ * pick the width from the language of the block (global.css), so a quote whose neighbours
+ * are in the other language is marked: a Chinese phrase in English text keeps full-width
+ * quotes, and an English word in Chinese text takes narrow ones.
+ */
+export function markQuotes(html, lang) {
+  const chinese = /^zh\b/i.test(lang);
+  const parts = html.split(/(<[^>]*>)/);
+  // Each run of prose: the parts it is made of, in order.
+  const runs = [[]];
+  const skipping = [];
+  parts.forEach((part, index) => {
+    if (index % 2 === 0) {
+      if (!skipping.length && part) runs.at(-1).push(index);
+      return;
+    }
+    const name = /^<\/?([a-z][a-z0-9]*)/i.exec(part)?.[1].toLowerCase();
+    if (skipping.length) {
+      if (part.startsWith('</') && name === skipping.at(-1)) skipping.pop();
+      else if (!part.startsWith('</') && !part.endsWith('/>') && name === skipping.at(-1))
+        skipping.push(name);
+      return;
+    }
+    if (unmarked.test(part)) {
+      skipping.push(name);
+      runs.push([]);
+    } else if (block.test(part)) runs.push([]);
+  });
+  for (const run of runs) {
+    const text = run.map((index) => parts[index]).join('');
+    // The nearest character beside a quote that is not a quote itself.
+    const beside = (at, step) => {
+      for (let i = at + step; i >= 0 && i < text.length; i += step)
+        if (!/[‘’“”]/.test(text[i])) return text[i];
+      return '';
+    };
+    const marks = new Map();
+    for (const { index } of text.matchAll(curlyQuote)) {
+      const before = beside(index, -1);
+      const after = beside(index, 1);
+      const near = eastAsian.test(before) || eastAsian.test(after);
+      if (near && !chinese) marks.set(index, 'quote-cjk');
+      // A quote with only spaces beside it keeps the block's width.
+      else if (!near && chinese && /\S/.test(before + after)) marks.set(index, 'quote-latin');
+    }
+    if (!marks.size) continue;
+    let offset = 0;
+    for (const index of run) {
+      const start = offset;
+      offset += parts[index].length;
+      parts[index] = parts[index].replace(curlyQuote, (quote, at) => {
+        const mark = marks.get(start + at);
+        return mark ? `<span class="${mark}">${quote}</span>` : quote;
+      });
+    }
+  }
+  return parts.join('');
+}

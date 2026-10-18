@@ -143,6 +143,7 @@ export default function ArticleIndex() {
                 type="search"
                 placeholder="Find a story…"
                 value={query}
+                lang={textLanguage(query)}
                 onChange={(event) => setQuery(event.target.value)}
               />
             </label>

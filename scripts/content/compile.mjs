@@ -2,7 +2,13 @@ import path from 'node:path';
 import { parseArticleSource } from './metadata.mjs';
 import { renderMarkdown, restoreMath } from './markdown.mjs';
 import { createReferenceResolver } from './references.mjs';
-import { sanitizeArticleHtml, extractHeadings, decorateRichHtml, checkFigures } from './html.mjs';
+import {
+  sanitizeArticleHtml,
+  extractHeadings,
+  decorateRichHtml,
+  checkFigures,
+  markQuotes,
+} from './html.mjs';
 import { measureArticle, plainText, proseLanguage, slugFromFile } from './text.mjs';
 
 /** Formula placeholders as readable TeX between dollar signs, the way it was written. */
@@ -43,7 +49,7 @@ export function compileArticle(
   checkFigures(html, filename);
   const { wordCount, readingMinutes } = measureArticle(html);
   const lang = metadata.lang || proseLanguage(html);
-  html = restoreMath(decorateRichHtml(html), rendered.mathHtml);
+  html = restoreMath(decorateRichHtml(markQuotes(html, lang)), rendered.mathHtml);
   // Code keeps the page's English typesetting, so comments look the same in any article.
   if (lang !== 'en') html = html.replace(/<pre\b(?![^>]*\slang=)/g, '<pre lang="en"');
 

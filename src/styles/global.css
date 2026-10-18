@@ -59,6 +59,13 @@
 :not(:lang(zh)) {
   font-variant-alternates: styleset(latin-quotes);
 }
+/* A quote beside words of the other language, marked by the build (scripts/content/html.mjs). */
+.quote-cjk {
+  font-variant-alternates: normal;
+}
+.quote-latin {
+  font-variant-alternates: styleset(latin-quotes);
+}
 
 * {
   box-sizing: border-box;
