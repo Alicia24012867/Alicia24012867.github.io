@@ -19,21 +19,27 @@ import {
   LOCK_ROUNDS,
   LOCK_SALT,
   lockedFileName,
+  passwordName,
+  passwordsFromEnv,
+  readLevels,
   sealDocument,
+  sealRing,
   veilImages,
 } from '../scripts/content/locked.mjs';
-import { articlesPlugin, PREVIEW_PASSWORD } from '../scripts/content/plugin.mjs';
+import { articlesPlugin, PREVIEW_PASSWORD, previewPassword } from '../scripts/content/plugin.mjs';
 import { createSharePage, pagePreloads, SITE_TITLE } from '../scripts/content/share.mjs';
 import { renderSitemap } from '../scripts/content/sitemap.mjs';
 import { blogFeed } from '../src/config/feeds.mjs';
 import { lockedDescription } from '../src/config/locked.mjs';
 import {
-  keepLockKey,
-  keptLockKey,
+  keepLockKeys,
+  keptLockKeys,
   keyFromPassword,
   openDocument,
   openSealed,
+  openWithAny,
   readSealed,
+  ringKeys,
 } from '../src/content/locked/crypto.ts';
 import { isLockedFile, lockedFileUrl, openLockedFiles } from '../src/content/locked/files.ts';
 
@@ -111,7 +117,12 @@ async function lockedSite(t) {
 }
 
 const lockedPlugin = (options) =>
-  articlesPlugin({ lockedDirectory: 'content/locked/blog', requirePassword: false, ...options });
+  articlesPlugin({
+    lockedDirectory: 'content/locked/blog',
+    lockedLevels: 'content/locked/access.yml',
+    requirePassword: false,
+    ...options,
+  });
 
 const buildSite = (root, plugin, customLogger = createLogger('silent')) =>
   build({
@@ -165,13 +176,85 @@ test('the browser opens what the build seals with the same password, and nothing
     },
   });
   t.after(() => delete globalThis.localStorage);
-  assert.equal(await keptLockKey(parts), undefined);
-  keepLockKey(key);
-  assert.deepEqual(Buffer.from(await openSealed(await keptLockKey(parts), parts)), data);
+  assert.deepEqual(await keptLockKeys(parts), []);
+  keepLockKeys([key]);
+  const [kept] = await keptLockKeys(parts);
+  assert.deepEqual(Buffer.from(await openSealed(kept, parts)), data);
   const other = readSealed(bytes(createLock('Crème brûlée à deux', { rounds: 2000 }).seal(data)));
-  assert.equal(await keptLockKey(other), undefined);
+  assert.deepEqual(await keptLockKeys(other), []);
   store.set('alicia-locked-key', '{not json');
-  assert.equal(await keptLockKey(parts), undefined);
+  assert.deepEqual(await keptLockKeys(parts), []);
+  // A device that unlocked before there were levels kept one key, which still opens.
+  const legacy = {
+    rounds: 1000,
+    salt: key.salt,
+    master: Buffer.from(key.master).toString('base64'),
+  };
+  store.set('alicia-locked-key', JSON.stringify(legacy));
+  assert.equal((await keptLockKeys(parts)).length, 1);
+  // Keys are kept newest first, each once, and the oldest go past eight.
+  const keys = [];
+  for (let index = 0; index < 10; index++)
+    keys.push(await keyFromPassword(`Crème brûlée n° ${index}`, parts));
+  for (const each of keys) keepLockKeys([each]);
+  keepLockKeys([keys[3], key]);
+  const masters = (await keptLockKeys(parts)).map((each) =>
+    Buffer.from(each.master).toString('hex'),
+  );
+  assert.deepEqual(
+    masters,
+    [keys[3], key, keys[9], keys[8], keys[7], keys[6], keys[5], keys[4]].map((each) =>
+      Buffer.from(each.master).toString('hex'),
+    ),
+  );
+  store.set('alicia-locked-key', JSON.stringify({ ...legacy, masters: ['not base64!', 7] }));
+  assert.deepEqual(await keptLockKeys(parts), []);
+});
+
+test('each level has a key ring that holds the keys of the levels below it', async (t) => {
+  const low = createLock('Crème brûlée à deux', { rounds: 1000 });
+  const high = createLock('Tarte tatin pour trois', { rounds: 1000 });
+  const data = { title: 'Low document' };
+  const parts = readSealed(bytes(sealDocument(low, data)));
+  const lowKey = await keyFromPassword('Crème brûlée à deux', parts);
+  const highKey = await keyFromPassword('Tarte tatin pour trois', parts);
+  // The browser finds a key's ring by the same name the build gives it.
+  assert.match(low.ring, /^[0-9a-f]{16}$/);
+  assert.equal(lowKey.ring, low.ring);
+  assert.equal(highKey.ring, high.ring);
+  assert.notEqual(low.ring, high.ring);
+  const rings = new Map(
+    [sealRing(low, []), sealRing(high, [low])].map(({ fileName, source }) => [
+      '/' + fileName,
+      source,
+    ]),
+  );
+  assert.deepEqual([...rings.keys()], [`/locked/${low.ring}.bin`, `/locked/${high.ring}.bin`]);
+  const requests = [];
+  let offline = false;
+  const fetched = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    requests.push([url, init?.cache]);
+    if (offline) throw new TypeError('Failed to fetch');
+    const source = rings.get(new URL(url, 'https://example.com').pathname);
+    return source ? new Response(source) : new Response('Not found', { status: 404 });
+  };
+  t.after(() => {
+    globalThis.fetch = fetched;
+  });
+  const lower = await ringKeys(highKey, '/');
+  assert.equal(lower.length, 1);
+  assert.deepEqual(Buffer.from(lower[0].master), low.master);
+  const opened = await openWithAny([highKey, ...lower], parts);
+  assert.deepEqual(opened.document, data);
+  assert.equal(opened.key, lower[0]);
+  assert.deepEqual(await ringKeys(lowKey, '/'), []);
+  assert.equal(await openWithAny([highKey], parts), undefined);
+  // A wrong password has no ring; one that cannot be checked is not called wrong.
+  assert.equal(await ringKeys(await keyFromPassword('Tarte tatin pour un', parts), '/'), undefined);
+  offline = true;
+  await assert.rejects(ringKeys(highKey, '/'), /Failed to fetch/);
+  assert.deepEqual(requests[0], [`/locked/${high.ring}.bin`, 'no-cache']);
 });
 
 test('sealed files keep a plain extension, and photos wait for the reader to open them', () => {
@@ -400,7 +483,7 @@ test('a page opens sealed files of this site only, each once, until the document
 
 test('a build ships locked documents sealed, and nothing they hold in the open', async (t) => {
   const root = await lockedSite(t);
-  await buildSite(root, lockedPlugin({ lockedPassword: password, feed: blogFeed }));
+  await buildSite(root, lockedPlugin({ lockedPasswords: [password], feed: blogFeed }));
   const dist = path.join(root, 'dist');
   const photo = readFileSync(path.join(root, 'content/locked/blog/assets/rain.png'));
   for (const file of builtFiles(dist)) {
@@ -441,7 +524,7 @@ test('a build ships locked documents sealed, and nothing they hold in the open',
     [trip.title, trip.description, trip.tags, trip.author],
     ['A walk in the rain', 'CANARY-DESC', ['canary-tag'], 'CanaryAuthor'],
   );
-  for (const field of ['searchText', 'locked', 'unlisted', 'share'])
+  for (const field of ['searchText', 'locked', 'level', 'unlisted', 'share'])
     assert.ok(!(field in trip), field);
   assert.match(trip.html, /CANARY-BODY/);
   assert.match(trip.html, /class="katex/);
@@ -472,7 +555,7 @@ test('a local build without the password leaves locked documents out, and CI fai
   const warnings = [];
   const logger = createLogger('silent');
   logger.warn = (message) => warnings.push(message);
-  await buildSite(root, lockedPlugin({ lockedPassword: '' }), logger);
+  await buildSite(root, lockedPlugin({ lockedPasswords: [] }), logger);
   assert.ok(warnings.some((message) => message.includes('未设置 LOCKED_PASSWORD')));
   const files = builtFiles(path.join(root, 'dist'));
   assert.ok(!files.some((file) => sealedFile.test(path.basename(file))));
@@ -482,11 +565,11 @@ test('a local build without the password leaves locked documents out, and CI fai
       assert.ok(!text.includes(secret), `${file} holds ${secret}`);
   }
   await assert.rejects(
-    buildSite(root, lockedPlugin({ lockedPassword: '', requirePassword: true }), logger),
+    buildSite(root, lockedPlugin({ lockedPasswords: [' '], requirePassword: true }), logger),
     /构建加密文章需要密码：请在仓库的 Actions secrets 里设置 LOCKED_PASSWORD/,
   );
   await assert.rejects(
-    buildSite(root, lockedPlugin({ lockedPassword: 'too short' }), logger),
+    buildSite(root, lockedPlugin({ lockedPasswords: ['too short'] }), logger),
     /LOCKED_PASSWORD 至少需要 12 个字符/,
   );
 });
@@ -502,7 +585,7 @@ test('the dev server opens locked documents with the preview password', async (t
     appType: 'custom',
     customLogger: logger,
     cacheDir: path.join(root, 'cache'),
-    plugins: [lockedPlugin({ lockedPassword: '' })],
+    plugins: [lockedPlugin({ lockedPasswords: [] })],
     server: { host: '127.0.0.1', port: 0, hmr: false, ws: false, watch: null },
     optimizeDeps: { noDiscovery: true, include: [] },
   });
@@ -570,4 +653,297 @@ test('the dev server opens locked documents with the preview password', async (t
   assert.equal(missing.status, 404);
   await missing.text();
   assert.ok(notes.some((message) => message.includes(`本地预览密码：${PREVIEW_PASSWORD}`)));
+});
+
+test('locked documents pick a level, and name only the documents their readers can open', (t) => {
+  const levelsFile = (contents) => {
+    const root = fixture(t, { 'access.yml': contents });
+    return path.join(root, 'access.yml');
+  };
+  assert.deepEqual(readLevels(path.join(tmpdir(), 'alicia-no-such-levels.yml')), []);
+  assert.deepEqual(readLevels(levelsFile('levels: [friends, " family "]\n')), [
+    'friends',
+    'family',
+  ]);
+  for (const [contents, message] of [
+    ['levels: canary-a', /请从低到高列出等级名/],
+    ['levels: []', /请从低到高列出等级名/],
+    ['levels: [canary-a, ""]', /请从低到高列出等级名/],
+    ['levels: [canary-a, 2]', /请从低到高列出等级名/],
+    ['level: [canary-a]', /请从低到高列出等级名/],
+    ['levels: [canary-a, canary-b, canary-a]', /等级名不能重复/],
+    ['levels: [canary-a, b, c, d, e, f]', /最多 5 个等级/],
+    ['levels: [canary-a\nb: [', /^access\.yml: 格式有误，请检查第 2 行$/],
+  ]) {
+    const error = (() => {
+      try {
+        readLevels(levelsFile(contents), 'access.yml');
+      } catch (error) {
+        return error;
+      }
+    })();
+    assert.match(error?.message ?? '', message, contents);
+    // Build logs are public: an error names the file, never a level.
+    assert.doesNotMatch(error.message, /canary/, contents);
+  }
+
+  const read = (files, levels = ['friends', 'family']) => {
+    const root = fixture(t, files);
+    return buildArticleCatalog(path.join(root, 'blog'), undefined, {
+      basePath: '/blog/',
+      lockedRoot: path.join(root, 'locked'),
+      levels,
+    });
+  };
+  const { articles } = read({
+    'blog/open.md': '# Open\n\n[Walk](/blog/walk/) [Home](/blog/home/)',
+    'locked/walk.md': '---\naccess: friends\n---\n# Walk\n\n[Home](home.md) [Open](open.md)',
+    'locked/home.md': '---\naccess: family\n---\n# Home\n\n[Walk](walk.md) [Open](open.md)',
+    'locked/more.md': '# More\n\n[Walk](walk.md) [Home](home.md)',
+  });
+  const bySlug = new Map(articles.map((article) => [article.slug, article]));
+  assert.deepEqual(
+    Object.fromEntries(articles.map(({ slug, level, access }) => [slug, [level, access]])),
+    {
+      open: [undefined, undefined],
+      walk: [0, undefined],
+      home: [1, undefined],
+      more: [0, undefined],
+    },
+  );
+  // A lower document never names a higher one that links to it.
+  assert.deepEqual(bySlug.get('open').backlinks, []);
+  assert.deepEqual(bySlug.get('walk').backlinks.sort(), ['more', 'open']);
+  assert.deepEqual(bySlug.get('home').backlinks.sort(), ['more', 'open', 'walk']);
+
+  for (const [files, message] of [
+    [{ 'blog/a.md': '---\naccess: family\n---\n# A' }, /^a\.md: access 只能用于加密文章/],
+    [
+      { 'locked/b.md': '---\naccess: famliy\n---\n# B' },
+      /^加密文章 b\.md: access 写的等级不在 content\/locked\/access\.yml 里/,
+    ],
+    [{ 'locked/b.md': '---\naccess: 2\n---\n# B' }, /access 必须是字符串/],
+  ]) {
+    assert.throws(() => read(files), { message }, JSON.stringify(files));
+    assert.throws(() => read(files, []), { message }, JSON.stringify(files));
+  }
+});
+
+const lowPassword = 'correct horse battery';
+const highPassword = 'family horse battery';
+// The levels' own names: they stay in the private repository.
+const levelNames = ['canary-friends', 'canary-family'];
+
+/** A public post, a post of the lower level and one of the higher, both showing one photo. */
+async function levelSite(t) {
+  const root = fixture(t, {
+    'index.html':
+      '<html><head><title>Fixture</title></head><body><script type="module" src="./main.js"></script></body></html>',
+    'main.js': "import articles from 'virtual:articles';\nconsole.log(articles);",
+    'content/blog/open.md': '---\ntitle: Open post\ndate: 2026-01-01\n---\n\nOpen body.',
+    'content/locked/access.yml': `levels: [${levelNames.join(', ')}]\n`,
+    'content/locked/blog/walk.md': [
+      '---',
+      'title: A walk with friends',
+      'date: 2026-02-01',
+      '---',
+      '',
+      'LOW-BODY, [home](./home.md).',
+      '',
+      '![Shared](./assets/shared.png)',
+    ].join('\n'),
+    'content/locked/blog/home.md': [
+      '---',
+      'title: A day at home',
+      'date: 2026-03-01',
+      `access: ${levelNames[1]}`,
+      '---',
+      '',
+      'HIGH-BODY, [walk](./walk.md).',
+      '',
+      '![Shared](./assets/shared.png)',
+    ].join('\n'),
+  });
+  mkdirSync(path.join(root, 'content/locked/blog/assets'));
+  await sharp({ create: { width: 4, height: 3, channels: 3, background: '#e0a13a' } })
+    .png()
+    .toFile(path.join(root, 'content/locked/blog/assets/shared.png'));
+  return root;
+}
+
+test('each level ships sealed with its own password, and a higher one opens lower levels', async (t) => {
+  const root = await levelSite(t);
+  await buildSite(root, lockedPlugin({ lockedPasswords: [lowPassword, highPassword] }));
+  const dist = path.join(root, 'dist');
+  const photo = readFileSync(path.join(root, 'content/locked/blog/assets/shared.png'));
+  for (const file of builtFiles(dist)) {
+    const contents = readFileSync(file);
+    const text = contents.toString('utf8');
+    const label = path.relative(dist, file);
+    for (const secret of ['LOW-BODY', 'HIGH-BODY', ...levelNames])
+      assert.ok(!text.includes(secret), `${label} holds ${secret}`);
+    assert.ok(!contents.includes(photo), `${label} holds the photo`);
+  }
+
+  const read = (file) => readSealed(bytes(readFileSync(path.join(dist, file))));
+  const names = readdirSync(path.join(dist, 'assets')).filter((name) => sealedFile.test(name));
+  const first = read('assets/' + names[0]);
+  const low = await keyFromPassword(lowPassword, first);
+  const high = await keyFromPassword(highPassword, first);
+  // Each level's ring is named by its key; the higher one holds the lower key.
+  assert.deepEqual(
+    readdirSync(path.join(dist, 'locked')).sort(),
+    [`${high.ring}.bin`, `${low.ring}.bin`].sort(),
+  );
+  const fetched = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const file = path.join(dist, new URL(url, 'https://example.com').pathname);
+    try {
+      return new Response(readFileSync(file));
+    } catch {
+      return new Response('Not found', { status: 404 });
+    }
+  };
+  t.after(() => {
+    globalThis.fetch = fetched;
+  });
+  const lower = await ringKeys(high, '/');
+  assert.deepEqual(
+    lower.map((key) => Buffer.from(key.master).toString('hex')),
+    [Buffer.from(low.master).toString('hex')],
+  );
+  assert.deepEqual(await ringKeys(low, '/'), []);
+
+  // The documents and photos of each level open with its key alone.
+  const bodies = new Map();
+  for (const name of names.filter((name) => name.endsWith('.bin'))) {
+    const sealed = read('assets/' + name);
+    const opened = await openWithAny([low, high], sealed);
+    bodies.set(opened.document.slug, { ...opened, sealed });
+  }
+  const walk = bodies.get('walk');
+  const home = bodies.get('home');
+  assert.equal(walk.key, low);
+  assert.equal(home.key, high);
+  assert.equal(await openWithAny([low], home.sealed), undefined);
+  assert.equal((await openWithAny([high, ...lower], walk.sealed)).key, lower[0]);
+  assert.match(walk.document.html, /LOW-BODY/);
+  assert.match(home.document.html, /HIGH-BODY/);
+  assert.ok(!('level' in home.document));
+  // The higher document names the lower one linking to it; the lower one does not name it.
+  assert.deepEqual(home.document.backlinks, ['walk']);
+  assert.deepEqual(walk.document.backlinks, []);
+  const photoOf = ({ document }) => /data-locked-src="([^"]+)"/.exec(document.html)[1];
+  assert.notEqual(photoOf(walk), photoOf(home));
+  assert.deepEqual(Buffer.from(await openSealed(low, read(photoOf(walk)))), photo);
+  assert.deepEqual(Buffer.from(await openSealed(high, read(photoOf(home)))), photo);
+  await assert.rejects(openSealed(low, read(photoOf(home))));
+});
+
+test('a build without a level’s password leaves that level out, and CI fails naming its secret', async (t) => {
+  assert.deepEqual([0, 1, 4].map(passwordName), [
+    'LOCKED_PASSWORD',
+    'LOCKED_PASSWORD_2',
+    'LOCKED_PASSWORD_5',
+  ]);
+  assert.deepEqual(
+    passwordsFromEnv({ LOCKED_PASSWORD: 'a', LOCKED_PASSWORD_3: 'c', LOCKED_PASSWORD_6: 'f' }),
+    ['a', undefined, 'c', undefined, undefined],
+  );
+  const root = await levelSite(t);
+  const warnings = [];
+  const logger = createLogger('silent');
+  logger.warn = (message) => warnings.push(message);
+  await buildSite(root, lockedPlugin({ lockedPasswords: [lowPassword] }), logger);
+  assert.ok(
+    warnings.includes(`未设置 LOCKED_PASSWORD_2：这次构建不含 ${levelNames[1]} 级的加密文章`),
+    warnings.join('\n'),
+  );
+  const dist = path.join(root, 'dist');
+  const low = await keyFromPassword(lowPassword, {
+    rounds: LOCK_ROUNDS,
+    salt: bytes(Buffer.from(LOCK_SALT)),
+  });
+  const slugs = [];
+  for (const name of readdirSync(path.join(dist, 'assets')).filter((name) => name.endsWith('.bin')))
+    slugs.push(
+      (await openWithAny([low], readSealed(bytes(readFileSync(path.join(dist, 'assets', name))))))
+        .document.slug,
+    );
+  assert.deepEqual(slugs, ['walk']);
+  assert.deepEqual(readdirSync(path.join(dist, 'locked')), [`${low.ring}.bin`]);
+  for (const file of builtFiles(dist))
+    assert.ok(!readFileSync(file, 'utf8').includes('A day at home'), file);
+
+  // CI logs are public: the error names the secret, never the level.
+  const error = await buildSite(
+    root,
+    lockedPlugin({ lockedPasswords: [lowPassword], requirePassword: true }),
+    logger,
+  ).catch((error) => error);
+  assert.match(
+    error.message,
+    /构建加密文章需要密码：请在仓库的 Actions secrets 里设置 LOCKED_PASSWORD_2(?:\n|$)/,
+  );
+  for (const name of levelNames) assert.ok(!error.message.includes(name));
+  for (const [passwords, message] of [
+    [[lowPassword, lowPassword], /LOCKED_PASSWORD_2 与 LOCKED_PASSWORD 相同：每一级需要不同的密码/],
+    [[lowPassword, ` ${lowPassword} `], /LOCKED_PASSWORD_2 与 LOCKED_PASSWORD 相同/],
+    [[lowPassword, '', 'too short'], /LOCKED_PASSWORD_3 至少需要 12 个字符/],
+  ])
+    await assert.rejects(
+      buildSite(root, lockedPlugin({ lockedPasswords: passwords }), logger),
+      message,
+    );
+});
+
+test('the dev server opens each level with its own preview password', async (t) => {
+  const root = await levelSite(t);
+  const notes = [];
+  const logger = createLogger('silent');
+  logger.info = (message) => notes.push(message);
+  const server = await createServer({
+    root,
+    configFile: false,
+    appType: 'custom',
+    customLogger: logger,
+    cacheDir: path.join(root, 'cache'),
+    plugins: [lockedPlugin({ lockedPasswords: [] })],
+    server: { host: '127.0.0.1', port: 0, hmr: false, ws: false, watch: null },
+    optimizeDeps: { noDiscovery: true, include: [] },
+  });
+  await server.listen();
+  t.after(() => server.close());
+  const origin = `http://127.0.0.1:${server.httpServer.address().port}`;
+  const listing = (await server.transformRequest('virtual:articles')).code;
+  for (const name of levelNames) assert.ok(!listing.includes(name), name);
+  const summaries = JSON.parse(/^const articles = (.*);$/m.exec(listing)[1]);
+  const [home, walk] = summaries;
+  // A listing never tells one level from another.
+  assert.deepEqual(Object.keys(home), Object.keys(walk));
+  assert.ok(!('level' in home));
+  assert.deepEqual(
+    [previewPassword(0), previewPassword(1)],
+    [PREVIEW_PASSWORD, `${PREVIEW_PASSWORD}-2`],
+  );
+  assert.ok(
+    notes.some((message) =>
+      message.includes(
+        `本地预览密码：${levelNames[0]} 用 preview，${levelNames[1]} 用 preview-2（设置 LOCKED_PASSWORD、LOCKED_PASSWORD_2 可改用正式密码）`,
+      ),
+    ),
+    notes.join('\n'),
+  );
+  const sealed = readSealed(bytes(await (await fetch(origin + home.locked)).arrayBuffer()));
+  const low = await keyFromPassword(previewPassword(0), sealed);
+  const high = await keyFromPassword(previewPassword(1), sealed);
+  assert.equal(await openWithAny([low], sealed), undefined);
+  assert.equal((await openWithAny([high], sealed)).document.title, 'A day at home');
+  const lower = await ringKeys(high, origin + '/');
+  assert.deepEqual(Buffer.from(lower[0].master), Buffer.from(low.master));
+  assert.deepEqual(await ringKeys(low, origin + '/'), []);
+  assert.equal(
+    await ringKeys(await keyFromPassword('not a password', sealed), origin + '/'),
+    undefined,
+  );
 });

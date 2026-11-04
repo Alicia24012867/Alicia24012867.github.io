@@ -7,11 +7,12 @@ import type { Article, ArticleSummary } from '../types';
 import type { Collection } from '../urls';
 import {
   fetchSealed,
-  keepLockKey,
-  keptLockKey,
+  keepLockKeys,
+  keptLockKeys,
   keyFromPassword,
-  openDocument,
   openSealed,
+  openWithAny,
+  ringKeys,
   type LockKey,
   type Sealed,
 } from './crypto';
@@ -19,7 +20,19 @@ import { isLockedFile, lockedFileUrl, openLockedFiles } from './files';
 
 type Reader = ComponentType<{ article: Article }>;
 type Opened = { article: Article; Reader: Reader; key: LockKey };
-type Status = 'loading' | 'locked' | 'opening' | 'wrong' | 'failed';
+/**
+ * `wrong` is a password that opens nothing; `lower` one of a level below this document's;
+ * `unchecked` one that could not be checked, without a connection.
+ */
+type Status = 'loading' | 'locked' | 'opening' | 'wrong' | 'lower' | 'unchecked' | 'failed';
+const refused = new Set<Status>(['wrong', 'lower', 'unchecked']);
+
+const siteBase = import.meta.env.BASE_URL;
+// The keys in the rings of `keys`, as far as they can be fetched.
+const ringsOf = async (keys: LockKey[]) =>
+  (await Promise.all(keys.map((key) => ringKeys(key, siteBase).catch(() => undefined))))
+    .flat()
+    .filter((key): key is LockKey => !!key);
 
 // Browsers show these files themselves; any other attachment is saved under its own name.
 const shownTypes: Record<string, string> = {
@@ -50,9 +63,9 @@ function save(address: string, name: string) {
 }
 
 /**
- * A locked document: its sealed file opens with the key kept on this device, or else with the
- * password the form asks for. Once open, it reads like any other document, and its sealed
- * photos and attachments open as the page needs them.
+ * A locked document: its sealed file opens with a key kept on this device, or else with the
+ * password the form asks for, its level's or a higher one's. Once open, it reads like any other
+ * document, and its sealed photos and attachments open as the page needs them.
  */
 export default function LockedArticle({
   summary,
@@ -74,13 +87,15 @@ export default function LockedArticle({
   const [page, setPage] = useState<Opened>();
   const field = useRef<HTMLInputElement>(null);
 
-  // The reader and formula styles load before the page is shown, as other documents' do.
-  const show = async (key: LockKey, opened: Article) => {
-    const [{ default: Reader }] = await Promise.all([
+  // The reader and formula styles load before the page is shown, as other documents' do. `key`
+  // opened it, and `kept` are the keys to keep with it.
+  const show = async (key: LockKey, opened: Article, kept: LockKey[] | Promise<LockKey[]>) => {
+    const [{ default: Reader }, , keys] = await Promise.all([
       loadReader(),
       opened.hasMath ? import('katex/dist/katex.min.css') : undefined,
+      kept,
     ]);
-    keepLockKey(key);
+    keepLockKeys([key, ...keys]);
     setPage({ article: { ...summary, ...opened, locked: url }, Reader, key });
   };
 
@@ -90,11 +105,17 @@ export default function LockedArticle({
       const file = await fetchSealed(url);
       if (cancelled) return;
       setSealed(file);
-      // A kept key from an older password no longer opens it, and the form asks again.
-      const key = await keptLockKey(file);
-      const opened = key && (await openDocument<Article>(key, file).catch(() => undefined));
+      // A key kept from an older password no longer opens it, and the form asks again; a kept
+      // key's ring may hold the key that does, after a lower level's password changed.
+      const kept = await keptLockKeys(file);
+      let found = await openWithAny<Article>(kept, file);
+      let learned: LockKey[] = [];
+      if (!found && kept.length) {
+        learned = await ringsOf(kept);
+        found = await openWithAny<Article>(learned, file);
+      }
       if (cancelled) return;
-      if (key && opened) await show(key, opened);
+      if (found) await show(found.key, found.document, learned);
       else setStatus('locked');
     })().catch(() => {
       if (!cancelled) setStatus('failed');
@@ -112,17 +133,35 @@ export default function LockedArticle({
     setStatus('opening');
     try {
       const key = await keyFromPassword(password, sealed);
-      const opened = await openDocument<Article>(key, sealed).catch(() => undefined);
-      if (opened) await show(key, opened);
-      else setStatus('wrong');
+      // Its ring holds the keys of the levels below it: kept with it, they open their documents
+      // without asking, and one of them may open this one.
+      const ring = ringKeys(key, siteBase);
+      const lower = ring.then(
+        (keys) => keys ?? [],
+        () => [],
+      );
+      const direct = await openWithAny<Article>([key], sealed);
+      if (direct) return await show(key, direct.document, lower);
+      let keys: LockKey[] | undefined;
+      try {
+        keys = await ring;
+      } catch {
+        return setStatus('unchecked');
+      }
+      if (!keys) return setStatus('wrong');
+      const found = await openWithAny<Article>(keys, sealed);
+      if (found) return await show(found.key, found.document, [key, ...keys]);
+      // A right password, of a lower level: it opens other documents without asking.
+      keepLockKeys([key, ...keys]);
+      setStatus('lower');
     } catch {
       setStatus('failed');
     }
   };
 
-  // A wrong password stays in the field, selected, so the next try replaces it.
+  // A refused password stays in the field, selected, so the next try replaces it.
   useEffect(() => {
-    if (status !== 'wrong') return;
+    if (!refused.has(status)) return;
     field.current?.focus();
     field.current?.select();
   }, [status]);
@@ -215,7 +254,7 @@ export default function LockedArticle({
               autoComplete="current-password"
               required
               readOnly={opening}
-              aria-invalid={status === 'wrong'}
+              aria-invalid={status === 'wrong' || status === 'lower'}
               aria-describedby="locked-status"
             />
           </label>
@@ -225,12 +264,16 @@ export default function LockedArticle({
         </div>
         <p
           id="locked-status"
-          className={`locked-status${status === 'wrong' ? ' is-wrong' : ''}`}
+          className={`locked-status${refused.has(status) ? ' is-wrong' : ''}`}
           role="status"
         >
           {status === 'wrong'
             ? 'That password didn’t open it. Please try again.'
-            : 'The password is remembered on this device.'}
+            : status === 'lower'
+              ? `That password opens other locked ${kind}s, but not this one.`
+              : status === 'unchecked'
+                ? 'That password couldn’t be checked. Please check your connection and try again.'
+                : 'The password is remembered on this device.'}
         </p>
       </form>
     </div>

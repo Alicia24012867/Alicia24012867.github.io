@@ -4,7 +4,7 @@ import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { decodeHTML } from 'entities';
 import { blogFeed, feedFormats } from '../src/config/feeds.mjs';
-import { lockedFilePrefix } from '../src/config/locked.mjs';
+import { lockedFilePrefix, lockedRingDirectory } from '../src/config/locked.mjs';
 import { decodeSlug } from '../src/config/sharing.mjs';
 import { jpegSize } from './share/jpeg.mjs';
 
@@ -157,9 +157,18 @@ const sealedName = new RegExp(`^${lockedFilePrefix}[0-9a-f]{16}\\.[a-z0-9]+$`);
 const sealedFiles = fs
   .readdirSync(path.join(root, 'assets'))
   .filter((name) => sealedName.test(name));
-for (const name of sealedFiles) {
-  const head = fs.readFileSync(path.join(root, 'assets', name)).subarray(0, 6);
-  assert.ok(head[0] === 1 && head.readUInt32BE(1) >= 600_000, 'Not a sealed file: ' + name);
+// Key rings sit in a folder of their own, named by the key that opens each.
+const ringFolder = path.join(root, lockedRingDirectory);
+const rings = fs.existsSync(ringFolder) ? fs.readdirSync(ringFolder) : [];
+for (const name of rings)
+  assert.match(name, /^[0-9a-f]{16}\.bin$/, 'Not a key ring: ' + lockedRingDirectory + '/' + name);
+assert.ok(!rings.length || sealedFiles.length, 'Key rings without sealed files');
+for (const file of [
+  ...sealedFiles.map((name) => path.join('assets', name)),
+  ...rings.map((name) => path.join(lockedRingDirectory, name)),
+]) {
+  const head = fs.readFileSync(path.join(root, file)).subarray(0, 6);
+  assert.ok(head[0] === 1 && head.readUInt32BE(1) >= 600_000, 'Not a sealed file: ' + file);
 }
 const pagesIn = (directory) =>
   fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

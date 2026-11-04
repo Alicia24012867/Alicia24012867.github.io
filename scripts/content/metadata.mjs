@@ -46,6 +46,7 @@ export function parseArticleSource(source, filename) {
     'email',
     'section',
     'lang',
+    'access',
   ]) {
     if (metadata[field] != null && typeof metadata[field] !== 'string')
       throw new Error(`${filename}: ${field} 必须是字符串`);
@@ -77,6 +78,7 @@ export function parseArticleSource(source, filename) {
       // Written only when given: the catalog checks them against the folder a file is in.
       ...(Object.hasOwn(metadata, 'locked') && { locked: metadata.locked }),
       ...(metadata.unlisted === true && { unlisted: true }),
+      ...(metadata.access?.trim() && { access: metadata.access.trim() }),
     },
   };
 }

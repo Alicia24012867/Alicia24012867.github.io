@@ -15,7 +15,7 @@ npm run bundle:report
 npm run preview      # 预览 dist/
 ```
 
-需要格式化时运行 `npm run format`。测试样例由测试代码创建，不依赖线上文章数量或固定分类。验证方法与测量结果见 [性能与验证](docs/performance.md)。开发服务器用 `preview` 解锁加密文章；本地构建只在设置了 `LOCKED_PASSWORD` 时包含它们（见 [加密文章](docs/writing.md#加密文章)）。
+需要格式化时运行 `npm run format`。测试样例由测试代码创建，不依赖线上文章数量或固定分类。验证方法与测量结果见 [性能与验证](docs/performance.md)。开发服务器用 `preview` 解锁加密文章（第二级起用 `preview-2` 等）；本地构建只包含设置了密码的等级（见 [加密文章](docs/writing.md#加密文章)）。
 
 ## 目录与职责
 
@@ -76,7 +76,7 @@ docs/               撰写说明与性能记录
 
 - 路径决定地址：`content/blog/test.md` → `/blog/test/`，同时保留 `?post=test` 兼容旧链接；重命名或移动文件后需更新互链，旧地址没有自动重定向。新增或修改文章后运行 `npm run share:cards` 更新分享图。
 - `draft: true` 排除发布。元信息、附件和文章互链在构建时校验；删除文章前需检查引用。
-- 加密文章放在 `content/locked/`（私有仓库 `locked-articles` 的克隆）：构建时用 `LOCKED_PASSWORD` 加密正文、图片和附件，读者输入密码后在浏览器中解密。列表只显示标题、日期和分区，`unlisted: true` 连标题也隐藏；没有评论区，不进入订阅源和 sitemap。规则见 [文章撰写](docs/writing.md#加密文章)。
+- 加密文章放在 `content/locked/`（私有仓库 `locked-articles` 的克隆）：构建时用所在等级的密码（`LOCKED_PASSWORD`、`LOCKED_PASSWORD_2`……）加密正文、图片和附件，读者输入密码后在浏览器中解密。等级写在私有仓库的 `access.yml` 里，文章用 `access` 选择；高等级的密码也能打开低等级的文章，网站上看不出等级。列表只显示标题、日期和分区，`unlisted: true` 连标题也隐藏；没有评论区，不进入订阅源和 sitemap。规则见 [文章撰写](docs/writing.md#加密文章)。
 - 日期优先使用 YAML 的 `date` / `updated`，否则读取 Git 历史。统一显示 `Posted on`，后续编辑显示 `Edited on`。
 - 每篇自动统计字数并估算阅读时间，阅读页显示 `1,234 words · 5 min read`，Blog 列表只显示 `5 min read`（沿用正文元信息样式，窄屏换行时行首不出现分隔点）：中文按汉字、英文按单词，中英混排相加；规则见 [文章撰写](docs/writing.md)。
 - 专属附件放在内容目录内并使用相对路径；共享资源使用 `/images/文件名`。
@@ -208,7 +208,7 @@ self.addEventListener('activate', (event) => {
 - 日期排序每篇只解析一次日期。Mermaid、公式样式与阅读器按需加载；图表接近视口、签名进入视口后才初始化。
 - 站内换页（`src/pages.tsx`）：点击站内页面链接（包括全站搜索里按 ↵ 打开的结果）时不重新加载，而是取回新页面，换上它的标题、描述等元信息和样式，再由该页的入口重新绘制，地址栏随之更新，背景音乐因此不中断。鼠标移到链接上时就先取回页面及其代码和样式，点击后很快显示。浏览器的后退、前进在换过的页面间切换，并回到离开时的滚动位置；页内锚点、订阅源、图片、外部链接、新窗口链接和带 ⌘ / Ctrl / Shift 的点击仍交给浏览器。换页前发出 `alicia-page-leave` 事件（继续阅读据此记下位置），换页后的页面照常存入离线缓存；取回失败（如离线）时按普通方式打开。各页入口用 `showPage(import.meta.url, …)` 绘制，以便再次进入时重画。主题在其他标签页切换时、从浏览器缓存返回上一页时同步为最新选择（`ThemeToggle`）。
 - `scripts/content/` 统一发现文件、清洗 HTML、渲染代码和公式、校验资源及互链，并生成摘要、正文和全文索引模块。
-- 加密文章（`scripts/content/locked.mjs`、`src/content/locked/`）：构建时由密码经 PBKDF2-SHA256（60 万轮）得到主密钥，再经 HKDF 得到 AES-256-GCM 密钥；正文压缩后与每张图片、每个附件分别加密成 `assets/locked-<哈希>.<扩展名>`，内容不变时文件名不变，浏览器缓存继续有效。浏览器用 Web Crypto 以同样方式解密，主密钥只存在本机 `localStorage` 的 `alicia-locked-key`；图片接近屏幕时才解密，附件在点击时解密，浏览器能显示的在新标签页打开，其他的以原文件名下载。密码表单与解密代码只随加密文章加载。`verify-build` 检查每个加密页面都指向真实的密文文件、标注 `noindex`、使用首页分享图且不提前请求正文脚本。
+- 加密文章（`scripts/content/locked.mjs`、`src/content/locked/`）：构建时由每一级的密码经 PBKDF2-SHA256（60 万轮）得到这一级的主密钥，再经 HKDF 得到 AES-256-GCM 密钥；正文压缩后与每张图片、每个附件分别用所在等级的密钥加密成 `assets/locked-<哈希>.<扩展名>`，内容不变时文件名不变，浏览器缓存继续有效。每一级另有一个钥匙串 `locked/<16 位十六进制>.bin`：用这一级的密钥加密，装着所有更低等级的主密钥，文件名由主密钥经 HKDF 导出，只有持有这把密钥的人找得到。低等级换密码时钥匙串在同名下更新，所以它不放在离线缓存视为永不改变的 `assets/` 里，取用时也向服务器确认是否最新。浏览器用 Web Crypto 以同样方式解密：先试本机记住的主密钥（`localStorage` 的 `alicia-locked-key`，最多 8 把，最新的在前），打不开时取它们的钥匙串再试；输入的密码打不开正文、却打得开自己的钥匙串时，说明它属于更低的等级，页面据此提示，而不说密码错误。图片接近屏幕时才解密，附件在点击时解密，浏览器能显示的在新标签页打开，其他的以原文件名下载。密码表单与解密代码只随加密文章加载。`verify-build` 检查每个加密页面都指向真实的密文文件、标注 `noindex`、使用首页分享图且不提前请求正文脚本，并检查每个钥匙串都已加密。
 - 修改依赖时同时提交 `package.json` 和锁文件；修改内容路径时同步更新文档与互链。`package.json` 的 `overrides` 让 Mermaid 与正文共用同一版 KaTeX（Mermaid 11 自带的旧版有安全公告）；升级到自身要求 KaTeX 0.18 以上的 Mermaid 后可删除该项。
 
 发布前除自动检查外，应在桌面与窄屏复核主题、心情卡片的三个时段、夜间流星、Right now 卡片、移动导航、兴趣弹窗、搜索排序、返回链接、目录定位、章节链接、引用链接、阅读进度、继续阅读、朗读、分享、引文图片、代码复制、公式复制、图片查看器、脚注与链接预览、公式、交互图、签名、评论区与留言簿、离线阅读、背景音乐、加密文章的解锁、减少动态效果及 404。自动测试和构建不能代替浏览器与线上验收。
@@ -217,7 +217,7 @@ self.addEventListener('activate', (event) => {
 
 GitHub 仓库 **Settings → Pages → Source** 选择 **GitHub Actions**。推送 `main` 或手动运行 `.github/workflows/deploy.yml` 后检查并部署；PR 只运行检查。构建成功与部署成功分别以 Actions 和 Pages 环境为准。
 
-加密文章用到两个 Actions secrets：`LOCKED_ARTICLES_KEY` 是私有仓库 `Alicia24012867/locked-articles` 的只读部署密钥，有它时工作流把私有仓库检出到 `content/locked/`；`LOCKED_PASSWORD` 是加密密码（至少 12 个字符），有加密文章却缺少它时构建失败，不会发布未加密的内容。私有仓库更新后运行 `gh workflow run deploy.yml --ref main` 重新部署。
+加密文章用到这些 Actions secrets：`LOCKED_ARTICLES_KEY` 是私有仓库 `Alicia24012867/locked-articles` 的只读部署密钥，有它时工作流把私有仓库检出到 `content/locked/`；`LOCKED_PASSWORD` 到 `LOCKED_PASSWORD_5` 是各级的加密密码（各至少 12 个字符、互不相同，只设置用到的等级），有某一级的加密文章却缺少它的密码时构建失败，不会发布未加密的内容。私有仓库更新后运行 `gh workflow run deploy.yml --ref main` 重新部署。
 
 构建产物为 `dist/`，发布到 [nymphilia.com](https://nymphilia.com/)。GitHub Pages 的自定义域名与 DNS 需配置为 `nymphilia.com`；仓库内的站点配置只负责生成公开链接，不会修改 DNS 或 Pages 设置。`base: '/'` 对应域名根目录；多入口与查询参数路由无需服务器 SPA 回退。
 

@@ -61,7 +61,8 @@ function realFolder(directory) {
 /**
  * Filesystem discovery and cross-file validation, independent of Vite. `lockedRoot` holds the
  * collection's locked documents, from a private repository: they join the collection under
- * their own addresses, and the content plugin seals them before they ship.
+ * their own addresses, and the content plugin seals them before they ship. `levels` names their
+ * levels, lowest first; a locked document picks one with `access`, or is of the lowest.
  */
 export function buildArticleCatalog(
   articleRoot,
@@ -73,6 +74,7 @@ export function buildArticleCatalog(
     publicDir,
     copyDirectory,
     lockedRoot,
+    levels = [],
   } = {},
 ) {
   // Git does not retain empty folders; a collection can have no authored files yet.
@@ -241,9 +243,17 @@ export function buildArticleCatalog(
       );
     if (!locked && article.unlisted)
       throw new Error(`${file}: unlisted 只能用于加密文章，公开文章总会出现在列表里`);
+    if (!locked && article.access)
+      throw new Error(`${file}: access 只能用于加密文章，公开文章任何人都能读到`);
+    const level = article.access ? levels.indexOf(article.access) : 0;
+    // Build logs are public, so they name the file to check rather than any level.
+    if (level < 0)
+      throw new Error(`${owner}: access 写的等级不在 content/locked/access.yml 里，请检查拼写`);
     delete article.locked;
+    delete article.access;
     if (locked) {
       article.locked = true;
+      article.level = level;
       lockedSlugs.add(article.slug);
     }
     Object.assign(article, dateResolvers.get(root)(article, owner, absolute, compiled));
@@ -274,10 +284,12 @@ export function buildArticleCatalog(
   );
   // Rebuild incoming edges from cached targets, including explicit ?post links.
   const incoming = new Map(articles.map((article) => [article.slug, new Set()]));
+  // A document names only the documents linking to it that its own readers can open: a public
+  // one names public ones, and a locked one those of its level and below.
+  const reach = new Map(articles.map((article) => [article.slug, article.level ?? -1]));
   for (const article of articles) {
-    // A public document never names a locked one that links to it.
     for (const target of outgoing.get(article.slug))
-      if (target !== article.slug && (!article.locked || lockedSlugs.has(target)))
+      if (target !== article.slug && reach.get(article.slug) <= (reach.get(target) ?? -1))
         incoming.get(target)?.add(article.slug);
   }
   for (const article of articles) article.backlinks = [...incoming.get(article.slug)];

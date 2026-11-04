@@ -8,12 +8,14 @@ import { musicPlugin } from './scripts/music.mjs';
 import { sitemapPlugin } from './scripts/content/sitemap.mjs';
 import { sharePlugin } from './scripts/content/share.mjs';
 
-// Locked documents come from a private repository, checked out at content/locked.
+// Locked documents come from a private repository, checked out at content/locked, whose
+// access.yml names their levels.
 const blog = articlesPlugin({
   feed: blogFeed,
   share: true,
   reader: 'src/blog/ArticleReader.tsx',
   lockedDirectory: 'content/locked/blog',
+  lockedLevels: 'content/locked/access.yml',
 });
 const notes = articlesPlugin({
   directory: 'content/notes',
@@ -22,6 +24,7 @@ const notes = articlesPlugin({
   reader: 'src/notes/NoteReader.tsx',
   share: true,
   lockedDirectory: 'content/locked/notes',
+  lockedLevels: 'content/locked/access.yml',
 });
 
 // This repository is deployed as a GitHub User Page at the domain root.

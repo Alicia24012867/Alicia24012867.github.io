@@ -13,22 +13,32 @@ import {
 import { feedHtml, renderFeeds } from './feeds.mjs';
 import {
   createLock,
+  LOCK_LEVELS,
   LOCK_MIN_PASSWORD,
   lockedFileName,
   normalizePassword,
+  passwordName,
+  passwordsFromEnv,
+  readLevels,
   sealDocument,
+  sealRing,
   veilImages,
 } from './locked.mjs';
 import { withoutCopies, writePhotoCopy } from './resize.mjs';
 import { serveGenerated } from './serve.mjs';
 import { feedFormats } from '../../src/config/feeds.mjs';
-import { lockedFilePrefix } from '../../src/config/locked.mjs';
+import { lockedFilePrefix, lockedRingDirectory } from '../../src/config/locked.mjs';
 import { sharePath, siteCard, summaryShare, skyDigest } from '../share/spec.mjs';
 
-/** A dev server without LOCKED_PASSWORD opens locked documents with this one; builds never do. */
+/**
+ * A dev server opens a level whose password is not set with a known one: `preview` for the
+ * lowest, then `preview-2` and up. Builds never do.
+ */
 export const PREVIEW_PASSWORD = 'preview';
+export const previewPassword = (level) =>
+  level ? `${PREVIEW_PASSWORD}-${level + 1}` : PREVIEW_PASSWORD;
 
-// Blog and Notes share one password, so its slow derivation runs once.
+// Blog and Notes share their passwords, so each slow derivation runs once.
 const locks = new Map();
 function lockWith(password) {
   if (!locks.has(password)) locks.set(password, createLock(password));
@@ -39,9 +49,11 @@ const told = new Set();
 
 /**
  * `reader` is the module that draws a document page, so its static page can fetch it early.
- * `lockedDirectory` holds the collection's locked documents, which ship sealed with
- * `lockedPassword`. Without it a build leaves them out, or fails where `requirePassword`.
- * @param {{ directory?: string, moduleId?: string, basePath?: string, reader?: string, feed?: typeof import('../../src/config/feeds.mjs').blogFeed, share?: boolean, lockedDirectory?: string, lockedPassword?: string, requirePassword?: boolean }} options
+ * `lockedDirectory` holds the collection's locked documents and `lockedLevels` the file that
+ * names their levels. Each level's documents ship sealed with its password in
+ * `lockedPasswords`, lowest level first; without it a build leaves them out, or fails where
+ * `requirePassword`.
+ * @param {{ directory?: string, moduleId?: string, basePath?: string, reader?: string, feed?: typeof import('../../src/config/feeds.mjs').blogFeed, share?: boolean, lockedDirectory?: string, lockedLevels?: string, lockedPasswords?: (string | undefined)[], requirePassword?: boolean }} options
  */
 export function articlesPlugin({
   directory = 'content/blog',
@@ -51,7 +63,8 @@ export function articlesPlugin({
   feed,
   share = false,
   lockedDirectory,
-  lockedPassword = process.env.LOCKED_PASSWORD,
+  lockedLevels,
+  lockedPasswords = passwordsFromEnv(),
   // CI publishes the site, so a missing password there must never drop locked documents.
   requirePassword = !!process.env.CI,
 } = {}) {
@@ -61,11 +74,12 @@ export function articlesPlugin({
   let assetsDir;
   let articleRoot;
   let lockedRoot;
+  let levelsFile;
   let publicDir;
   let copyDirectory;
   let logger;
-  let password;
-  let previewing = false;
+  let passwords = [];
+  let serving = false;
   let shareCards;
   let catalog;
   let feeds;
@@ -88,7 +102,9 @@ export function articlesPlugin({
     return (
       [articleRoot, lockedRoot].some(
         (owner) => owner && resolved.startsWith(`${owner}${path.sep}`),
-      ) || watched.has(resolved)
+      ) ||
+      resolved === levelsFile ||
+      watched.has(resolved)
     );
   };
   // Locked files are named from the public folder too, as the catalog's change keys are.
@@ -101,18 +117,37 @@ export function articlesPlugin({
     assetsByMarker = undefined;
   };
 
-  // Without a password, a build leaves locked documents out rather than publish them open.
-  const checkPassword = () => {
-    if (previewing)
+  // A level's password, or on a dev server a known one in its place.
+  const passwordOf = (level) => passwords[level] ?? (serving ? previewPassword(level) : undefined);
+
+  // Without its password, a build leaves a level's documents out rather than publish them open.
+  const checkPasswords = ({ levels }) => {
+    const all = Array.from({ length: Math.max(1, levels.length) }, (_, level) => level);
+    const previews = all.filter((level) => serving && !passwords[level]);
+    if (previews.length) {
+      const shown = levels.length
+        ? previews.map((level) => `${levels[level]} 用 ${previewPassword(level)}`).join('，')
+        : PREVIEW_PASSWORD;
       tell(
-        `加密文章本地预览密码：${PREVIEW_PASSWORD}（设置 LOCKED_PASSWORD 可改用正式密码）`,
+        `加密文章本地预览密码：${shown}（设置 ${previews.map(passwordName).join('、')} 可改用正式密码）`,
         'info',
       );
-    if (password) return;
+    }
+    const missing = all.filter(
+      (level) =>
+        !passwordOf(level) &&
+        catalog.articles.some((article) => article.locked && article.level === level),
+    );
+    if (!missing.length) return;
+    const secrets = missing.map(passwordName).join('、');
+    // CI logs are public, so only a local build names the levels it leaves out.
     if (requirePassword)
-      throw new Error('构建加密文章需要密码：请在仓库的 Actions secrets 里设置 LOCKED_PASSWORD');
-    tell('未设置 LOCKED_PASSWORD：这次构建不含加密文章');
-    catalog.articles = catalog.articles.filter((article) => !article.locked);
+      throw new Error(`构建加密文章需要密码：请在仓库的 Actions secrets 里设置 ${secrets}`);
+    const which = levels.length ? ` ${missing.map((level) => levels[level]).join('、')} 级的` : '';
+    tell(`未设置 ${secrets}：这次构建不含${which}加密文章`);
+    catalog.articles = catalog.articles.filter(
+      (article) => !article.locked || !missing.includes(article.level),
+    );
   };
 
   const readCatalog = () => {
@@ -120,6 +155,8 @@ export function articlesPlugin({
       // Vite calls watchChange before the server's own watcher, so the old files stay
       // owned until the new catalog lists its own.
       watched.clear();
+      const levels = levelsFile ? readLevels(levelsFile, path.relative(root, levelsFile)) : [];
+      if (levels.length) watched.add(levelsFile);
       catalog = buildArticleCatalog(articleRoot, (file) => watched.add(file), {
         basePath,
         cache: compiled,
@@ -127,8 +164,10 @@ export function articlesPlugin({
         publicDir,
         copyDirectory,
         lockedRoot,
+        levels,
       });
-      if (catalog.articles.some((article) => article.locked)) checkPassword();
+      catalog.levels = levels;
+      if (catalog.articles.some((article) => article.locked)) checkPasswords(catalog);
       // Static share pages are built by site-share; listing entries carry the same
       // card so a client-rendered route can update its own preview. A locked document has
       // no card of its own, which would show its summary: it shares the site's.
@@ -194,31 +233,43 @@ export function articlesPlugin({
   };
 
   // A sealed file is named by its contents, so an unchanged photo keeps its name and is
-  // read and sealed once.
+  // read and sealed once for each level that shows it.
   const sealFile = (lock, file) => {
     const stat = fs.statSync(file);
     const version = `${stat.ino}:${stat.size}:${stat.mtimeMs}`;
-    let sealed = sealedFiles.get(file);
+    const key = `${lock.ring}:${file}`;
+    let sealed = sealedFiles.get(key);
     if (sealed?.version !== version) {
       const source = lock.seal(fs.readFileSync(file));
       sealed = { version, source, fileName: lockedFileName(assetsDir, source, path.extname(file)) };
-      sealedFiles.set(file, sealed);
+      sealedFiles.set(key, sealed);
     }
     return sealed;
   };
   /**
-   * Every locked document of a catalog, sealed: its photos, their copies and its attachments
-   * each in a file of their own, and its text with the addresses of those files in another.
-   * `files` holds each sealed file by its built name, and `bodies` each text's address.
+   * Every locked document of a catalog, sealed with its level's key: its photos, their copies
+   * and its attachments each in a file of their own, and its text with the addresses of those
+   * files in another. Each level's key ring holds the keys of the levels below it; the lowest
+   * level's holds none, but tells its password apart from a wrong one. `files` holds each
+   * sealed file and ring by its built name, and `bodies` each text's address.
    */
   const sealCatalog = async (current, warn) => {
     const files = new Map();
     const bodies = new Map();
     const locked = current.articles.filter((article) => article.locked);
     if (!locked.length) return { catalog: current, files, bodies };
-    const lock = lockWith(password);
+    const levelLocks = Array.from({ length: Math.max(1, current.levels.length) }, (_, level) => {
+      const password = passwordOf(level);
+      return password && lockWith(password);
+    });
+    levelLocks.forEach((lock, level) => {
+      if (!lock) return;
+      const ring = sealRing(lock, levelLocks.slice(0, level).filter(Boolean));
+      files.set(ring.fileName, ring.source);
+    });
     const filesByMarker = new Map([...current.assets].map(([file, marker]) => [marker, file]));
     for (const article of locked) {
+      const lock = levelLocks[article.level];
       const shown = await shownHtml(article, { copies: current.copies, filesByMarker }, warn);
       const names = {};
       const html = shown.html.replace(/__ALICIA_ARTICLE_ASSET_\d+__/g, (marker) => {
@@ -260,23 +311,32 @@ export function articlesPlugin({
       assetsDir = config.build.assetsDir;
       articleRoot = path.resolve(config.root, directory);
       lockedRoot = lockedDirectory && path.resolve(config.root, lockedDirectory);
+      levelsFile = lockedLevels && path.resolve(config.root, lockedLevels);
       publicDir = config.publicDir;
       copyDirectory = path.join(config.cacheDir, 'article-images');
       logger = config.logger;
-      password = lockedPassword?.trim() ? normalizePassword(lockedPassword) : undefined;
-      // Sealed files are public: a short password could be guessed offline.
-      if (password && [...password].length < LOCK_MIN_PASSWORD)
-        throw new Error(`LOCKED_PASSWORD 至少需要 ${LOCK_MIN_PASSWORD} 个字符`);
-      // Local previews need no secret; they open locked documents with a known password.
-      if (!password && config.command === 'serve') {
-        password = PREVIEW_PASSWORD;
-        previewing = true;
-      }
+      passwords = lockedPasswords
+        .slice(0, LOCK_LEVELS)
+        .map((password) => (password?.trim() ? normalizePassword(password) : undefined));
+      passwords.forEach((password, level) => {
+        if (!password) return;
+        // Sealed files are public: a short password could be guessed offline.
+        if ([...password].length < LOCK_MIN_PASSWORD)
+          throw new Error(`${passwordName(level)} 至少需要 ${LOCK_MIN_PASSWORD} 个字符`);
+        // One password for two levels would open both, and tell neither apart.
+        const same = passwords.indexOf(password);
+        if (same < level)
+          throw new Error(
+            `${passwordName(level)} 与 ${passwordName(same)} 相同：每一级需要不同的密码`,
+          );
+      });
+      // Local previews need no secret; they open each level with a known password.
+      serving = config.command === 'serve';
     },
     buildStart() {
       invalidate();
-      // A build without the password it needs stops here, before any module asks again.
-      if (!previewing && lockedRoot && !password && requirePassword) readCatalog();
+      // A build without a password it needs stops here, before any module asks again.
+      if (!serving && lockedRoot && requirePassword) readCatalog();
     },
     watchChange(file) {
       if (ownsFile(file)) invalidate(file);
@@ -347,11 +407,17 @@ export function articlesPlugin({
           if (!format) return next();
           serveGenerated(req, res, next, format.type, () => readFeeds()[pathname]);
         });
-      // Sealed files are served where a build puts them.
-      const sealedPrefix = `${base}${assetsDir}/${lockedFilePrefix}`;
+      // Sealed files and key rings are served where a build puts them.
+      const sealedPrefixes = [
+        `${base}${assetsDir}/${lockedFilePrefix}`,
+        `${base}${lockedRingDirectory}/`,
+      ];
       server.middlewares.use((req, res, next) => {
         const pathname = new URL(req.url, 'http://localhost').pathname;
-        if (!pathname.startsWith(sealedPrefix) || (req.method !== 'GET' && req.method !== 'HEAD'))
+        if (
+          !sealedPrefixes.some((prefix) => pathname.startsWith(prefix)) ||
+          (req.method !== 'GET' && req.method !== 'HEAD')
+        )
           return next();
         readSealed().then(({ files }) => {
           const source = files.get(pathname.slice(base.length));
@@ -363,6 +429,7 @@ export function articlesPlugin({
       });
       server.watcher.add(articleRoot);
       if (lockedRoot) server.watcher.add(lockedRoot);
+      if (levelsFile) server.watcher.add(levelsFile);
       const reload = (file) => {
         if (!ownsFile(file)) return;
         invalidate(file);

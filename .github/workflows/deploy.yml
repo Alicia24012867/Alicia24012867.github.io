@@ -46,8 +46,14 @@ jobs:
       - name: Typecheck and build
         run: npm run format:check && npm run check
         env:
-          # Seals locked documents; a build that has some and no password fails.
+          # Seals locked documents, each level with its own password: LOCKED_PASSWORD for the
+          # lowest, then LOCKED_PASSWORD_2 and up. A build with documents of a level and no
+          # password for it fails.
           LOCKED_PASSWORD: ${{ secrets.LOCKED_PASSWORD }}
+          LOCKED_PASSWORD_2: ${{ secrets.LOCKED_PASSWORD_2 }}
+          LOCKED_PASSWORD_3: ${{ secrets.LOCKED_PASSWORD_3 }}
+          LOCKED_PASSWORD_4: ${{ secrets.LOCKED_PASSWORD_4 }}
+          LOCKED_PASSWORD_5: ${{ secrets.LOCKED_PASSWORD_5 }}
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5

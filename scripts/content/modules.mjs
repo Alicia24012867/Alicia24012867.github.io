@@ -28,7 +28,11 @@ function lockedSummary({ slug, title, date, updated, pin, section, share }, url)
  * Everything a locked document's reader needs, for sealing: `html` names its sealed files,
  * and `files` gives each one's own name, for saving it.
  */
-export function lockedPayload({ searchText, locked, unlisted, share, ...article }, html, files) {
+export function lockedPayload(
+  { searchText, locked, level, unlisted, share, ...article },
+  html,
+  files,
+) {
   return { ...article, html, files };
 }
 
