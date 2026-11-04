@@ -121,6 +121,7 @@ const lockedPlugin = (options) =>
     lockedDirectory: 'content/locked/blog',
     lockedLevels: 'content/locked/access.yml',
     requirePassword: false,
+    publicLog: false,
     ...options,
   });
 
@@ -336,6 +337,62 @@ test('locked documents join their collection under the rules that keep them seal
     [{ 'locked/b.md': '# B\n\n[Gone](gone.md)' }, /^加密文章 b\.md: 链接 gone\.md 指向不存在/],
   ])
     assert.throws(() => read(files), { message }, JSON.stringify(files));
+});
+
+test('a public build log says a locked document has an error, never which one or what', (t) => {
+  const read = (files, publicLog) => () => {
+    const root = fixture(t, files);
+    return buildArticleCatalog(path.join(root, 'blog'), undefined, {
+      basePath: '/blog/',
+      lockedRoot: path.join(root, 'locked'),
+      publicLog,
+    });
+  };
+  for (const [files, detail] of [
+    // YAML quotes the lines around a problem.
+    [
+      { 'locked/canary-yaml.md': '---\ntitle: Trip\ndescription: CANARY-DESC: oops\n---\n# Trip' },
+      /^加密文章 canary-yaml\.md: front matter 格式有误：Nested mappings .* at line 3, column \d+:\n\ndescription: CANARY-DESC: oops\n/,
+    ],
+    [
+      { 'locked/canary-tag.md': '---\ntitle: !CANARY-TITLE\n---\n# Trip' },
+      /^加密文章 canary-tag\.md: front matter 格式有误：Unresolved tag: !CANARY-TITLE at line 2/,
+    ],
+    [
+      { 'locked/canary-photo.md': '![Rain](./canary-rain.png)' },
+      /^加密文章 canary-photo\.md: 找不到文章附件 canary-rain\.png/,
+    ],
+    [
+      { 'locked/canary-link.md': '[Gone](./canary-gone.md)' },
+      /^加密文章 canary-link\.md: 链接 \.\/canary-gone\.md 指向不存在/,
+    ],
+    [
+      { 'locked/canary-figure.md': '<figure data-figure="canary-figure"></figure>' },
+      /^加密文章 canary-figure\.md: 未知的交互图 canary-figure/,
+    ],
+  ]) {
+    const name = Object.keys(files)[0];
+    // A local build shows the error itself.
+    assert.throws(read(files, false), { message: detail }, name);
+    assert.throws(
+      read(files, true),
+      (error) => {
+        assert.match(
+          error.message,
+          /^加密文章有误：构建日志是公开的，这里不显示是哪一篇、错在哪里/,
+        );
+        // Nothing printed with it names or quotes the document either.
+        assert.doesNotMatch(String(error.stack), /canary/i);
+        assert.equal(error.cause, undefined);
+        return true;
+      },
+      name,
+    );
+  }
+  // A public document's errors say everything, as the document does.
+  assert.throws(read({ 'blog/open.md': '[Gone](./gone.md)' }, true), {
+    message: /^open\.md: 链接 \.\/gone\.md 指向不存在/,
+  });
 });
 
 test('a locked page says only what its listing does, and an unlisted one not even its title', () => {
@@ -674,6 +731,8 @@ test('locked documents pick a level, and name only the documents their readers c
     ['levels: [canary-a, canary-b, canary-a]', /等级名不能重复/],
     ['levels: [canary-a, b, c, d, e, f]', /最多 5 个等级/],
     ['levels: [canary-a\nb: [', /^access\.yml: 格式有误，请检查第 2 行$/],
+    // YAML would warn, quoting the line, that it dropped the name's tag.
+    ['levels: [canary-a, !canary-b]', /^access\.yml: 格式有误，请检查第 1 行$/],
   ]) {
     const error = (() => {
       try {
@@ -895,6 +954,49 @@ test('a build without a level’s password leaves that level out, and CI fails n
       buildSite(root, lockedPlugin({ lockedPasswords: passwords }), logger),
       message,
     );
+});
+
+test('a public build log names no level or locked photo, and no locked document with an error', async (t) => {
+  const root = await levelSite(t);
+  // The photo's size reads, but no smaller copy can be made of it.
+  const photo = sharp({
+    create: { width: 1600, height: 1200, channels: 3, background: '#3a8de0' },
+  });
+  writeFileSync(
+    path.join(root, 'content/locked/blog/assets/canary-broken.jpg'),
+    Buffer.from(await photo.jpeg().toBuffer()).subarray(0, 700),
+  );
+  const photos = path.join(root, 'content/locked/blog/photos.md');
+  writeFileSync(
+    photos,
+    [
+      '# Photos',
+      '<div class="article-gallery">',
+      '  <figure><img src="./assets/canary-broken.jpg" alt="Broken"></figure>',
+      '</div>',
+    ].join('\n'),
+  );
+  const warnings = [];
+  const logger = createLogger('silent');
+  logger.warn = (message) => warnings.push(message);
+  const ci = { lockedPasswords: [lowPassword], publicLog: true };
+  await buildSite(root, lockedPlugin(ci), logger);
+  assert.ok(
+    warnings.includes('未设置 LOCKED_PASSWORD_2：这次构建不含加密文章'),
+    warnings.join('\n'),
+  );
+  assert.ok(
+    warnings.some((message) =>
+      message.includes('Showing a photo of a locked document at full size'),
+    ),
+    warnings.join('\n'),
+  );
+  for (const message of warnings) assert.doesNotMatch(message, /canary/i);
+
+  writeFileSync(photos, '---\ntitle: !CANARY-TITLE\n---\n# Photos');
+  const error = await buildSite(root, lockedPlugin(ci), logger).catch((error) => error);
+  assert.match(error?.message ?? '', /加密文章有误：构建日志是公开的/);
+  assert.doesNotMatch(`${error.message}\n${error.stack}`, /canary/i);
 });
 
 test('the dev server opens each level with its own preview password', async (t) => {

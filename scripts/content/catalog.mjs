@@ -58,11 +58,19 @@ function realFolder(directory) {
   }
 }
 
+/** What a public build log says of an error in a locked document: that there is one. */
+const hiddenError = () =>
+  new Error(
+    '加密文章有误：构建日志是公开的，这里不显示是哪一篇、错在哪里。请在本地运行 npm run build 查看',
+  );
+
 /**
  * Filesystem discovery and cross-file validation, independent of Vite. `lockedRoot` holds the
  * collection's locked documents, from a private repository: they join the collection under
  * their own addresses, and the content plugin seals them before they ship. `levels` names their
- * levels, lowest first; a locked document picks one with `access`, or is of the lowest.
+ * levels, lowest first; a locked document picks one with `access`, or is of the lowest. Where
+ * `publicLog`, as in CI, anyone can read the build log, so an error in a locked document never
+ * says which one it is or quotes it: a local build shows the error itself.
  */
 export function buildArticleCatalog(
   articleRoot,
@@ -75,6 +83,7 @@ export function buildArticleCatalog(
     copyDirectory,
     lockedRoot,
     levels = [],
+    publicLog = false,
   } = {},
 ) {
   // Git does not retain empty folders; a collection can have no authored files yet.
@@ -97,6 +106,15 @@ export function buildArticleCatalog(
   const checked = new Map();
   const assetFiles = new Map();
   const copies = new Map();
+  // An error while reading a locked document, as the build log may show it.
+  const shown = (locked, error) => (locked && publicLog ? hiddenError() : error);
+  const reading = (locked, read) => {
+    try {
+      return read();
+    } catch (error) {
+      throw shown(locked, error);
+    }
+  };
 
   function checkedFile(relative, owner, root, isFile = false) {
     const absolute = path.resolve(root, relative);
@@ -153,13 +171,13 @@ export function buildArticleCatalog(
   }
   // Public documents first, so a collection without locked ones numbers its files as before.
   const sources = roots.flatMap(({ root, locked }) => {
-    const files = discover(root);
+    const files = reading(locked, () => discover(root));
     return [...files.keys()]
       .sort()
       .map((file) => ({ root, locked, file, isFile: files.get(file) }));
   });
   const lockedSlugs = new Set();
-  for (const { root, locked, file, isFile } of sources) {
+  function addDocument({ root, locked, file, isFile }) {
     // Errors name the folder a locked file sits in, since its path matches a public one.
     const owner = locked ? `加密文章 ${file}` : file;
     const absolute = checkedFile(file, owner, root, isFile);
@@ -230,7 +248,7 @@ export function buildArticleCatalog(
         copyOf,
       ),
     };
-    if (!article) continue;
+    if (!article) return;
     // A public file is readable in the public repository whatever it says, and a locked one is
     // always sealed: either flag in the wrong folder would promise something false.
     if (!locked && article.locked)
@@ -269,9 +287,11 @@ export function buildArticleCatalog(
       compiled.references = { basePath, targets: linkedSlugs(compiled.article.html, basePath) };
     outgoing.set(article.slug, compiled.references.targets);
   }
+  for (const source of sources) reading(source.locked, () => addDocument(source));
   for (const file of cache.keys()) if (!visited.has(file)) cache.delete(file);
   for (const { owner, slug, link, locked } of links) {
-    if (!slugs.has(slug)) throw new Error(`${owner}: 链接 ${link} 指向不存在或未发布的文章`);
+    if (!slugs.has(slug))
+      throw shown(locked, new Error(`${owner}: 链接 ${link} 指向不存在或未发布的文章`));
     // Builds without the private repository must still find every target of a public file.
     if (!locked && lockedSlugs.has(slug))
       throw new Error(

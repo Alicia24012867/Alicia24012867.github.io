@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import childProcess from 'node:child_process';
-import { parse } from 'yaml';
+import { parseDocument } from 'yaml';
 
 function articleDate(value, field, filename) {
   const date = value?.trim() || '';
@@ -25,7 +25,12 @@ export function parseArticleSource(source, filename) {
   if (body.startsWith('---\n')) {
     const match = /^---\n([\s\S]*?)^---[ \t]*(?:\n|$)/m.exec(body);
     if (!match) throw new Error(`${filename}: front matter 缺少结束的 ---`);
-    metadata = parse(match[1], { uniqueKeys: true }) ?? {};
+    // A blank line stands in for the opening ---, so a problem names the file's own line. A
+    // warning means a value was lost, such as a title that starts with !, so it fails too.
+    const document = parseDocument(`\n${match[1]}`, { uniqueKeys: true, logLevel: 'error' });
+    const problem = document.errors[0] ?? document.warnings[0];
+    if (problem) throw new Error(`${filename}: front matter 格式有误：${problem.message}`);
+    metadata = document.toJS() ?? {};
     if (typeof metadata !== 'object' || Array.isArray(metadata))
       throw new Error(`${filename}: front matter 必须是对象`);
     body = body.slice(match[0].length);

@@ -211,6 +211,21 @@ test('drafts are excluded; invalid metadata and escaping paths fail clearly', ()
   assert.throws(() => compileArticle('![secret](../../secrets.png)', 'note.md'), /不可越过/);
 });
 
+test('front matter YAML problems name the file and its own line, and warnings fail too', () => {
+  assert.throws(
+    () => compileArticle('---\ntitle: Fine\ndescription: a: b\n---\nText', 'broken.md'),
+    {
+      message:
+        /^broken\.md: front matter 格式有误：Nested mappings .* at line 3, column 14:\n\ndescription: a: b\n/,
+    },
+  );
+  // A title that starts with ! is a YAML tag, which would drop the title.
+  assert.throws(() => compileArticle('---\ntitle: !Wow\n---\nText', 'tagged.md'), {
+    message: /^tagged\.md: front matter 格式有误：Unresolved tag: !Wow at line 2, column 8/,
+  });
+  assert.equal(compileArticle("---\ntitle: '!Wow'\n---\nText", 'quoted.md').title, '!Wow');
+});
+
 test('math and footnotes produce readable titles, summaries and stable heading ids', () => {
   const article = compileArticle(
     '# Energy $E=mc^2$\n\nAbout $x+y$.[^a]\n\n## More $x^2$\n\n[^a]: A note.',

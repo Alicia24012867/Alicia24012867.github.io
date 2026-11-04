@@ -217,7 +217,7 @@ self.addEventListener('activate', (event) => {
 
 GitHub 仓库 **Settings → Pages → Source** 选择 **GitHub Actions**。推送 `main` 或手动运行 `.github/workflows/deploy.yml` 后检查并部署；PR 只运行检查。构建成功与部署成功分别以 Actions 和 Pages 环境为准。
 
-加密文章用到这些 Actions secrets：`LOCKED_ARTICLES_KEY` 是私有仓库 `Alicia24012867/locked-articles` 的只读部署密钥，有它时工作流把私有仓库检出到 `content/locked/`；`LOCKED_PASSWORD` 到 `LOCKED_PASSWORD_5` 是各级的加密密码（各至少 12 个字符、互不相同，只设置用到的等级），有某一级的加密文章却缺少它的密码时构建失败，不会发布未加密的内容。私有仓库更新后运行 `gh workflow run deploy.yml --ref main` 重新部署。
+加密文章用到这些 Actions secrets：`LOCKED_ARTICLES_KEY` 是私有仓库 `Alicia24012867/locked-articles` 的只读部署密钥，有它时工作流把私有仓库检出到 `content/locked/`；`LOCKED_PASSWORD` 到 `LOCKED_PASSWORD_5` 是各级的加密密码（各至少 12 个字符、互不相同，只设置用到的等级），有某一级的加密文章却缺少它的密码时构建失败，不会发布未加密的内容。工作流的日志公开可见，所以加密文章出错时，日志只说有错，不写是哪一篇、错在哪里，也不写等级名和照片的文件名。私有仓库更新后运行 `gh workflow run deploy.yml --ref main` 重新部署。
 
 构建产物为 `dist/`，发布到 [nymphilia.com](https://nymphilia.com/)。GitHub Pages 的自定义域名与 DNS 需配置为 `nymphilia.com`；仓库内的站点配置只负责生成公开链接，不会修改 DNS 或 Pages 设置。`base: '/'` 对应域名根目录；多入口与查询参数路由无需服务器 SPA 回退。
 

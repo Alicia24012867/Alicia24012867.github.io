@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
-import { parse } from 'yaml';
+import { parseDocument } from 'yaml';
 import { lockedFilePrefix, lockedRingDirectory } from '../../src/config/locked.mjs';
 
 /**
@@ -49,14 +49,15 @@ export function readLevels(file, label = file) {
     if (error.code === 'ENOENT') return [];
     throw error;
   }
-  let levels;
-  try {
-    levels = parse(source, { uniqueKeys: true })?.levels;
-  } catch (error) {
-    // Build logs are public, so a parse error names its line and never quotes the file.
-    const line = error.linePos?.[0]?.line;
+  // Build logs are public, so a problem names its line and never quotes the file. A warning
+  // means a name was lost, such as one that starts with !, so it fails too.
+  const document = parseDocument(source, { uniqueKeys: true, logLevel: 'error' });
+  const problem = document.errors[0] ?? document.warnings[0];
+  if (problem) {
+    const line = problem.linePos?.[0]?.line;
     throw new Error(`${label}: 格式有误${line ? `，请检查第 ${line} 行` : ''}`);
   }
+  const levels = document.toJS()?.levels;
   const names = Array.isArray(levels)
     ? levels.map((name) => (typeof name === 'string' ? name.trim() : ''))
     : [];

@@ -52,8 +52,9 @@ const told = new Set();
  * `lockedDirectory` holds the collection's locked documents and `lockedLevels` the file that
  * names their levels. Each level's documents ship sealed with its password in
  * `lockedPasswords`, lowest level first; without it a build leaves them out, or fails where
- * `requirePassword`.
- * @param {{ directory?: string, moduleId?: string, basePath?: string, reader?: string, feed?: typeof import('../../src/config/feeds.mjs').blogFeed, share?: boolean, lockedDirectory?: string, lockedLevels?: string, lockedPasswords?: (string | undefined)[], requirePassword?: boolean }} options
+ * `requirePassword`. Where `publicLog`, the build log never shows which locked document has an
+ * error, what it says, its photos or its levels.
+ * @param {{ directory?: string, moduleId?: string, basePath?: string, reader?: string, feed?: typeof import('../../src/config/feeds.mjs').blogFeed, share?: boolean, lockedDirectory?: string, lockedLevels?: string, lockedPasswords?: (string | undefined)[], requirePassword?: boolean, publicLog?: boolean }} options
  */
 export function articlesPlugin({
   directory = 'content/blog',
@@ -67,6 +68,8 @@ export function articlesPlugin({
   lockedPasswords = passwordsFromEnv(),
   // CI publishes the site, so a missing password there must never drop locked documents.
   requirePassword = !!process.env.CI,
+  // Anyone can read CI's build log.
+  publicLog = !!process.env.CI,
 } = {}) {
   const resolvedId = `\0${moduleId}`;
   let root;
@@ -143,7 +146,10 @@ export function articlesPlugin({
     // CI logs are public, so only a local build names the levels it leaves out.
     if (requirePassword)
       throw new Error(`构建加密文章需要密码：请在仓库的 Actions secrets 里设置 ${secrets}`);
-    const which = levels.length ? ` ${missing.map((level) => levels[level]).join('、')} 级的` : '';
+    const which =
+      levels.length && !publicLog
+        ? ` ${missing.map((level) => levels[level]).join('、')} 级的`
+        : '';
     tell(`未设置 ${secrets}：这次构建不含${which}加密文章`);
     catalog.articles = catalog.articles.filter(
       (article) => !article.locked || !missing.includes(article.level),
@@ -165,6 +171,7 @@ export function articlesPlugin({
         copyDirectory,
         lockedRoot,
         levels,
+        publicLog,
       });
       catalog.levels = levels;
       if (catalog.articles.some((article) => article.locked)) checkPasswords(catalog);
@@ -268,9 +275,13 @@ export function articlesPlugin({
       files.set(ring.fileName, ring.source);
     });
     const filesByMarker = new Map([...current.assets].map(([file, marker]) => [marker, file]));
+    // A public log never names a locked document's photos.
+    const photoWarn = publicLog
+      ? () => warn('Showing a photo of a locked document at full size')
+      : warn;
     for (const article of locked) {
       const lock = levelLocks[article.level];
-      const shown = await shownHtml(article, { copies: current.copies, filesByMarker }, warn);
+      const shown = await shownHtml(article, { copies: current.copies, filesByMarker }, photoWarn);
       const names = {};
       const html = shown.html.replace(/__ALICIA_ARTICLE_ASSET_\d+__/g, (marker) => {
         const file = shown.files.get(marker);
