@@ -29,9 +29,9 @@ import {
   requireSiteCard,
   siteCard,
 } from '../scripts/share/spec.mjs';
+import { repoRoot, webRoot } from '../scripts/content/paths.mjs';
 
 const siteUrl = 'https://example.com/';
-const repo = path.resolve(import.meta.dirname, '..');
 
 const head = [
   '<meta name="description" content="Listing" />',
@@ -403,9 +403,9 @@ test('a missing share card fails the build instead of shipping a stale preview',
 });
 
 test('every published document ships a current 1200x630 share card', () => {
-  const publicRoot = path.join(repo, 'public');
+  const publicRoot = path.join(webRoot, 'public');
   for (const collection of cardCollections) {
-    const catalog = buildArticleCatalog(path.join(repo, collection.directory), () => {}, {
+    const catalog = buildArticleCatalog(path.join(repoRoot, collection.directory), () => {}, {
       basePath: collection.basePath,
     });
     for (const item of catalog.articles) {

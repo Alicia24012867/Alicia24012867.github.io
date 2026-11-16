@@ -48,15 +48,18 @@ function lockWith(password) {
 const told = new Set();
 
 /**
- * `reader` is the module that draws a document page, so its static page can fetch it early.
+ * `directory`, `lockedDirectory` and `lockedLevels` are paths from `sourceRoot`, the Vite root
+ * unless given. `reader` is the module that draws a document page, so its static page can fetch
+ * it early.
  * `lockedDirectory` holds the collection's locked documents and `lockedLevels` the file that
  * names their levels. Each level's documents ship sealed with its password in
  * `lockedPasswords`, lowest level first; without it a build leaves them out, or fails where
  * `requirePassword`. Where `publicLog`, the build log never shows which locked document has an
  * error, what it says, its photos or its levels.
- * @param {{ directory?: string, moduleId?: string, basePath?: string, reader?: string, feed?: typeof import('../../src/config/feeds.mjs').blogFeed, share?: boolean, lockedDirectory?: string, lockedLevels?: string, lockedPasswords?: (string | undefined)[], requirePassword?: boolean, publicLog?: boolean }} options
+ * @param {{ sourceRoot?: string, directory?: string, moduleId?: string, basePath?: string, reader?: string, feed?: typeof import('../../src/config/feeds.mjs').blogFeed, share?: boolean, lockedDirectory?: string, lockedLevels?: string, lockedPasswords?: (string | undefined)[], requirePassword?: boolean, publicLog?: boolean }} options
  */
 export function articlesPlugin({
+  sourceRoot,
   directory = 'content/blog',
   moduleId = 'virtual:articles',
   basePath = '/blog/',
@@ -73,6 +76,7 @@ export function articlesPlugin({
 } = {}) {
   const resolvedId = `\0${moduleId}`;
   let root;
+  let documentsRoot;
   let base;
   let assetsDir;
   let articleRoot;
@@ -161,7 +165,7 @@ export function articlesPlugin({
       // Vite calls watchChange before the server's own watcher, so the old files stay
       // owned until the new catalog lists its own.
       watched.clear();
-      const levels = levelsFile ? readLevels(levelsFile, path.relative(root, levelsFile)) : [];
+      const levels = levelsFile ? readLevels(levelsFile, named(levelsFile)) : [];
       if (levels.length) watched.add(levelsFile);
       catalog = buildArticleCatalog(articleRoot, (file) => watched.add(file), {
         basePath,
@@ -204,9 +208,19 @@ export function articlesPlugin({
       feedHtml(article.html, { url, assetUrl, copies: resized }),
     );
   };
+  // Files are named in messages as the repository names them.
+  const named = (file) => path.relative(documentsRoot, file).replaceAll('\\', '/');
+  // Vite names an emitted file from its own root.
   const sourcePath = (marker) =>
     path.relative(root, assetsByMarker.get(marker)).replaceAll('\\', '/');
-  const readFeeds = () => (feeds ??= fullFeeds((marker) => `/${sourcePath(marker)}`));
+  // The dev server serves a file in its root at the file's own path, and any other under /@fs/.
+  const servedPath = (marker) => {
+    const name = sourcePath(marker);
+    return name.startsWith('../') || path.isAbsolute(name)
+      ? `/@fs/${assetsByMarker.get(marker).replaceAll('\\', '/').replace(/^\//, '')}`
+      : `/${name}`;
+  };
+  const readFeeds = () => (feeds ??= fullFeeds(servedPath));
   // Each copy is made once, when an article first shows it. Where a copy cannot be made
   // or saves too little, the article shows the photo itself. `files` names the file behind
   // each attachment marker of the catalog the article comes from.
@@ -224,7 +238,7 @@ export function articlesPlugin({
           shownCopies.set(
             file,
             writePhotoCopy(copy).catch((error) => {
-              warn(`Showing ${path.relative(root, copy.source)} at full size: ${error.message}`);
+              warn(`Showing ${named(copy.source)} at full size: ${error.message}`);
               return false;
             }),
           );
@@ -318,11 +332,12 @@ export function articlesPlugin({
     api: { basePath, moduleId, reader, readCatalog, readArticle, readLocked },
     configResolved(config) {
       root = config.root;
+      documentsRoot = path.resolve(config.root, sourceRoot ?? '.');
       base = config.base;
       assetsDir = config.build.assetsDir;
-      articleRoot = path.resolve(config.root, directory);
-      lockedRoot = lockedDirectory && path.resolve(config.root, lockedDirectory);
-      levelsFile = lockedLevels && path.resolve(config.root, lockedLevels);
+      articleRoot = path.resolve(documentsRoot, directory);
+      lockedRoot = lockedDirectory && path.resolve(documentsRoot, lockedDirectory);
+      levelsFile = lockedLevels && path.resolve(documentsRoot, lockedLevels);
       publicDir = config.publicDir;
       copyDirectory = path.join(config.cacheDir, 'article-images');
       logger = config.logger;

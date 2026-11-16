@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { buildArticleCatalog } from './content/catalog.mjs';
+import { showAtRevision } from './git-show.mjs';
 
 const variants = [{ name: 'current', build: buildArticleCatalog }];
 const withGit = process.argv.includes('--git');
@@ -13,9 +14,7 @@ if (compareArg !== -1) {
   const ref = process.argv[compareArg + 1];
   if (!ref || ref.startsWith('--')) throw new Error('--compare-ref requires a Git revision');
   // Compare catalog implementations with the same compiler and dependencies.
-  const source = execFileSync('git', ['show', `${ref}:scripts/content/catalog.mjs`], {
-    encoding: 'utf8',
-  })
+  const source = showAtRevision(ref, 'scripts/content/catalog.mjs')
     .replace("from 'entities'", `from ${JSON.stringify(import.meta.resolve('entities'))}`)
     .replace(
       /from '\.\/([^']+)'/g,

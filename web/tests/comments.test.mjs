@@ -35,7 +35,7 @@ test('comment themes use the production assets and follow the explicit site them
 });
 
 test('giscus origin rules allow production and local previews without matching lookalike domains', () => {
-  const config = JSON.parse(readFileSync(new URL('../giscus.json', import.meta.url), 'utf8'));
+  const config = JSON.parse(readFileSync(new URL('../../giscus.json', import.meta.url), 'utf8'));
   const allowed = (origin) =>
     config.origins.includes(origin) ||
     config.originsRegex.some((pattern) => new RegExp(pattern).test(origin));

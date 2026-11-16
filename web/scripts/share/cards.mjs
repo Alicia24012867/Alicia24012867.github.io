@@ -13,6 +13,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { buildArticleCatalog } from '../content/catalog.mjs';
+import { repoRoot, webRoot } from '../content/paths.mjs';
 import {
   articleCard,
   cardCollections,
@@ -23,8 +24,7 @@ import {
   skyDigest,
 } from './spec.mjs';
 
-const root = path.resolve(import.meta.dirname, '../..');
-const publicRoot = path.join(root, 'public');
+const publicRoot = path.join(webRoot, 'public');
 const renderer = path.join(import.meta.dirname, 'render_card.py');
 const check = process.argv.includes('--check');
 const imageFile = /\.(?:png|jpe?g|webp)$/i;
@@ -33,7 +33,7 @@ function collectCards() {
   const sky = skyDigest(publicRoot);
   const cards = [];
   for (const collection of cardCollections) {
-    const catalog = buildArticleCatalog(path.join(root, collection.directory), () => {}, {
+    const catalog = buildArticleCatalog(path.join(repoRoot, collection.directory), () => {}, {
       basePath: collection.basePath,
     });
     for (const article of catalog.articles)

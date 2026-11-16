@@ -1,6 +1,5 @@
 /dist/
 /node_modules/
 /.verification/
-/content/
 /public/
 /package-lock.json

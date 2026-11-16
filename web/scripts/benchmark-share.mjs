@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { createSharePage } from './content/share.mjs';
+import { showAtRevision } from './git-show.mjs';
 
 // The production shell carries every tag a share page rewrites; build once before measuring.
 const shellArg = process.argv.slice(2).find((arg, index, args) => {
@@ -20,9 +20,7 @@ if (compareArg !== -1) {
   const ref = process.argv[compareArg + 1];
   if (!ref || ref.startsWith('--')) throw new Error('--compare-ref requires a Git revision');
   // Compare page builders with the same card rules and dependencies.
-  const source = execFileSync('git', ['show', `${ref}:scripts/content/share.mjs`], {
-    encoding: 'utf8',
-  })
+  const source = showAtRevision(ref, 'scripts/content/share.mjs')
     .replace("from 'entities'", `from ${JSON.stringify(import.meta.resolve('entities'))}`)
     .replace(
       /from '(\.{1,2}\/[^']+)'/g,

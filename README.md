@@ -2,11 +2,14 @@
 
 React、TypeScript、Vite 多页面个人网站：主页 `/`、Blog `/blog/`、知识库 `/notes/`，以及独立的 404 页面。文本使用 UTF-8。
 
+网站前端在 `web/`，文章与笔记在 `content/`，撰写说明与记录在 `docs/`。本文提到的代码路径（`src/`、`public/`、`scripts/`、`tests/`、`dist/`）都在 `web/` 下。
+
 ## 开发与验证
 
-需要 Node.js 22.12+ 和 npm，CI 使用 Node.js 24。
+需要 Node.js 22.12+ 和 npm，CI 使用 Node.js 24。命令都在 `web/` 里运行，包括文档中提到的 `npm run share:cards` 等。
 
 ```sh
+cd web
 npm ci
 npm run dev          # 本地开发，内容修改后自动刷新
 npm run format:check # 格式检查
@@ -20,33 +23,34 @@ npm run preview      # 预览 dist/
 ## 目录与职责
 
 ```text
-src/
-  home/              首页区块与兴趣弹窗
-  blog/              Blog 列表、分类排序与文章翻页
-  notes/             知识库、全文搜索与反向链接
-  components/        全站布局、导航、图标、主题、背景音乐与手写签名
-  config/            个人资料、外链、研究方向和分区预设，以及静态分享地址规则
-  content/           内容路由、标题区、元信息、标签、搜索和 URL 工具
-    reader/          正文增强、独立目录状态、阅读进度、继续阅读、朗读、分享、引文图片、代码复制、章节链接、图表渲染、图片查看器、脚注与链接预览
-    figures/         正文交互图及其计算
-    locked/          加密文章的密码表单、解密与附件
-  hooks/             URL 查询状态、页面元信息与评论组件懒加载
-  styles/            字体、主题、共享样式与 404 样式
-  not-found.tsx      独立 404 入口
+web/                 网站前端：Vite 项目，有自己的 package.json
+  src/
+    home/            首页区块与兴趣弹窗
+    blog/            Blog 列表、分类排序与文章翻页
+    notes/           知识库、全文搜索与反向链接
+    components/      全站布局、导航、图标、主题、背景音乐与手写签名
+    config/          个人资料、外链、研究方向和分区预设，以及静态分享地址规则
+    content/         内容路由、标题区、元信息、标签、搜索和 URL 工具
+      reader/        正文增强、独立目录状态、阅读进度、继续阅读、朗读、分享、引文图片、代码复制、章节链接、图表渲染、图片查看器、脚注与链接预览
+      figures/       正文交互图及其计算
+      locked/        加密文章的密码表单、解密与附件
+    hooks/           URL 查询状态、页面元信息与评论组件懒加载
+    styles/          字体、主题、共享样式与 404 样式
+    not-found.tsx    独立 404 入口
+  public/
+    audio/           背景音乐：放进来的曲子按文件名顺序循环播放
+  scripts/
+    content/         内容发现、编译、清洗、校验和 Vite 插件；paths.mjs 指明 content/ 的位置
+    share/           分享图渲染脚本、摘要规则与生成命令
+    music.mjs        背景音乐的曲目发现与 Vite 插件
+    verify-build.mjs 构建依赖边界检查与包体积报告
+    benchmark-*.mjs  编译、搜索、排序、分享页与内存基准
+  tests/             独立回归样例
 content/
   blog/              文章和附件
   notes/             笔记和附件
   locked/            加密文章与笔记：私有仓库的克隆，不提交到本仓库
-public/
-  audio/             背景音乐：放进来的曲子按文件名顺序循环播放
-scripts/
-  content/           内容发现、编译、清洗、校验和 Vite 插件
-  share/             分享图渲染脚本、摘要规则与生成命令
-  music.mjs          背景音乐的曲目发现与 Vite 插件
-  verify-build.mjs   构建依赖边界检查与包体积报告
-  benchmark-*.mjs    编译、搜索、排序、分享页与内存基准
-tests/              独立回归样例
-docs/               撰写说明与性能记录
+docs/                撰写说明与性能记录
 ```
 
 ## 配置与视觉规范
@@ -219,6 +223,6 @@ GitHub 仓库 **Settings → Pages → Source** 选择 **GitHub Actions**。推�
 
 加密文章用到这些 Actions secrets：`LOCKED_ARTICLES_KEY` 是私有仓库 `Alicia24012867/locked-articles` 的只读部署密钥，有它时工作流把私有仓库检出到 `content/locked/`；`LOCKED_PASSWORD` 到 `LOCKED_PASSWORD_5` 是各级的加密密码（各至少 12 个字符、互不相同，只设置用到的等级），有某一级的加密文章却缺少它的密码时构建失败，不会发布未加密的内容。工作流的日志公开可见，所以加密文章出错时，日志只说有错，不写是哪一篇、错在哪里，也不写等级名和照片的文件名。私有仓库更新后运行 `gh workflow run deploy.yml --ref main` 重新部署。
 
-构建产物为 `dist/`，发布到 [nymphilia.com](https://nymphilia.com/)。GitHub Pages 的自定义域名与 DNS 需配置为 `nymphilia.com`；仓库内的站点配置只负责生成公开链接，不会修改 DNS 或 Pages 设置。`base: '/'` 对应域名根目录；多入口与查询参数路由无需服务器 SPA 回退。
+构建产物为 `web/dist/`，发布到 [nymphilia.com](https://nymphilia.com/)。GitHub Pages 的自定义域名与 DNS 需配置为 `nymphilia.com`；仓库内的站点配置只负责生成公开链接，不会修改 DNS 或 Pages 设置。`base: '/'` 对应域名根目录；多入口与查询参数路由无需服务器 SPA 回退。
 
 未知路径返回 `dist/404.html`，保留原地址和 HTTP 404 状态，提供首页、Blog、Notes 入口；未发布的静态地址同样返回 404。地址与某篇已发布的文章或笔记相近时（拼写有误、连字符与下划线混用、大小写不同、少了所在文件夹、带了日期，或写的是标题里的词），说明下方列出最多三篇“Perhaps you meant”；找不到相近的文档时页面与原来相同。推荐只用各文档的地址与标题（`virtual:articles/titles`、`virtual:notes/titles`），随 404 页的脚本一起下载，不加载列表、正文或草稿；匹配规则在 `src/content/suggest.ts`，有独立测试。开发与预览服务采用相同的 404 行为；不存在的 `?post=` 显示各自集合的内容缺失提示。

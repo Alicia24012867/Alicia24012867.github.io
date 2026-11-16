@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import ts from 'typescript';
 import { sortArticles } from '../src/content/sort.ts';
+import { showAtRevision } from './git-show.mjs';
 
 const variants = [{ name: 'current', sort: sortArticles }];
 const compareArg = process.argv.indexOf('--compare-ref');
 if (compareArg !== -1) {
   const ref = process.argv[compareArg + 1];
   if (!ref || ref.startsWith('--')) throw new Error('--compare-ref requires a Git revision');
-  const source = execFileSync('git', ['show', `${ref}:src/content/sort.ts`], { encoding: 'utf8' });
+  const source = showAtRevision(ref, 'src/content/sort.ts');
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   });

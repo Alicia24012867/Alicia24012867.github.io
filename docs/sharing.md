@@ -2,6 +2,8 @@
 
 每篇已发布的 Blog 文章和笔记都有一个独立静态地址，并配一张 1200×630 的标题卡片。静态地址中的分享元信息不需要执行 JavaScript；正文仍由现有 React 阅读器加载。正式域名为 `https://nymphilia.com/`，由 `src/config/feeds.mjs` 统一配置。
 
+文中的 `npm run …` 命令在 `web/` 里运行，包括下文的 `python3 -m unittest`；`src/`、`public/`、`scripts/` 指 `web/` 下的目录。
+
 ## 地址规则
 
 | 文件                                          | 静态分享地址                             |

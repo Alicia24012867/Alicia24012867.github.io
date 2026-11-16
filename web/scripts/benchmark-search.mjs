@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { performance } from 'node:perf_hooks';
-import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 import { createContentFilter, createContentIndex } from '../src/content/search.ts';
+import { showAtRevision } from './git-show.mjs';
 
 const count = 10000;
 const samples = 9;
@@ -32,13 +32,7 @@ const compareArg = process.argv.indexOf('--compare-ref');
 if (compareArg !== -1) {
   const ref = process.argv[compareArg + 1];
   if (!ref || ref.startsWith('--')) throw new Error('--compare-ref requires a Git revision');
-  const files = execFileSync('git', ['ls-tree', '-r', '--name-only', ref], {
-    encoding: 'utf8',
-  }).split('\n');
-  const file = files.includes('src/content/search.ts')
-    ? 'src/content/search.ts'
-    : 'src/content/index.ts';
-  const source = execFileSync('git', ['show', `${ref}:${file}`], { encoding: 'utf8' });
+  const source = showAtRevision(ref, 'src/content/search.ts', 'src/content/index.ts');
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   });

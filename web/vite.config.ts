@@ -1,16 +1,19 @@
-import { defineConfig } from 'vite';
+import { defineConfig, searchForWorkspaceRoot } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 import { blogFeed } from './src/config/feeds.mjs';
 import { articlesPlugin } from './scripts/content/plugin.mjs';
+import { contentRoot, repoRoot } from './scripts/content/paths.mjs';
 import { notFoundPlugin } from './scripts/not-found.mjs';
 import { musicPlugin } from './scripts/music.mjs';
 import { sitemapPlugin } from './scripts/content/sitemap.mjs';
 import { sharePlugin } from './scripts/content/share.mjs';
 
-// Locked documents come from a private repository, checked out at content/locked, whose
-// access.yml names their levels.
+// Documents live beside web/, in the repository's content folder. Locked documents come from
+// a private repository, checked out at content/locked, whose access.yml names their levels.
 const blog = articlesPlugin({
+  sourceRoot: repoRoot,
+  directory: 'content/blog',
   feed: blogFeed,
   share: true,
   reader: 'src/blog/ArticleReader.tsx',
@@ -18,6 +21,7 @@ const blog = articlesPlugin({
   lockedLevels: 'content/locked/access.yml',
 });
 const notes = articlesPlugin({
+  sourceRoot: repoRoot,
   directory: 'content/notes',
   moduleId: 'virtual:notes',
   basePath: '/notes/',
@@ -43,6 +47,8 @@ export default defineConfig({
   ],
   base: '/',
   appType: 'mpa',
+  // Photos and attachments are served from the content folder, outside web/.
+  server: { fs: { allow: [searchForWorkspaceRoot(import.meta.dirname), contentRoot] } },
   build: {
     manifest: true,
     rolldownOptions: {
