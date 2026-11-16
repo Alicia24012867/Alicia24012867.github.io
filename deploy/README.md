@@ -8,6 +8,7 @@ nymphilia.com 由 VPS（`ssh nyc`）上的 Caddy 提供。每次推送 `main`，
 | ------------------------------ | --------------------------------- | ------------------------------------------------ |
 | `deploy/site/receive`          | `/srv/site/bin/receive`           | 接收一次发布，解包后切换为在线版本               |
 | `deploy/site/activate`         | `/srv/site/bin/activate`          | 列出保留的发布，或切回其中一个                   |
+| `deploy/site/go-live`          | `/srv/site/bin/go-live`           | 域名指向服务器后运行一次，换上正式证书           |
 | `deploy/caddy/nymphilia.caddy` | `/srv/proxy/conf/nymphilia.caddy` | 网站的 Caddy 配置，由同目录的 Caddyfile `import` |
 
 这些文件改动后不会自动同步，需要手动复制到服务器，再重新加载 Caddy：
@@ -17,6 +18,15 @@ scp deploy/site/receive deploy/site/activate nyc:/srv/site/bin/
 scp deploy/caddy/nymphilia.caddy nyc:/srv/proxy/conf/
 ssh nyc docker exec caddy caddy reload --config /etc/caddy/Caddyfile
 ```
+
+## 切换域名
+
+服务器先用 Caddy 自己签发的测试证书，等域名指过来再换正式证书：
+
+1. 在 Cloudflare 删掉 `nymphilia.com` 指向 GitHub 的 4 条 A 记录，只留一条指向 `107.170.11.167`；把 `www` 的 CNAME 改为 `nymphilia.com`。两条都保持“仅 DNS”（灰色云朵）。
+2. 运行 `ssh nyc /srv/site/bin/go-live`。DNS 还没改好时它会说明原因并退出；改好后 Caddy 在一分钟内取得 `nymphilia.com` 和 `www.nymphilia.com` 的正式证书。
+
+要切回 GitHub Pages，把两条记录改回原样：4 条 A 记录 `185.199.108.153` 到 `185.199.111.153`，`www` 的 CNAME 指向 `alicia24012867.github.io`。
 
 ## 发布如何到达服务器
 

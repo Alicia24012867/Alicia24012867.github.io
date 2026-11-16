@@ -1,0 +1,20 @@
+#!/bin/sh
+# Run once, after nymphilia.com points at this server in Cloudflare:
+#   ssh nyc /srv/site/bin/go-live
+# Caddy then drops its test certificate and gets real ones for nymphilia.com and www.
+set -eu
+ip=107.170.11.167
+conf=/srv/proxy/conf/nymphilia.caddy
+answer=$(dig +short +time=5 +tries=2 @pat.ns.cloudflare.com nymphilia.com A | sort | tr '\n' ' ')
+if [ "$answer" != "$ip " ]; then
+  echo "nymphilia.com still points at: ${answer:-nothing}"
+  echo "In Cloudflare, keep a single A record for nymphilia.com, $ip (DNS only), then run this again."
+  exit 1
+fi
+if ! grep -q 'tls internal' "$conf"; then
+  echo "Already live with real certificates."
+  exit 0
+fi
+sed -i "/Until DNS points here/d; /^[[:space:]]*tls internal$/d" "$conf"
+docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+echo "Live: Caddy is fetching certificates for nymphilia.com and www.nymphilia.com."
