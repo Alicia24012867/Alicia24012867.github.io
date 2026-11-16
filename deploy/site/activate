@@ -1,0 +1,32 @@
+#!/bin/sh
+# Lists the releases bin/receive kept, or makes one of them live again:
+#
+#   /srv/site/bin/activate              # newest first; * marks the live one
+#   /srv/site/bin/activate <release>    # switch public/ and, if it has one, private/
+set -eu
+site=/srv/site
+
+if [ "$#" -eq 0 ]; then
+  live=$(readlink "$site/public/current" || true)
+  ls -1 "$site/public" | grep -Ex '[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12}' | sort -r |
+    while read -r release; do
+      if [ "$release" = "$live" ]; then echo "* $release"; else echo "  $release"; fi
+    done
+  exit 0
+fi
+
+release=$1
+printf '%s\n' "$release" | grep -Eqx '[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12}' || {
+  echo "activate: not a release name: $release" >&2
+  exit 1
+}
+[ -d "$site/public/$release" ] || {
+  echo "activate: no such release: $release" >&2
+  exit 1
+}
+for part in private public; do
+  [ -d "$site/$part/$release" ] || continue
+  ln -sfn "$release" "$site/$part/.current"
+  mv -T "$site/$part/.current" "$site/$part/current"
+done
+echo "live: $release"

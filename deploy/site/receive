@@ -1,0 +1,81 @@
+#!/bin/sh
+# The deploy key's only command. CI sends one build of the site as a tar on standard input:
+#
+#   ssh -p 2222 alicia@<host> receive <commit> < release.tar
+#
+# public/ in the tar is what Caddy serves at nymphilia.com. private/, when present, is what
+# only the blog API may read. Each part is unpacked beside the live one and switched in with a
+# symlink, so a reader gets the old site or the new one, never a mix of both. The newest five
+# releases stay for rollback with bin/activate.
+set -eu
+umask 022
+
+site=/srv/site
+keep=5
+limit=$((1024 * 1024 * 1024))
+
+fail() {
+  echo "receive: $*" >&2
+  exit 1
+}
+
+# A forced command finds what the client asked for in SSH_ORIGINAL_COMMAND; run by hand, it
+# takes the same words as arguments.
+if [ -n "${SSH_ORIGINAL_COMMAND:-}" ]; then
+  set -f
+  # shellcheck disable=SC2086
+  set -- $SSH_ORIGINAL_COMMAND
+  set +f
+fi
+[ "$#" -eq 2 ] && [ "$1" = receive ] || fail "usage: receive <commit>"
+commit=$2
+printf '%s\n' "$commit" | grep -Eqx '[0-9a-f]{40}' || fail "the commit must be 40 hex digits"
+
+# A commit can be built more than once, for example after the private documents change, so a
+# release is named by when it arrived as well. The names sort by time.
+release=$(date -u +%Y%m%dT%H%M%SZ)-$(printf '%.12s' "$commit")
+
+incoming=$(mktemp -d "$site/.incoming.XXXXXX")
+trap 'rm -rf "$incoming"' EXIT
+head -c "$((limit + 1))" >"$incoming/release.tar"
+[ "$(stat -c %s "$incoming/release.tar")" -le "$limit" ] || fail "the release is over 1 GiB"
+
+# Only plain files and folders, inside public/ or private/, with no way out of them.
+tar -tf "$incoming/release.tar" >"$incoming/names" 2>/dev/null || fail "not a tar file"
+tar -tvf "$incoming/release.tar" >"$incoming/entries"
+if cut -c1 "$incoming/entries" | grep -qv '^[-d]$'; then
+  fail "links and special files are not allowed"
+fi
+if sed 's|^\./||' "$incoming/names" | grep -Ev '^(\.?|(public|private)(/.*)?)$' | grep -q .; then
+  fail "everything must be inside public/ or private/"
+fi
+if grep -Eq '(^|/)\.\.(/|$)' "$incoming/names"; then
+  fail "names may not climb out with .."
+fi
+
+mkdir "$incoming/release"
+tar -xf "$incoming/release.tar" -C "$incoming/release" --no-same-owner --no-same-permissions
+[ -f "$incoming/release/public/index.html" ] && [ -f "$incoming/release/public/404.html" ] ||
+  fail "public/ must hold index.html and 404.html"
+# Only the owner, whom the blog API runs as, reads private documents.
+[ ! -d "$incoming/release/private" ] || chmod -R go= "$incoming/release/private"
+
+# Private first: a page that links a new private document goes live once its text is there.
+for part in private public; do
+  [ -d "$incoming/release/$part" ] || continue
+  mkdir -p "$site/$part"
+  mv "$incoming/release/$part" "$site/$part/$release"
+  ln -sfn "$release" "$site/$part/.current"
+  mv -T "$site/$part/.current" "$site/$part/current"
+done
+
+for part in public private; do
+  [ -d "$site/$part" ] || continue
+  live=$(readlink "$site/$part/current" || true)
+  ls -1 "$site/$part" | grep -Ex '[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12}' | sort -r | tail -n +"$((keep + 1))" |
+    while read -r old; do
+      [ "$old" = "$live" ] || rm -rf "${site:?}/$part/$old"
+    done
+done
+
+echo "live: $release"

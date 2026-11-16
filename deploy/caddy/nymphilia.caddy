@@ -1,0 +1,42 @@
+# nymphilia.com: the built site, unpacked by /srv/site/bin/receive. The Caddyfile in
+# /srv/proxy/conf imports this file beside the git, cloud and vpn sites.
+(site_headers) {
+	header {
+		Access-Control-Allow-Origin *
+		Strict-Transport-Security "max-age=31556952"
+		-Server
+	}
+}
+
+nymphilia.com {
+	root * /srv/site/public/current
+	encode zstd gzip
+	import site_headers
+
+	# Built files carry a hash of their contents in their names, so they never change.
+	@hashed path /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	# Pages, the service worker, feeds and key rings change in place: browsers always ask.
+	@fresh path / */ *.html /sw.js /manifest.webmanifest /rss.xml /atom.xml /sitemap.xml /robots.txt /locked/*
+	header @fresh Cache-Control "no-cache"
+	# Fonts and images keep the ten minutes GitHub Pages gave them.
+	header ?Cache-Control "max-age=600"
+
+	file_server
+
+	# Unknown addresses show the site's own 404 page and keep the 404 status.
+	handle_errors 404 {
+		root * /srv/site/public/current
+		encode zstd gzip
+		import site_headers
+		header Cache-Control "no-cache"
+		rewrite * /404.html
+		file_server
+	}
+}
+
+# Straight to the site, in one step from http:// as well.
+www.nymphilia.com, http://www.nymphilia.com {
+	import site_headers
+	redir https://nymphilia.com{uri} permanent
+}
