@@ -1,0 +1,11 @@
+# auth.nymphilia.com: the sign-in service in /srv/auth. The Caddyfile in /srv/proxy/conf
+# imports this file beside nymphilia.caddy.
+auth.nymphilia.com {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31556952"
+		-Server
+	}
+	# Caddy replaces any X-Forwarded-For a client sends, so the service sees the real address.
+	reverse_proxy auth:3000
+}

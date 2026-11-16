@@ -2,7 +2,7 @@
 
 React、TypeScript、Vite 多页面个人网站：主页 `/`、Blog `/blog/`、知识库 `/notes/`，以及独立的 404 页面。文本使用 UTF-8。
 
-网站前端在 `web/`，文章与笔记在 `content/`，撰写说明与记录在 `docs/`。本文提到的代码路径（`src/`、`public/`、`scripts/`、`tests/`、`dist/`）都在 `web/` 下。
+网站前端在 `web/`，文章与笔记在 `content/`，撰写说明与记录在 `docs/`。登录服务 auth.nymphilia.com 在 `auth/`（见 [auth/README.md](auth/README.md)），服务器上的配置和脚本在 `deploy/`（见 [deploy/README.md](deploy/README.md)）。本文提到的代码路径（`src/`、`public/`、`scripts/`、`tests/`、`dist/`）都在 `web/` 下。
 
 ## 开发与验证
 
@@ -46,6 +46,8 @@ web/                 网站前端：Vite 项目，有自己的 package.json
     verify-build.mjs 构建依赖边界检查与包体积报告
     benchmark-*.mjs  编译、搜索、排序、分享页与内存基准
   tests/             独立回归样例
+auth/                登录服务 auth.nymphilia.com：Node 24 + SQLite，有自己的 package.json
+deploy/              服务器上的脚本、Caddy 配置和容器配置
 content/
   blog/              文章和附件
   notes/             笔记和附件

@@ -1,0 +1,89 @@
+name: Deploy auth.nymphilia.com
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - auth/**
+      # auth/ keeps copies of these, which npm run check compares.
+      - web/src/styles/fonts.css
+      - web/public/favicon.svg
+      - .github/workflows/auth.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - auth/**
+      - web/src/styles/fonts.css
+      - web/public/favicon.svg
+      - .github/workflows/auth.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: auth-${{ github.ref }}
+  # A deploy that has started runs to its end, so the server never stops halfway.
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: auth
+    env:
+      HAS_VPS_KEY: ${{ secrets.VPS_DEPLOY_KEY != '' }}
+      IMAGE: nymphilia/auth:${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: auth/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck and test
+        # The passkey tests drive the runner's Chrome with a virtual authenticator.
+        run: npm run check
+      - name: Build the image
+        run: docker build -t "$IMAGE" .
+      - name: Try the image as the server runs it
+        # Read-only, without privileges or a network, and with an empty data folder. Its logs
+        # hold nothing private, so a failure shows them.
+        run: |
+          docker run -d --name auth-try --read-only --tmpfs /tmp \
+            --tmpfs /data:uid=1000,gid=1000,mode=0700 --cap-drop ALL \
+            --security-opt no-new-privileges:true --network none \
+            -e AUTH_ISSUER=https://auth.nymphilia.com -e AUTH_RP_ID=nymphilia.com "$IMAGE"
+          health() { docker inspect -f '{{.State.Health.Status}}' auth-try; }
+          for _ in $(seq 60); do [ "$(health)" = healthy ] && break; sleep 1; done
+          if [ "$(health)" != healthy ]; then docker logs auth-try; exit 1; fi
+          docker exec auth-try wget -qO- http://127.0.0.1:3000/.well-known/openid-configuration |
+            jq -e '.issuer == "https://auth.nymphilia.com"'
+          docker exec auth-try node src/cli.ts people
+          docker rm -f auth-try
+      - name: Publish to the server
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && env.HAS_VPS_KEY == 'true'
+        env:
+          VPS_DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          VPS_HOST: 107.170.11.167
+          VPS_PORT: 2222
+          # The server's own host key, so the build talks to no one else.
+          VPS_KNOWN_HOST: '[107.170.11.167]:2222 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF0YpsbSXVJgHSbIJ95f2xnNdlxxBE6HMu4yjg9FapkX'
+        # deploy/site/image checks that the archive names this image alone, loads it and starts
+        # it. If it isn't healthy, the server goes back to the image before and this step fails.
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$VPS_KNOWN_HOST" > ~/.ssh/known_hosts
+          printf '%s\n' "$VPS_DEPLOY_KEY" > ~/.ssh/vps_deploy
+          chmod 600 ~/.ssh/vps_deploy
+          docker save "$IMAGE" | gzip -1 |
+            ssh -i ~/.ssh/vps_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+              -p "$VPS_PORT" "alicia@$VPS_HOST" image auth "$GITHUB_SHA"
+          rm -f ~/.ssh/vps_deploy

@@ -1,0 +1,29 @@
+#!/bin/sh
+# The deploy key's only command. ~/.ssh/authorized_keys holds the key as
+#
+#   restrict,command="/srv/site/bin/deploy" ssh-ed25519 AAAA…
+#
+# so what CI asks for arrives in SSH_ORIGINAL_COMMAND, and only two requests go through:
+#
+#   receive <commit>             a build of the site, as a tar (bin/receive)
+#   image <service> <commit>     an image of auth or blog-api, from docker save | gzip (bin/image)
+set -eu
+bin=/srv/site/bin
+
+set -f
+# shellcheck disable=SC2086
+set -- ${SSH_ORIGINAL_COMMAND:-}
+set +f
+
+case ${1:-} in
+  # bin/receive reads SSH_ORIGINAL_COMMAND itself.
+  receive) exec "$bin/receive" ;;
+  image)
+    if [ "$#" -eq 3 ]; then
+      unset SSH_ORIGINAL_COMMAND
+      exec "$bin/image" "$2" "$3"
+    fi
+    ;;
+esac
+echo "deploy: usage: receive <commit> | image <service> <commit>" >&2
+exit 1

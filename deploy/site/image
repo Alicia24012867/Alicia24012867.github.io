@@ -1,0 +1,77 @@
+#!/bin/sh
+# Takes an image of a service from CI and makes it live:
+#
+#   docker save nymphilia/auth:<commit> | gzip | ssh -p 2222 alicia@<host> image auth <commit>
+#
+# bin/deploy runs it for the deploy key; by hand, it takes the same two words as arguments.
+# The archive may carry the one name nymphilia/<service>:<commit> and nothing else: docker load
+# applies every name it finds, so an archive that also said caddy:2 would replace Caddy's image.
+# bin/activate then starts the image, and goes back to the previous one if it isn't healthy.
+set -eu
+umask 077
+
+bin=/srv/site/bin
+# The auth image is about 60 MiB compressed and 170 MiB unpacked.
+limit_gz=$((512 * 1024 * 1024))
+limit=$((1024 * 1024 * 1024))
+
+fail() {
+  echo "image: $*" >&2
+  exit 1
+}
+
+[ "$#" -eq 2 ] || fail "usage: image <service> <commit> < image.tar.gz"
+service=$1
+commit=$2
+case $service in
+  auth | blog-api) ;;
+  *) fail "unknown service: $service" ;;
+esac
+printf '%s\n' "$commit" | grep -Eqx '[0-9a-f]{40}' || fail "the commit must be 40 hex digits"
+tag=nymphilia/$service:$commit
+
+work=$(mktemp -d /var/tmp/image.XXXXXX)
+trap 'rm -rf "$work"' EXIT
+head -c "$((limit_gz + 1))" >"$work/image.tar.gz"
+[ "$(stat -c %s "$work/image.tar.gz")" -le "$limit_gz" ] || fail "the image is over 512 MiB compressed"
+gzip -t "$work/image.tar.gz" 2>/dev/null || fail "not a gzip file"
+gzip -dc "$work/image.tar.gz" | head -c "$((limit + 1))" >"$work/image.tar"
+[ "$(stat -c %s "$work/image.tar")" -le "$limit" ] || fail "the image is over 1 GiB unpacked"
+rm "$work/image.tar.gz"
+
+# Only what docker save writes: plain files and folders, each name once.
+tar -tvf "$work/image.tar" >"$work/entries" 2>/dev/null || fail "not a tar file"
+tar -tf "$work/image.tar" >"$work/names"
+if cut -c1 "$work/entries" | grep -qv '^[-d]$'; then
+  fail "links and special files are not allowed"
+fi
+if grep -Evx 'oci-layout|index\.json|manifest\.json|repositories|blobs/(sha256/([0-9a-f]{64})?)?' \
+  "$work/names" | grep -q .; then
+  fail "only oci-layout, index.json, manifest.json, repositories and blobs/sha256/ may be in it"
+fi
+[ -z "$(sort "$work/names" | uniq -d)" ] || fail "a name appears twice"
+for file in index.json manifest.json; do
+  grep -qx "$file" "$work/names" || fail "$file is missing"
+done
+
+# The one name, in each place docker load may read names from.
+tar -xOf "$work/image.tar" manifest.json |
+  jq -e --arg tag "$tag" 'length == 1 and .[0].RepoTags == [$tag]' >/dev/null ||
+  fail "manifest.json must name $tag alone"
+tar -xOf "$work/image.tar" index.json |
+  jq -e --arg name "docker.io/$tag" --arg commit "$commit" '.manifests | length == 1
+    and .[0].annotations["io.containerd.image.name"] == $name
+    and .[0].annotations["org.opencontainers.image.ref.name"] == $commit' >/dev/null ||
+  fail "index.json must name $tag alone"
+if grep -qx repositories "$work/names"; then
+  tar -xOf "$work/image.tar" repositories |
+    jq -e --arg repo "nymphilia/$service" --arg commit "$commit" \
+      'keys == [$repo] and (.[$repo] | keys) == [$commit]' >/dev/null ||
+    fail "repositories must name $tag alone"
+fi
+
+docker load -q -i "$work/image.tar" >/dev/null
+docker image inspect "$tag" >/dev/null 2>&1 || fail "docker load didn't give $tag"
+rm -rf "$work"
+trap - EXIT
+exec "$bin/activate" "$service" "$commit"

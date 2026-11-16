@@ -1,10 +1,88 @@
 #!/bin/sh
-# Lists the releases bin/receive kept, or makes one of them live again:
+# Lists what can go live, or makes it live:
 #
-#   /srv/site/bin/activate              # newest first; * marks the live one
-#   /srv/site/bin/activate <release>    # switch public/ and, if it has one, private/
+#   /srv/site/bin/activate                    # the site's releases, newest first; * marks the live one
+#   /srv/site/bin/activate <release>          # switch public/ and, if it has one, private/
+#   /srv/site/bin/activate auth               # a service's images, newest first
+#   /srv/site/bin/activate auth <commit>      # start that image; back to the old one if it fails
+#
+# The services are auth, in /srv/auth/compose.yml, and blog-api, in /srv/site/compose.yml.
+# bin/image ends here for each image CI hands over.
 set -eu
 site=/srv/site
+# Images kept for going back to, besides the live one.
+keep=3
+
+fail() {
+  echo "activate: $*" >&2
+  exit 1
+}
+
+case ${1:-} in
+  auth) dir=/srv/auth ;;
+  blog-api) dir=$site ;;
+  *) dir= ;;
+esac
+
+if [ -n "$dir" ]; then
+  service=$1
+  name=nymphilia/$service
+  [ "$#" -le 2 ] || fail "usage: activate $service [<commit>]"
+
+  # The service's images by commit, newest first, as created|commit|id.
+  images() {
+    docker image ls --no-trunc --format '{{.CreatedAt}}|{{.Tag}}|{{.ID}}' "$name" |
+      grep -E '^[^|]*\|[0-9a-f]{40}\|' | sort -r
+  }
+  live() {
+    docker image inspect --format '{{.Id}}' "$name:live" 2>/dev/null || true
+  }
+  start() {
+    docker compose -f "$dir/compose.yml" up -d --wait --wait-timeout 90 "$service" >/dev/null 2>&1
+  }
+
+  if [ "$#" -eq 1 ]; then
+    current=$(live)
+    images | while IFS='|' read -r created commit id; do
+      if [ "$id" = "$current" ]; then mark='*'; else mark=' '; fi
+      echo "$mark $commit  ${created% +*}"
+    done
+    exit 0
+  fi
+
+  commit=$2
+  printf '%s\n' "$commit" | grep -Eqx '[0-9a-f]{40}' || fail "the commit must be 40 hex digits"
+  new=$(docker image inspect --format '{{.Id}}' "$name:$commit" 2>/dev/null) ||
+    fail "no image $name:$commit; list them with: activate $service"
+
+  # One switch at a time, whether CI or someone by hand asks for it.
+  exec 9>"$dir/.$service.lock"
+  flock -w 600 9 || fail "another switch of $service is still running"
+  previous=$(live)
+  docker tag "$name:$commit" "$name:live"
+  if start; then
+    current=$(live)
+    images | tail -n +"$((keep + 1))" | while IFS='|' read -r created old id; do
+      [ "$id" = "$current" ] || docker image rm "$name:$old" >/dev/null 2>&1 || true
+    done
+    echo "live: $service $commit"
+    exit 0
+  fi
+
+  # Never the container's logs here: CI's log is public, and it shows whatever this prints.
+  state=$(docker inspect --format '{{.State.Status}}{{if .State.Health}}, {{.State.Health.Status}}{{end}}' \
+    "$service" 2>/dev/null || echo 'not created')
+  echo "activate: $service $commit didn't become healthy ($state); see docker logs $service on the server" >&2
+  if [ -n "$previous" ] && [ "$previous" != "$new" ]; then
+    docker tag "$previous" "$name:live"
+    if start; then
+      echo "activate: back to the image that was live before" >&2
+    else
+      echo "activate: the image that was live before didn't come back either" >&2
+    fi
+  fi
+  exit 1
+fi
 
 if [ "$#" -eq 0 ]; then
   live=$(readlink "$site/public/current" || true)
@@ -16,14 +94,9 @@ if [ "$#" -eq 0 ]; then
 fi
 
 release=$1
-printf '%s\n' "$release" | grep -Eqx '[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12}' || {
-  echo "activate: not a release name: $release" >&2
-  exit 1
-}
-[ -d "$site/public/$release" ] || {
-  echo "activate: no such release: $release" >&2
-  exit 1
-}
+printf '%s\n' "$release" | grep -Eqx '[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12}' ||
+  fail "not a release name or a service: $release"
+[ -d "$site/public/$release" ] || fail "no such release: $release"
 for part in private public; do
   [ -d "$site/$part/$release" ] || continue
   ln -sfn "$release" "$site/$part/.current"

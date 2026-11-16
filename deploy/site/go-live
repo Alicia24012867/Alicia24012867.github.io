@@ -1,20 +1,37 @@
 #!/bin/sh
-# Run once, after nymphilia.com points at this server in Cloudflare:
+# Run once the names point at this server in Cloudflare:
 #   ssh nyc /srv/site/bin/go-live
-# Caddy then drops its test certificate and gets real ones for nymphilia.com and www.
+# Each site whose name points here already drops the test certificate, and Caddy gets real ones.
+# A site whose name doesn't point here yet stays as it is; run this again once it does.
 set -eu
 ip=107.170.11.167
-conf=/srv/proxy/conf/nymphilia.caddy
-answer=$(dig +short +time=5 +tries=2 @pat.ns.cloudflare.com nymphilia.com A | sort | tr '\n' ' ')
-if [ "$answer" != "$ip " ]; then
-  echo "nymphilia.com still points at: ${answer:-nothing}"
-  echo "In Cloudflare, keep a single A record for nymphilia.com, $ip (DNS only), then run this again."
-  exit 1
+pending=0
+reload=0
+
+# go_live <name to look up> <file in /srv/proxy/conf> <what it serves>
+go_live() {
+  conf=/srv/proxy/conf/$2
+  [ -f "$conf" ] || return 0
+  if ! grep -q 'tls internal' "$conf"; then
+    echo "$3: already live with real certificates."
+    return 0
+  fi
+  answer=$(dig +short +time=5 +tries=2 @pat.ns.cloudflare.com "$1" A | sort | tr '\n' ' ')
+  if [ "$answer" != "$ip " ]; then
+    echo "$1 still points at: ${answer:-nothing}"
+    echo "  In Cloudflare, keep a single A record for $1, $ip (DNS only), then run this again."
+    pending=1
+    return 0
+  fi
+  sed -i "/Until DNS points here/d; /^[[:space:]]*tls internal$/d" "$conf"
+  echo "$3: switching to real certificates."
+  reload=1
+}
+
+go_live nymphilia.com nymphilia.caddy "nymphilia.com and www.nymphilia.com"
+go_live auth.nymphilia.com auth.caddy auth.nymphilia.com
+if [ "$reload" -eq 1 ]; then
+  docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+  echo "Caddy is fetching the certificates, which takes about a minute."
 fi
-if ! grep -q 'tls internal' "$conf"; then
-  echo "Already live with real certificates."
-  exit 0
-fi
-sed -i "/Until DNS points here/d; /^[[:space:]]*tls internal$/d" "$conf"
-docker exec caddy caddy reload --config /etc/caddy/Caddyfile
-echo "Live: Caddy is fetching certificates for nymphilia.com and www.nymphilia.com."
+exit "$pending"

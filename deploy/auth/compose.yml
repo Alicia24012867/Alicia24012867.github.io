@@ -1,0 +1,33 @@
+# auth.nymphilia.com, in /srv/auth/compose.yml on the server. CI hands over each image of auth/
+# and /srv/site/bin/image tags it nymphilia/auth:live before starting it. The database and the
+# signing keys stay in /srv/auth/data, which only the server has.
+name: auth
+
+services:
+  auth:
+    image: nymphilia/auth:live
+    container_name: auth
+    restart: unless-stopped
+    environment:
+      AUTH_ISSUER: https://auth.nymphilia.com
+      # Passkeys belong to nymphilia.com, so the site itself may ask for them one day.
+      AUTH_RP_ID: nymphilia.com
+      AUTH_HOME: https://nymphilia.com/
+    volumes:
+      - ./data:/data
+    # Caddy, on the same network, is the only way in.
+    networks: [proxy]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 192m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
+networks:
+  proxy:
+    external: true
