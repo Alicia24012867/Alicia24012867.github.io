@@ -6,6 +6,8 @@ import ListenButton from '../content/reader/ListenButton';
 import ShareButton from '../content/reader/ShareButton';
 import TextButton from '../content/reader/TextButton';
 import ArticleComments from '../content/reader/ArticleComments';
+import { features } from '../config/features';
+import PageStats from '../stats/PageStats';
 import { noteSections } from '../config/sections.mjs';
 import { articleUrl, listingUrl, queryFromSearch } from '../content/urls';
 import { textLanguage } from '../content/language.mjs';
@@ -40,6 +42,7 @@ export default function NoteReader({ article: note }: { article: Article }) {
             <ListenButton />
             <ShareButton article={note} />
             <TextButton />
+            {features.stats && <PageStats collection="notes" slug={note.slug} />}
           </>
         }
       />
@@ -66,8 +69,11 @@ export default function NoteReader({ article: note }: { article: Article }) {
           <p>No other notes link here yet.</p>
         )}
       </section>
-      {/* Comments are public on GitHub, so a locked note has none. */}
-      {!note.locked && <ArticleComments collection="notes" slug={note.slug} />}
+      {/* giscus comments are public on GitHub, so a locked note has them only from the blog API,
+          which shows them to its readers alone. */}
+      {(features.comments || !note.locked) && (
+        <ArticleComments collection="notes" slug={note.slug} />
+      )}
     </div>
   );
 }

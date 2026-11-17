@@ -1,6 +1,10 @@
 import { useEffect, useState, type ComponentType, type RefObject } from 'react';
 import type { GiscusProps } from '@giscus/react';
 import { commentTheme } from '../content/reader/comments';
+import { useNearLoad } from './useNearLoad';
+
+const loadGiscus = () =>
+  import('@giscus/react').then(({ default: Giscus }) => Giscus as ComponentType<GiscusProps>);
 
 /**
  * The giscus widget and its dependencies are fetched once `container` is about a screen and
@@ -8,54 +12,9 @@ import { commentTheme } from '../content/reader/comments';
  * the site theme, and `backlink` tells the discussion where it lives.
  */
 export function useCommentWidget(container: RefObject<HTMLElement | null>, backlink: string) {
-  const [Widget, setWidget] = useState<ComponentType<GiscusProps>>();
-  const [failed, setFailed] = useState(false);
-  const [offline, setOffline] = useState(false);
+  // The widget comes from giscus.app, so without a connection it waits for one.
+  const { value: Widget, failed, offline } = useNearLoad(container, loadGiscus);
   const [theme, setTheme] = useState(() => commentTheme(document.documentElement.dataset.theme));
-
-  useEffect(() => {
-    let disposed = false;
-    let started = false;
-    setFailed(false);
-    setOffline(false);
-    const load = () => {
-      if (started) return;
-      // The widget comes from giscus.app, so without a connection it waits for one.
-      if (!navigator.onLine) {
-        setOffline(true);
-        window.addEventListener('online', load);
-        return;
-      }
-      started = true;
-      setOffline(false);
-      window.removeEventListener('online', load);
-      observer?.disconnect();
-      import('@giscus/react').then(
-        ({ default: Giscus }) => {
-          if (!disposed) setWidget(() => Giscus);
-        },
-        () => {
-          if (!disposed) setFailed(true);
-        },
-      );
-    };
-    const observer =
-      typeof IntersectionObserver === 'undefined'
-        ? undefined
-        : new IntersectionObserver(
-            (entries) => {
-              if (entries.some((entry) => entry.isIntersecting)) load();
-            },
-            { rootMargin: '1200px 0px' },
-          );
-    if (observer && container.current) observer.observe(container.current);
-    else load();
-    return () => {
-      disposed = true;
-      observer?.disconnect();
-      window.removeEventListener('online', load);
-    };
-  }, [container]);
 
   useEffect(() => {
     const syncTheme = () => setTheme(commentTheme(document.documentElement.dataset.theme));

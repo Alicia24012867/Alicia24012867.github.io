@@ -418,6 +418,34 @@
   text-align: left;
   line-height: 1.7;
 }
+/* Moments read as part of the post: dated entries, not a framed figure. */
+.article-body figure[data-figure='moments'] {
+  margin-block: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.article-body figure[data-figure='moments']::before {
+  content: none;
+}
+.article-body .moment {
+  margin-block: 30px;
+}
+.article-body .moment-date {
+  color: var(--heading);
+  font-family: var(--font-display);
+  font-size: calc(21px * var(--reading-scale, 1));
+  font-style: italic;
+}
+.article-body .moment-text {
+  margin-top: 8px;
+}
+.article-body .moment-single figure {
+  margin-block: 18px 0;
+}
+.article-body .moments-more {
+  margin-top: 6px;
+}
 .article-body .figure-status {
   display: grid;
   justify-items: start;
@@ -1338,7 +1366,8 @@
    it, and sets its text. */
 .article-listen button,
 .article-share button,
-.article-text button {
+.article-text button,
+.article-like button {
   display: inline-flex;
   align-items: baseline;
   gap: 5px;
@@ -1353,15 +1382,22 @@
 .article-share button:hover,
 .article-share .is-active,
 .article-text button:hover,
-.article-text .is-active {
+.article-text .is-active,
+.article-like button:hover,
+.article-like .is-active {
   color: var(--blue-strong);
 }
 .article-listen .icon,
 .article-share .icon,
-.article-text .icon {
+.article-text .icon,
+.article-like .icon {
   align-self: center;
   width: 15px;
   height: 15px;
+}
+/* A liked page's heart is filled in. */
+.article-like .is-active .icon {
+  fill: currentColor;
 }
 /* Opened from Share: a code that takes the page to a phone, and its link to copy. */
 .reader-popover.share-card {
@@ -1584,7 +1620,8 @@
   .listen-player,
   .article-listen,
   .article-share,
-  .article-text {
+  .article-text,
+  .article-like {
     display: none;
   }
 }

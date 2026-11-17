@@ -37,6 +37,19 @@ BLOG_API=http://localhost:8080 npm run dev
 
 这时 `/api/` 原样转给 `http://localhost:8080`，页面和后端看起来同源，Cookie 照常工作。
 
+### 前端的开关
+
+网站上用到后端的功能，各有一个开关，集中在 [`web/src/config/feature-flags.mjs`](../../web/src/config/feature-flags.mjs)：`private`、`comments`、`stats`、`moments`、`subscriptions`。没打开的功能照旧：私密文章用密码解密，评论用 giscus，页面也不访问 `/api/`。博客管理页 `/admin/` 只在至少一个开关打开时才构建。
+
+开发时用 `VITE_FEATURES` 临时打开，配合模拟后端或你自己的后端试用：
+
+```bash
+VITE_FEATURES=all npm run dev
+VITE_FEATURES=comments,stats BLOG_API=http://localhost:8080 npm run dev
+```
+
+你的后端某个功能通过接口测试、部署上线后，Claude 把它加进 `liveFeatures`，线上就换成新的做法。
+
 ### 接口测试
 
 ```bash

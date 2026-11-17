@@ -3,6 +3,8 @@ import Icon from '../Icon';
 import SiteHeader, { type SiteSection } from './SiteHeader';
 import { feedFormats } from '../../config/feeds.mjs';
 import { profile } from '../../config/profile';
+import { features } from '../../config/features';
+import Subscribe from '../../subscribe/Subscribe';
 
 const siteClasses: Record<SiteSection, string | undefined> = {
   home: undefined,
@@ -27,6 +29,7 @@ export default function SiteLayout({
       </a>
       <SiteHeader section={section} />
       <main id="main">{children}</main>
+      {features.subscriptions && section !== 'not-found' && <Subscribe />}
       <footer className="site-footer page-width">
         <div>
           <a className="footer-brand" href={homeUrl}>

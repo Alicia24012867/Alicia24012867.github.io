@@ -5,6 +5,8 @@ import ListenButton from '../content/reader/ListenButton';
 import ShareButton from '../content/reader/ShareButton';
 import TextButton from '../content/reader/TextButton';
 import ArticleComments from '../content/reader/ArticleComments';
+import { features } from '../config/features';
+import PageStats from '../stats/PageStats';
 import ArticleHeader from '../content/ArticleHeader';
 import Icon from '../components/Icon';
 import type { Article } from '../content/types';
@@ -49,6 +51,7 @@ export default function ArticleReader({ article }: { article: Article }) {
             <ListenButton />
             <ShareButton article={article} />
             <TextButton />
+            {features.stats && <PageStats collection="blog" slug={article.slug} />}
           </>
         }
       />
@@ -77,8 +80,11 @@ export default function ArticleReader({ article }: { article: Article }) {
           )}
         </nav>
       )}
-      {/* Comments are public on GitHub, so a locked post has none. */}
-      {!article.locked && <ArticleComments collection="blog" slug={article.slug} />}
+      {/* giscus comments are public on GitHub, so a locked post has them only from the blog API,
+          which shows them to its readers alone. */}
+      {(features.comments || !article.locked) && (
+        <ArticleComments collection="blog" slug={article.slug} />
+      )}
       <div className="reading-end">
         <span>✧</span>
         <p>Thanks for reading.</p>

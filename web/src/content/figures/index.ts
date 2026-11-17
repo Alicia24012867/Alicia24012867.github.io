@@ -6,6 +6,7 @@ export type FigureName = (typeof articleFigures)[number];
 /** Each interactive figure loads as its own chunk, only on pages that place it. */
 export const figures: Record<FigureName, LazyExoticComponent<ComponentType>> = {
   'timestep-control': lazy(() => import('./TimestepFigure')),
+  moments: lazy(() => import('./MomentsFigure')),
 };
 
 export const isFigureName = (name: string | undefined): name is FigureName =>

@@ -99,6 +99,8 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   // Comments, avatars and other sites are left to the browser.
   if (url.origin !== self.location.origin) return;
+  // The blog API answers each reader differently, and signing in passes through it: never kept.
+  if (url.pathname.startsWith('/api/')) return;
   const isPage = request.mode === 'navigate';
   const place = placeOf(url, isPage);
   if (!place) return;

@@ -3,6 +3,7 @@ import SiteLayout from '../components/layout/SiteLayout';
 import Icon from '../components/Icon';
 import ArticleLoading from './ArticleLoading';
 import { usePageMeta } from '../hooks/usePageMeta';
+import { features } from '../config/features';
 import { contentPageMeta } from './meta';
 import { unlistedSummary } from './locked/unlisted';
 import { listingUrl, queryFromSearch, slugFromLocation, type Collection } from './urls';
@@ -16,8 +17,10 @@ type Loaders = {
 };
 type Locked = typeof import('./locked/LockedArticle').default;
 
-// The form that opens locked documents loads only for them.
-const loadLocked = () => import('./locked/LockedArticle');
+// The page that opens locked documents loads only for them: with the blog API, signing in
+// opens them; before it, a password does.
+const loadLocked = (): Promise<{ default: Locked }> =>
+  features.private ? import('./locked/PrivateArticle') : import('./locked/LockedArticle');
 
 /** Shared static routing; collection-specific lists and readers keep their own presentation. */
 export default function ContentPage({

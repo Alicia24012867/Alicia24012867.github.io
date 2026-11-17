@@ -1,6 +1,7 @@
-import { defineConfig, searchForWorkspaceRoot } from 'vite';
+import { defineConfig, loadEnv, searchForWorkspaceRoot } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
+import { featuresOn } from './src/config/feature-flags.mjs';
 import { blogFeed } from './src/config/feeds.mjs';
 import { mockApiPlugin } from './scripts/api/mock.mjs';
 import { articlesPlugin } from './scripts/content/plugin.mjs';
@@ -36,7 +37,7 @@ const notes = articlesPlugin({
 const privateDocuments = privatePlugin([blog.api, notes.api]);
 
 // This repository is deployed as a GitHub User Page at the domain root.
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     notFoundPlugin(),
@@ -64,7 +65,11 @@ export default defineConfig({
         blog: resolve(import.meta.dirname, 'blog/index.html'),
         notes: resolve(import.meta.dirname, 'notes/index.html'),
         notFound: resolve(import.meta.dirname, '404.html'),
+        // The blog's own admin page, once anything uses the blog API.
+        ...(featuresOn(loadEnv(mode, import.meta.dirname, 'VITE_').VITE_FEATURES).size && {
+          admin: resolve(import.meta.dirname, 'admin/index.html'),
+        }),
       },
     },
   },
-});
+}));

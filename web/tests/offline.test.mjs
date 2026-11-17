@@ -230,6 +230,16 @@ test('other sites, other methods and partial requests are left to the browser', 
   assert.equal(await sw.get('/feed.xml'), 'browser');
 });
 
+test('the blog API is never kept, not even a page it sends a reader to', async () => {
+  const sw = worker();
+  assert.equal(await sw.get('/api/auth/login?next=%2F', { mode: 'navigate' }), 'browser');
+  assert.equal(
+    await sw.get('/api/private/files/0123456789abcdef.pdf', { mode: 'navigate' }),
+    'browser',
+  );
+  assert.equal(await sw.get('/api/me'), 'browser');
+});
+
 test('a full cache lets its oldest copies go', async () => {
   const sw = worker();
   for (let i = 0; i < 53; i++) {
