@@ -54,6 +54,10 @@ if [ -n "$dir" ]; then
   printf '%s\n' "$commit" | grep -Eqx '[0-9a-f]{40}' || fail "the commit must be 40 hex digits"
   new=$(docker image inspect --format '{{.Id}}' "$name:$commit" 2>/dev/null) ||
     fail "no image $name:$commit; list them with: activate $service"
+  # Without a HEALTHCHECK, an image counts as started the moment it runs, even one that fails
+  # a second later, and nothing would bring the old one back.
+  [ -n "$(docker image inspect --format '{{if .Config.Healthcheck}}yes{{end}}' "$name:$commit")" ] ||
+    fail "$name:$commit has no HEALTHCHECK in its Dockerfile, so it can't be checked once started"
 
   # One switch at a time, whether CI or someone by hand asks for it.
   exec 9>"$dir/.$service.lock"

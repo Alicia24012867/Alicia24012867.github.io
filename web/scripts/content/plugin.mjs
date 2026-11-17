@@ -24,6 +24,7 @@ import {
   sealRing,
   veilImages,
 } from './locked.mjs';
+import { privateName } from './private.mjs';
 import { withoutCopies, writePhotoCopy } from './resize.mjs';
 import { serveGenerated } from './serve.mjs';
 import { feedFormats } from '../../src/config/feeds.mjs';
@@ -321,6 +322,70 @@ export function articlesPlugin({
     return sealing.result;
   };
   const readLocked = async (slug) => (await readSealed()).bodies.get(slug);
+
+  // A file's name in the blog API's bundle comes from its contents, read once until it changes.
+  const privateNames = new Map();
+  const privateFileName = (file) => {
+    const stat = fs.statSync(file);
+    const version = `${stat.ino}:${stat.size}:${stat.mtimeMs}`;
+    let named = privateNames.get(file);
+    if (named?.version !== version) {
+      named = { version, name: privateName(fs.readFileSync(file), path.extname(file)) };
+      privateNames.set(file, named);
+    }
+    return named.name;
+  };
+  /**
+   * The catalog's documents as the blog API needs them (scripts/content/private.mjs): each one's
+   * address, title, date and level, and for a locked one its reading payload, in plain form,
+   * whose photos, their copies and attachments are at `filesBase` under names made from their
+   * contents. `files` holds the file behind each such name.
+   */
+  const privateCatalog = async (current, filesBase, warn) => {
+    const files = new Map();
+    const documents = [];
+    const filesByMarker = new Map([...current.assets].map(([file, marker]) => [marker, file]));
+    // A public log never names a locked document's photos.
+    const photoWarn = publicLog
+      ? () => warn('Showing a photo of a locked document at full size')
+      : warn;
+    for (const article of current.articles) {
+      const { slug, title, date, locked, level } = article;
+      const entry = { path: sharePath(basePath, slug), title, date, level: locked ? level : null };
+      if (locked) {
+        const shown = await shownHtml(
+          article,
+          { copies: current.copies, filesByMarker },
+          photoWarn,
+        );
+        const names = {};
+        const html = shown.html.replace(/__ALICIA_ARTICLE_ASSET_\d+__/g, (marker) => {
+          const file = shown.files.get(marker);
+          if (!file) return marker;
+          const name = privateFileName(file);
+          files.set(name, file);
+          names[filesBase + name] = path.basename(file);
+          return filesBase + name;
+        });
+        entry.payload = lockedPayload(article, html, names);
+        entry.files = Object.keys(names).map((url) => url.slice(filesBase.length));
+      }
+      documents.push(entry);
+    }
+    return { levels: current.levels, documents, files };
+  };
+  // Read once per catalog, like the sealed files.
+  let privateRead;
+  const readPrivate = (filesBase, warn = (message) => logger.warn(message)) => {
+    const current = readCatalog();
+    if (privateRead?.catalog !== current || privateRead.filesBase !== filesBase)
+      privateRead = {
+        catalog: current,
+        filesBase,
+        result: privateCatalog(current, filesBase, warn),
+      };
+    return privateRead.result;
+  };
   // Constant-time lookups for per-request consumers such as static share pages.
   const readArticle = (slug) => {
     readCatalog();
@@ -329,7 +394,7 @@ export function articlesPlugin({
 
   return {
     name: `local-${directory}`,
-    api: { basePath, moduleId, reader, readCatalog, readArticle, readLocked },
+    api: { basePath, moduleId, reader, readCatalog, readArticle, readLocked, readPrivate },
     configResolved(config) {
       root = config.root;
       documentsRoot = path.resolve(config.root, sourceRoot ?? '.');

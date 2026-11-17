@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "levels": [
+    "friends",
+    "family"
+  ],
+  "pages": [
+    {
+      "path": "/blog/contract-open/",
+      "title": "An open page",
+      "date": "2026-01-02",
+      "level": null
+    },
+    {
+      "path": "/blog/contract-friends/",
+      "title": "For friends",
+      "date": "2026-01-03",
+      "level": "friends",
+      "document": "documents/e0d54cdbd7d9d3a8.json"
+    },
+    {
+      "path": "/notes/contract-family/",
+      "title": "For family",
+      "date": "2026-01-04",
+      "level": "family",
+      "document": "documents/e48ab0f657feee19.json"
+    }
+  ],
+  "files": {
+    "2ea4b309e80c9328.png": {
+      "type": "image/png",
+      "level": "friends"
+    },
+    "c7026c27be4b4eb4.txt": {
+      "type": "text/plain; charset=utf-8",
+      "level": "family"
+    },
+    "ec233997d1ec2d5a.png": {
+      "type": "image/png",
+      "level": "family"
+    }
+  }
+}

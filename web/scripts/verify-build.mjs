@@ -6,6 +6,8 @@ import { decodeHTML } from 'entities';
 import { blogFeed, feedFormats } from '../src/config/feeds.mjs';
 import { lockedFilePrefix, lockedRingDirectory } from '../src/config/locked.mjs';
 import { decodeSlug } from '../src/config/sharing.mjs';
+import { readContract } from './api/contract.mjs';
+import { privateName, readPrivate } from './content/private.mjs';
 import { jpegSize } from './share/jpeg.mjs';
 
 const report = process.argv.includes('--report');
@@ -205,6 +207,37 @@ for (const file of ['blog', 'notes'].flatMap((collection) =>
   assert.match(new URL(decodeHTML(card)).pathname, /^\/images\/share\/site\./, label);
 }
 assert.ok(!sealedFiles.length || lockedPages, 'Sealed files without locked pages');
+// The blog API's bundle sits beside the site, never in it: every page, and locked documents in
+// plain form with their files, named by their contents. Failures name only those names, since
+// build logs are public.
+const privateBundle = readPrivate(path.join(path.dirname(root), 'dist-private'));
+const { levels, pages: privatePages, files: privateFiles } = privateBundle.manifest;
+assert.deepEqual(
+  readContract().validate('PrivateManifest', privateBundle.manifest),
+  [],
+  'The private manifest breaks docs/api/openapi.yaml',
+);
+const openPages = privatePages.filter((page) => page.level === null).map((page) => page.path);
+assert.deepEqual(
+  new Set(openPages),
+  new Set(sharePages),
+  'The private manifest and the sitemap name different public pages',
+);
+for (const page of privatePages) {
+  assert.equal(!!page.document, page.level !== null, 'Only locked pages have a private document');
+  if (!page.document) continue;
+  const payload = JSON.parse(privateBundle.documents.get(page.document));
+  assert.ok(payload.slug && payload.title && typeof payload.html === 'string', page.document);
+  assert.doesNotMatch(payload.html, /__ALICIA_ARTICLE_ASSET_/, page.document + ' keeps a marker');
+  for (const [, name] of payload.html.matchAll(/\/api\/private\/files\/([^"\s,]+)/g))
+    assert.ok(privateFiles[name], page.document + ' shows a file the manifest lacks: ' + name);
+  for (const url of Object.keys(payload.files))
+    assert.ok(privateFiles[url.split('/').pop()], page.document + ' names a missing file');
+}
+for (const [name, file] of privateBundle.files) {
+  assert.ok(levels.includes(privateFiles[name].level), 'A private file has no level: ' + name);
+  assert.equal(privateName(fs.readFileSync(file), path.extname(name)), name, 'Renamed: ' + name);
+}
 for (const [key, chunk] of Object.entries(manifest)) {
   if (!/virtual:.*\/entry\//.test(key)) continue;
   assert.ok(chunk.isDynamicEntry, `${key} is not lazy`);

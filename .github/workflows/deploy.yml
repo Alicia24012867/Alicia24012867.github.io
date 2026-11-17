@@ -74,13 +74,18 @@ jobs:
           VPS_PORT: 2222
           # The server's own host key, so the build talks to no one else.
           VPS_KNOWN_HOST: '[107.170.11.167]:2222 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF0YpsbSXVJgHSbIJ95f2xnNdlxxBE6HMu4yjg9FapkX'
-        # deploy/site/receive unpacks the tar beside the live site and switches to it.
+        # deploy/site/receive unpacks the tar beside the live site and switches to it. public/ is
+        # the site; private/ holds the locked documents in plain form, for the blog API alone.
+        # Neither is listed here: the log is public.
         run: |
           install -d -m 700 ~/.ssh
           printf '%s\n' "$VPS_KNOWN_HOST" > ~/.ssh/known_hosts
           printf '%s\n' "$VPS_DEPLOY_KEY" > ~/.ssh/vps_deploy
           chmod 600 ~/.ssh/vps_deploy
-          tar -C dist --transform 's,^\.,public,' -cf - . |
+          mkdir release
+          mv dist release/public
+          mv dist-private release/private
+          tar -C release -cf - public private |
             ssh -i ~/.ssh/vps_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
               -p "$VPS_PORT" "alicia@$VPS_HOST" receive "$GITHUB_SHA"
           rm -f ~/.ssh/vps_deploy

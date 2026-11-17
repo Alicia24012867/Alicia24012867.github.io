@@ -1,0 +1,157 @@
+name: Deploy the blog API
+
+# The blog API in server/, written in Rust. Until server/Dockerfile exists, every step after the
+# first is skipped. Then each push tests it, builds its image, checks the image against the
+# contract in docs/api/openapi.yaml, and on main hands it to the server.
+on:
+  push:
+    branches: [main]
+    paths:
+      - server/**
+      - docs/api/**
+      - web/scripts/api/**
+      - web/scripts/content/private.mjs
+      - auth/scripts/contract-issuer.ts
+      - .github/workflows/server.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - server/**
+      - docs/api/**
+      - web/scripts/api/**
+      - web/scripts/content/private.mjs
+      - auth/scripts/contract-issuer.ts
+      - .github/workflows/server.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-${{ github.ref }}
+  # A deploy that has started runs to its end, so the server never stops halfway.
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      HAS_VPS_KEY: ${{ secrets.VPS_DEPLOY_KEY != '' }}
+      IMAGE: nymphilia/blog-api:${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Look for the backend
+        run: |
+          if [ -f server/Dockerfile ]; then
+            echo "HAS_SERVER=true" >> "$GITHUB_ENV"
+          else
+            echo "server/Dockerfile 还不存在，跳过其余步骤。"
+          fi
+      - name: Cache Rust's downloads and builds
+        if: env.HAS_SERVER == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('server/Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-
+      - name: Test
+        if: env.HAS_SERVER == 'true'
+        working-directory: server
+        run: cargo test --locked
+      - name: Set up Docker Buildx
+        if: env.HAS_SERVER == 'true'
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build the image
+        if: env.HAS_SERVER == 'true'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: server
+          tags: ${{ env.IMAGE }}
+          build-args: VERSION=${{ github.sha }}
+          load: true
+          # The server takes an archive that holds this one image and nothing beside it.
+          provenance: false
+          sbom: false
+          # Layers that didn't change, such as the compiled dependencies, come from the last build.
+          cache-from: type=gha,scope=blog-api
+          cache-to: type=gha,scope=blog-api,mode=max
+      - name: Set up Node.js
+        if: env.HAS_SERVER == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            auth/package-lock.json
+      - name: Install the contract tests
+        if: env.HAS_SERVER == 'true'
+        run: |
+          npm ci --prefix web
+          npm ci --prefix auth
+      - name: Start the sign-in service for the tests
+        if: env.HAS_SERVER == 'true'
+        run: |
+          npm --prefix auth run contract-issuer -- --site http://localhost:8080 > issuer.log 2>&1 &
+          for _ in $(seq 60); do
+            curl -fs http://localhost:3999/contract/readers > /dev/null && exit 0
+            sleep 1
+          done
+          cat issuer.log
+          exit 1
+      - name: Start the image as the server runs it
+        if: env.HAS_SERVER == 'true'
+        # Read-only, without privileges, as uid 1000, with an empty data folder and the made-up
+        # private documents in docs/api/fixtures/private. Its logs hold nothing private.
+        run: |
+          docker run -d --name blog-api-try --network host --user 1000:1000 \
+            --read-only --tmpfs /tmp --tmpfs /data:uid=1000,gid=1000,mode=0700 \
+            --cap-drop ALL --security-opt no-new-privileges:true \
+            -v "$PWD/docs/api/fixtures/private:/private:ro" \
+            -e BLOG_LISTEN=127.0.0.1:8080 \
+            -e BLOG_SITE_ORIGIN=http://localhost:8080 \
+            -e BLOG_OIDC_ISSUER=http://localhost:3999 \
+            -e BLOG_OIDC_CLIENT_ID=blog \
+            -e BLOG_OIDC_CLIENT_SECRET=contract-test-secret \
+            -e BLOG_DATA_DIR=/data \
+            -e BLOG_PRIVATE_DIR=/private \
+            -e RUST_LOG=info \
+            "$IMAGE"
+          if [ -z "$(docker inspect -f '{{if .Config.Healthcheck}}yes{{end}}' blog-api-try)" ]; then
+            echo "server/Dockerfile 需要 HEALTHCHECK：服务器靠它判断新版本是否正常启动。"
+            exit 1
+          fi
+          health() { docker inspect -f '{{.State.Health.Status}}' blog-api-try; }
+          for _ in $(seq 60); do [ "$(health)" = healthy ] && break; sleep 1; done
+          if [ "$(health)" != healthy ]; then docker logs blog-api-try; exit 1; fi
+      - name: Check the API against the contract
+        if: env.HAS_SERVER == 'true'
+        run: npm --prefix web run api:check -- http://localhost:8080
+      - name: Show the backend's log
+        if: failure() && env.HAS_SERVER == 'true'
+        run: docker logs blog-api-try || true
+      - name: Publish to the server
+        if: env.HAS_SERVER == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && env.HAS_VPS_KEY == 'true'
+        env:
+          VPS_DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          VPS_HOST: 107.170.11.167
+          VPS_PORT: 2222
+          # The server's own host key, so the build talks to no one else.
+          VPS_KNOWN_HOST: '[107.170.11.167]:2222 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF0YpsbSXVJgHSbIJ95f2xnNdlxxBE6HMu4yjg9FapkX'
+        # deploy/site/image checks that the archive names this image alone, loads it and starts
+        # it. If it isn't healthy, the server goes back to the image before and this step fails.
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$VPS_KNOWN_HOST" > ~/.ssh/known_hosts
+          printf '%s\n' "$VPS_DEPLOY_KEY" > ~/.ssh/vps_deploy
+          chmod 600 ~/.ssh/vps_deploy
+          docker save "$IMAGE" | gzip -1 |
+            ssh -i ~/.ssh/vps_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+              -p "$VPS_PORT" "alicia@$VPS_HOST" image blog-api "$GITHUB_SHA"
+          rm -f ~/.ssh/vps_deploy

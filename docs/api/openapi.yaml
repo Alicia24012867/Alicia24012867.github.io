@@ -1,0 +1,1049 @@
+openapi: 3.1.0
+info:
+  title: nymphilia.com blog API
+  version: 1.0.0
+  description: |
+    What the site's pages ask the blog backend (server/) for. docs/api/README.md explains each
+    part in Chinese; `npm --prefix web run api:check -- <url>` checks a backend against this file.
+
+    Conventions:
+    - JSON in and out, UTF-8, except uploads (multipart) and files.
+    - Times are RFC 3339 in UTC, such as 2026-11-17T05:30:00Z.
+    - A page is named by its path on the site, /blog/<slug>/ or /notes/<slug>/, with each
+      segment of the slug percent-encoded as encodeURIComponent does. The pages the backend
+      knows are those in the private bundle's manifest (PrivateManifest below).
+    - Signing in sets the backend's own session cookie (HttpOnly, SameSite=Lax; Secure over
+      https). The pages never read it. To know a reader who isn't signed in again, for likes
+      and views, the backend may set a second long-lived cookie of its own the same way.
+    - Every POST, PUT, PATCH and DELETE must carry the header Origin with the site's own
+      origin, or it gets 403. The one exception is /api/auth/backchannel-logout, which the
+      sign-in service calls from its own server.
+    - Personal answers (anything that depends on who asks) carry Cache-Control: no-store.
+    - A locked document's comments are for the readers who may open it, as its text is.
+    - GET /api/health lists the features the backend has; the checker tests only those.
+servers:
+  - url: https://nymphilia.com
+tags:
+  - name: health
+  - name: auth
+    description: Signing in through auth.nymphilia.com (milestone R3).
+  - name: private
+    description: Locked documents for signed-in readers (R4).
+  - name: comments
+    description: Comments on documents and the guestbook (R5).
+  - name: stats
+    description: Views and likes (R6).
+  - name: moments
+    description: Short posts with photos (R7).
+  - name: subscriptions
+    description: Email for new posts (R8).
+
+paths:
+  /api/health:
+    get:
+      tags: [health]
+      operationId: health
+      summary: Whether the backend runs, its version and what it can do.
+      responses:
+        '200':
+          description: Running.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+
+  /api/auth/login:
+    get:
+      tags: [auth]
+      operationId: login
+      summary: Starts signing in, and comes back to `next` afterwards.
+      description: |
+        Redirects to the issuer's authorization endpoint with response_type=code, the client
+        id, redirect_uri <site>/api/auth/callback, scope "openid profile groups", a fresh
+        state and nonce, and PKCE (code_challenge with code_challenge_method=S256).
+      parameters:
+        - name: next
+          in: query
+          description: A path on the site, such as /blog/a-letter/. Anything else means /.
+          schema: { type: string, maxLength: 2000 }
+      responses:
+        '302':
+          description: To the issuer.
+          headers:
+            Location: { schema: { type: string, format: uri } }
+
+  /api/auth/callback:
+    get:
+      tags: [auth]
+      operationId: callback
+      summary: Where the issuer sends the reader back to.
+      description: |
+        Checks state, exchanges the code with the client secret and the PKCE verifier,
+        verifies the ID token (signature, issuer, audience, nonce, expiry), starts a session
+        and redirects to the `next` that login was given. If the reader cancelled
+        (error=access_denied), it redirects there without a session.
+      parameters:
+        - { name: code, in: query, schema: { type: string } }
+        - { name: state, in: query, schema: { type: string } }
+        - { name: error, in: query, schema: { type: string } }
+      responses:
+        '303':
+          description: Back to the page the reader came from.
+          headers:
+            Location: { schema: { type: string } }
+        '400':
+          description: An unknown or used state, or a code the issuer refused.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: Ends the session here.
+      description: |
+        The page then goes to `redirect`, the issuer's end_session_endpoint with id_token_hint
+        (or client_id) and post_logout_redirect_uri <site>/, where the reader may also sign
+        the device out.
+      responses:
+        '200':
+          description: Signed out here.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LogoutResult' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/auth/backchannel-logout:
+    post:
+      tags: [auth]
+      operationId: backchannelLogout
+      summary: The issuer says a session has ended, for example because someone was turned off.
+      description: |
+        Verifies the logout token (signature, issuer, audience, iat, the backchannel-logout
+        event, no nonce) and ends every session with its `sid`, or every session of its `sub`
+        when it has no `sid`. No Origin is needed: the issuer's server calls it.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [logout_token]
+              properties:
+                logout_token: { type: string }
+      responses:
+        '200': { description: The sessions have ended. }
+        '400':
+          description: Not a valid logout token.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/me:
+    get:
+      tags: [auth]
+      operationId: me
+      summary: Who is signed in, if anyone.
+      responses:
+        '200':
+          description: The reader, or null.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+
+  /api/private/document:
+    get:
+      tags: [private]
+      operationId: privateDocument
+      summary: A locked document, for a reader whose groups reach its level.
+      description: |
+        Answers with the document's file from the private bundle, unchanged. Its pictures and
+        attachments are under /api/private/files/.
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/PagePath' }
+      responses:
+        '200':
+          description: The document.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateDocument' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/private/files/{name}:
+    get:
+      tags: [private]
+      operationId: privateFile
+      summary: A picture or attachment of a locked document the reader may open.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{16}\.[a-z0-9]{1,10}$' }
+      responses:
+        '200':
+          description: |
+            The file, with its type from the manifest, `Cache-Control: private, max-age=86400`
+            (names change with contents) and `X-Content-Type-Options: nosniff`.
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/comments:
+    get:
+      tags: [comments]
+      operationId: listComments
+      summary: The published comments of a thread, oldest first.
+      description: A locked document's thread is for the readers who may open the document.
+      parameters:
+        - name: thread
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/Thread' }
+      responses:
+        '200':
+          description: The thread.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommentList' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [comments]
+      operationId: createComment
+      summary: Writes a comment; a signed-in reader's shows at once, anyone else's waits for review.
+      description: |
+        The body is Markdown; the backend keeps it and answers with it as clean HTML, without
+        scripts, styles or anything else a page could run. A `parentId` that names no comment of
+        the thread gets 400. A locked document takes comments only from readers who may open it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewComment' }
+      responses:
+        '201':
+          description: Saved. A filled-in `website` field also gets 201, and nothing is saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommentCreated' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/admin/comments:
+    get:
+      tags: [comments]
+      operationId: adminListComments
+      summary: Comments for review, newest first.
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/CommentStatus' }
+        - { name: cursor, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: A page of comments.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminCommentList' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/comments/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    patch:
+      tags: [comments]
+      operationId: adminUpdateComment
+      summary: Publishes or hides a comment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              additionalProperties: false
+              properties:
+                status: { enum: [published, hidden] }
+      responses:
+        '200':
+          description: The comment as it is now.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminComment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [comments]
+      operationId: adminDeleteComment
+      summary: Deletes a comment and its replies.
+      responses:
+        '204': { description: Deleted. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/pages/stats:
+    get:
+      tags: [stats]
+      operationId: pageStats
+      summary: Views and likes of up to 50 pages, and whether this reader liked each.
+      parameters:
+        - name: paths
+          in: query
+          required: true
+          description: Page paths separated by commas.
+          schema: { type: string, maxLength: 16000 }
+      responses:
+        '200':
+          description: One entry for each known page asked for; unknown ones are left out.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: { $ref: '#/components/schemas/PageStats' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /api/pages/view:
+    post:
+      tags: [stats]
+      operationId: countView
+      summary: Counts a reading of a page; the same reader counts once a day.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PageRef' }
+      responses:
+        '204': { description: Counted, or already counted today. }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/pages/like:
+    post:
+      tags: [stats]
+      operationId: setLike
+      summary: Likes a page, or takes the like back; one like per reader.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LikeRequest' }
+      responses:
+        '200':
+          description: The page's likes now.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LikeResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/admin/stats:
+    get:
+      tags: [stats]
+      operationId: adminStats
+      summary: Views by day and by page.
+      parameters:
+        - name: days
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 366, default: 30 }
+      responses:
+        '200':
+          description: The numbers.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStats' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/moments:
+    get:
+      tags: [moments]
+      operationId: listMoments
+      summary: The moments this reader may see, newest first.
+      parameters:
+        - {
+            name: before,
+            in: query,
+            description: The `next` of the page before.,
+            schema: { type: string },
+          }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        '200':
+          description: A page of moments.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MomentList' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /api/moments/photos/{name}:
+    get:
+      tags: [moments]
+      operationId: momentPhoto
+      summary: A photo of a moment the reader may see.
+      parameters:
+        - {
+            name: name,
+            in: path,
+            required: true,
+            schema: { type: string, pattern: '^[A-Za-z0-9_-]{1,64}\.(webp|jpg)$' },
+          }
+      responses:
+        '200':
+          description: The photo.
+          content:
+            image/webp: { schema: { type: string, format: binary } }
+            image/jpeg: { schema: { type: string, format: binary } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/admin/moments:
+    post:
+      tags: [moments]
+      operationId: createMoment
+      summary: Posts a moment, from a phone as well.
+      description: |
+        The backend turns each photo upright, removes its metadata (above all the location),
+        and keeps a copy at most 2048 px on its long side and a thumbnail at most 480 px.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  {
+                    type: string,
+                    maxLength: 2000,
+                    description: Markdown. May be empty when there are photos.,
+                  }
+                audience: { $ref: '#/components/schemas/Audience' }
+                photos:
+                  type: array
+                  maxItems: 9
+                  items:
+                    {
+                      type: string,
+                      format: binary,
+                      description: JPEG,
+                      PNG or WebP,
+                      at most 20 MiB.,
+                    }
+                alts:
+                  type: array
+                  description: A description for each photo, in the same order.
+                  items: { type: string, maxLength: 300 }
+      responses:
+        '201':
+          description: Posted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Moment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413':
+          description: A photo or the whole request is too large.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/admin/moments/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    patch:
+      tags: [moments]
+      operationId: updateMoment
+      summary: Changes a moment's text or who sees it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                text: { type: string, maxLength: 2000 }
+                audience: { $ref: '#/components/schemas/Audience' }
+      responses:
+        '200':
+          description: The moment as it is now.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Moment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [moments]
+      operationId: deleteMoment
+      summary: Deletes a moment and its photos.
+      responses:
+        '204': { description: Deleted. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/subscriptions:
+    post:
+      tags: [subscriptions]
+      operationId: subscribe
+      summary: Asks for email about new posts; a link in the email confirms it.
+      description: |
+        Always the same answer, whether or not the address is known, so no one learns who
+        subscribed. An address gets at most one confirmation email an hour.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubscriptionRequest' }
+      responses:
+        '202':
+          description: A confirmation email is on its way, unless the address had one lately.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubscriptionAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/subscriptions/confirm:
+    get:
+      tags: [subscriptions]
+      operationId: confirmSubscription
+      summary: The link in the confirmation email.
+      parameters:
+        - { name: token, in: query, required: true, schema: { type: string } }
+      responses:
+        '303':
+          description: To <site>/?subscription=confirmed, or ?subscription=invalid.
+          headers:
+            Location: { schema: { type: string } }
+
+  /api/subscriptions/unsubscribe:
+    get:
+      tags: [subscriptions]
+      operationId: unsubscribeLink
+      summary: The link in every email. It only leads to a page that asks, since mail scanners open links.
+      parameters:
+        - { name: token, in: query, required: true, schema: { type: string } }
+      responses:
+        '303':
+          description: To <site>/?unsubscribe=<token>, where the page asks before it posts.
+          headers:
+            Location: { schema: { type: string } }
+    post:
+      tags: [subscriptions]
+      operationId: unsubscribe
+      summary: Stops the email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              additionalProperties: false
+              properties:
+                token: { type: string, maxLength: 200 }
+      responses:
+        '200':
+          description: No more email, or there was none.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { const: unsubscribed }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/subscribers:
+    get:
+      tags: [subscriptions]
+      operationId: listSubscribers
+      summary: Everyone who subscribed, newest first.
+      responses:
+        '200':
+          description: The subscribers.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubscriberList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/subscribers/{id}:
+    delete:
+      tags: [subscriptions]
+      operationId: deleteSubscriber
+      summary: Removes a subscriber.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: Removed. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/admin/newsletters:
+    get:
+      tags: [subscriptions]
+      operationId: listNewsletters
+      summary: The emails sent to subscribers, newest first.
+      responses:
+        '200':
+          description: The emails.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NewsletterList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [subscriptions]
+      operationId: sendNewsletter
+      summary: Emails every confirmed subscriber, in the background.
+      description: |
+        Each email has the subscriber's own unsubscribe link. `path`, when given, names the
+        new document the email is about, and its title and address go into the email; a path
+        the backend doesn't know gets 400.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewsletterRequest' }
+      responses:
+        '202':
+          description: Sending has started.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Newsletter' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+components:
+  responses:
+    BadRequest:
+      description: Something in the request is missing or wrong; `message` says what.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Not signed in.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Signed in without the right groups, or a change without the site's Origin.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: No such page, document, file or item.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TooManyRequests:
+      description: Too many in a short time; Retry-After says how many seconds to wait.
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          enum:
+            [
+              bad_request,
+              unauthorized,
+              forbidden,
+              not_found,
+              too_many_requests,
+              payload_too_large,
+              server_error,
+            ]
+        message: { type: string }
+
+    Feature:
+      enum: [auth, private, comments, stats, moments, subscriptions]
+
+    Health:
+      type: object
+      required: [ok, version, features]
+      properties:
+        ok: { const: true }
+        version: { type: string, description: The commit the backend was built from, or dev. }
+        features:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/Feature' }
+
+    PagePath:
+      type: string
+      maxLength: 300
+      pattern: '^/(blog|notes)/[^?#\s]+/$'
+      description: A document's path on the site. The backend knows the pages from the private bundle's manifests.
+
+    Thread:
+      description: A document's path, or guestbook.
+      oneOf:
+        - { $ref: '#/components/schemas/PagePath' }
+        - { const: guestbook }
+
+    User:
+      type: object
+      required: [id, name, groups, admin]
+      properties:
+        id: { type: string, description: The issuer's `sub`. }
+        name: { type: string }
+        groups: { type: array, items: { type: string } }
+        admin: { type: boolean, description: Whether groups has admin. }
+
+    Me:
+      type: object
+      required: [user]
+      properties:
+        user:
+          oneOf:
+            - { type: 'null' }
+            - { $ref: '#/components/schemas/User' }
+
+    LogoutResult:
+      type: object
+      required: [redirect]
+      properties:
+        redirect: { type: string, format: uri }
+
+    PrivateDocument:
+      type: object
+      required: [slug, title, html, files]
+      description: The document's file from the private bundle, as the build wrote it.
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        html: { type: string }
+        files:
+          type: object
+          description: Each attachment's address, with the name it downloads as.
+          additionalProperties: { type: string }
+
+    Author:
+      type: object
+      required: [name, signedIn]
+      properties:
+        name: { type: string }
+        signedIn:
+          { type: boolean, description: Written while signed in, so the name is the reader's own. }
+
+    Comment:
+      type: object
+      required: [id, thread, parentId, author, html, createdAt]
+      properties:
+        id: { type: string }
+        thread: { $ref: '#/components/schemas/Thread' }
+        parentId:
+          description: The top-level comment this replies to. Replies to a reply join the same top-level comment.
+          type: [string, 'null']
+        author: { $ref: '#/components/schemas/Author' }
+        html: { type: string, description: The text as Markdown turned into clean HTML. }
+        createdAt: { type: string, format: date-time }
+
+    CommentList:
+      type: object
+      required: [comments]
+      properties:
+        comments:
+          type: array
+          items: { $ref: '#/components/schemas/Comment' }
+
+    NewComment:
+      type: object
+      required: [thread, body]
+      properties:
+        thread: { $ref: '#/components/schemas/Thread' }
+        parentId: { type: [string, 'null'] }
+        body: { type: string, minLength: 1, maxLength: 4000, description: Markdown. }
+        name:
+          {
+            type: string,
+            maxLength: 40,
+            description: Needed when not signed in; ignored when signed in.,
+          }
+        email: { type: string, maxLength: 200, description: Optional and never shown. }
+        website: { type: string, description: A field people never see; bots fill it in. }
+
+    CommentStatus:
+      enum: [published, pending, hidden]
+
+    CommentCreated:
+      type: object
+      required: [comment, status]
+      properties:
+        comment: { $ref: '#/components/schemas/Comment' }
+        status: { enum: [published, pending] }
+
+    AdminComment:
+      allOf:
+        - { $ref: '#/components/schemas/Comment' }
+        - type: object
+          required: [status, email]
+          properties:
+            status: { $ref: '#/components/schemas/CommentStatus' }
+            email: { type: [string, 'null'] }
+
+    AdminCommentList:
+      type: object
+      required: [comments, next]
+      properties:
+        comments:
+          type: array
+          items: { $ref: '#/components/schemas/AdminComment' }
+        next: { type: [string, 'null'], description: The cursor of the next page. }
+
+    PageRef:
+      type: object
+      required: [path]
+      properties:
+        path: { $ref: '#/components/schemas/PagePath' }
+
+    PageStats:
+      type: object
+      required: [views, likes, liked]
+      properties:
+        views: { type: integer, minimum: 0 }
+        likes: { type: integer, minimum: 0 }
+        liked: { type: boolean }
+
+    LikeRequest:
+      type: object
+      required: [path, liked]
+      properties:
+        path: { $ref: '#/components/schemas/PagePath' }
+        liked: { type: boolean }
+
+    LikeResult:
+      type: object
+      required: [likes, liked]
+      properties:
+        likes: { type: integer, minimum: 0 }
+        liked: { type: boolean }
+
+    AdminStats:
+      type: object
+      required: [days, pages]
+      properties:
+        days:
+          type: array
+          items:
+            type: object
+            required: [date, views]
+            properties:
+              date: { type: string, format: date }
+              views: { type: integer, minimum: 0 }
+        pages:
+          type: array
+          items:
+            type: object
+            required: [path, views, likes, comments]
+            properties:
+              path: { $ref: '#/components/schemas/PagePath' }
+              views: { type: integer, minimum: 0 }
+              likes: { type: integer, minimum: 0 }
+              comments: { type: integer, minimum: 0 }
+
+    Audience:
+      type: string
+      default: public
+      pattern: '^[a-z][a-z0-9-]{0,31}$'
+      description: public, or a group such as friends or family.
+
+    Picture:
+      type: object
+      required: [url, width, height]
+      properties:
+        url: { type: string }
+        width: { type: integer, minimum: 1 }
+        height: { type: integer, minimum: 1 }
+
+    Photo:
+      allOf:
+        - { $ref: '#/components/schemas/Picture' }
+        - type: object
+          required: [alt, thumbnail]
+          properties:
+            alt: { type: string }
+            thumbnail: { $ref: '#/components/schemas/Picture' }
+
+    Moment:
+      type: object
+      required: [id, text, html, audience, photos, createdAt]
+      properties:
+        id: { type: string }
+        text: { type: string, description: The Markdown as written. }
+        html: { type: string }
+        audience: { $ref: '#/components/schemas/Audience' }
+        photos:
+          type: array
+          items: { $ref: '#/components/schemas/Photo' }
+        createdAt: { type: string, format: date-time }
+
+    MomentList:
+      type: object
+      required: [moments, next]
+      properties:
+        moments:
+          type: array
+          items: { $ref: '#/components/schemas/Moment' }
+        next: { type: [string, 'null'] }
+
+    SubscriptionRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email, maxLength: 200 }
+        website: { type: string, description: A field people never see; bots fill it in. }
+
+    SubscriptionAccepted:
+      type: object
+      required: [status]
+      properties:
+        status: { const: confirmation_sent }
+
+    Subscriber:
+      type: object
+      required: [id, email, status, createdAt, confirmedAt]
+      properties:
+        id: { type: string }
+        email: { type: string }
+        status: { enum: [pending, confirmed] }
+        createdAt: { type: string, format: date-time }
+        confirmedAt: { type: [string, 'null'], format: date-time }
+
+    SubscriberList:
+      type: object
+      required: [subscribers, counts]
+      properties:
+        subscribers:
+          type: array
+          items: { $ref: '#/components/schemas/Subscriber' }
+        counts:
+          type: object
+          required: [pending, confirmed]
+          properties:
+            pending: { type: integer, minimum: 0 }
+            confirmed: { type: integer, minimum: 0 }
+
+    NewsletterRequest:
+      type: object
+      required: [subject, text]
+      additionalProperties: false
+      properties:
+        subject: { type: string, minLength: 1, maxLength: 200 }
+        text: { type: string, minLength: 1, maxLength: 20000, description: Markdown. }
+        path: { oneOf: [{ $ref: '#/components/schemas/PagePath' }, { type: 'null' }] }
+
+    Newsletter:
+      type: object
+      required: [id, subject, path, status, recipients, sent, failed, createdAt]
+      properties:
+        id: { type: string }
+        subject: { type: string }
+        path: { type: [string, 'null'] }
+        status: { enum: [sending, sent] }
+        recipients: { type: integer, minimum: 0 }
+        sent: { type: integer, minimum: 0 }
+        failed: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+
+    NewsletterList:
+      type: object
+      required: [newsletters]
+      properties:
+        newsletters:
+          type: array
+          items: { $ref: '#/components/schemas/Newsletter' }
+
+    PrivateManifest:
+      description: |
+        Not an answer of the API: manifest.json in the private bundle that each build of the
+        site writes for the backend, the release's private/ folder on the server. It names every
+        page, and the documents and files only some readers may open. docs/api/README.md
+        explains it.
+      type: object
+      required: [version, levels, pages, files]
+      additionalProperties: false
+      properties:
+        version: { const: 1 }
+        levels:
+          description: |
+            The levels' names, lowest first. Each is the name of a group in the sign-in
+            service. A reader may open a level when one of their groups is that level or a
+            higher one, or when they are admin.
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { type: string, pattern: '^[a-z][a-z0-9-]{0,31}$' }
+        pages:
+          type: array
+          items: { $ref: '#/components/schemas/PrivatePage' }
+        files:
+          description: The photos, smaller copies of photos and attachments of locked documents, by name.
+          type: object
+          propertyNames: { pattern: '^[0-9a-f]{16}\.[a-z0-9]{1,10}$' }
+          additionalProperties: { $ref: '#/components/schemas/PrivateFile' }
+
+    PrivatePage:
+      type: object
+      required: [path, title, date, level]
+      additionalProperties: false
+      properties:
+        path: { $ref: '#/components/schemas/PagePath' }
+        title: { type: string }
+        date: { type: string, description: When it was written, as the document gives it. }
+        level:
+          description: null for a page anyone may read; otherwise one of `levels`.
+          type: [string, 'null']
+        document:
+          description: For a locked page, the file in the bundle that /api/private/document answers with.
+          type: string
+          pattern: '^documents/[0-9a-f]{16}\.json$'
+
+    PrivateFile:
+      type: object
+      required: [type, level]
+      additionalProperties: false
+      properties:
+        type: { type: string, description: The Content-Type to serve it with. }
+        level: { type: string, description: The lowest level of the documents that show it. }

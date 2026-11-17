@@ -1,0 +1,48 @@
+# The blog API, in /srv/site/compose.yml on the server. CI hands over each image of server/ and
+# /srv/site/bin/image tags it nymphilia/blog-api:live before starting it. Caddy, on the same
+# network, sends it everything under nymphilia.com/api/.
+#
+# Secrets stay in /srv/site/api/.env, which only the server has:
+#
+#   BLOG_OIDC_CLIENT_SECRET=…   the blog app's secret, from https://auth.nymphilia.com/admin
+#   BLOG_MAIL_URL=…             the mail relay (docs/mail/relay.gs), once it is deployed
+#   BLOG_MAIL_KEY=…
+name: site
+
+services:
+  blog-api:
+    image: nymphilia/blog-api:live
+    container_name: blog-api
+    restart: unless-stopped
+    # alicia, who owns the data and the private documents.
+    user: '1000:1000'
+    env_file:
+      - path: ./api/.env
+        required: false
+    environment:
+      BLOG_LISTEN: 0.0.0.0:8080
+      BLOG_SITE_ORIGIN: https://nymphilia.com
+      BLOG_OIDC_ISSUER: https://auth.nymphilia.com
+      BLOG_OIDC_CLIENT_ID: blog
+      BLOG_DATA_DIR: /data
+      # The locked documents of the live release, written by bin/receive.
+      BLOG_PRIVATE_DIR: /private/current
+      RUST_LOG: info
+    volumes:
+      - ./api/data:/data
+      - ./private:/private:ro
+    networks: [proxy]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
+networks:
+  proxy:
+    external: true

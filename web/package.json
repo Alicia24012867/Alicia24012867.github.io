@@ -18,7 +18,10 @@
     "bundle:report": "node scripts/verify-build.mjs --report",
     "share:cards": "node scripts/share/cards.mjs",
     "share:check": "node scripts/share/cards.mjs --check",
-    "fonts:fetch": "node scripts/fonts.mjs"
+    "fonts:fetch": "node scripts/fonts.mjs",
+    "api:mock": "node scripts/api/mock.mjs",
+    "api:check": "node scripts/api/check.mjs",
+    "api:issuer": "npm --prefix ../auth run contract-issuer --"
   },
   "dependencies": {
     "@giscus/react": "3.1.0",
@@ -37,6 +40,8 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
     "prettier": "3.6.2",
     "sharp": "0.35.5",
     "typescript": "5.9.3",

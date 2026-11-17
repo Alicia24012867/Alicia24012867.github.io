@@ -10,6 +10,7 @@
     "start": "node src/main.ts",
     "dev": "node --watch src/main.ts",
     "assets": "node scripts/assets.ts",
+    "contract-issuer": "node --disable-warning=ExperimentalWarning scripts/contract-issuer.ts",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "node --test --test-concurrency=1 'test/*.test.ts'",
     "check": "npm run format:check && npm run typecheck && node scripts/assets.ts --check && npm test",

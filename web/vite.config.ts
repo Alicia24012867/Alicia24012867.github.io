@@ -2,8 +2,10 @@ import { defineConfig, searchForWorkspaceRoot } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 import { blogFeed } from './src/config/feeds.mjs';
+import { mockApiPlugin } from './scripts/api/mock.mjs';
 import { articlesPlugin } from './scripts/content/plugin.mjs';
 import { contentRoot, repoRoot } from './scripts/content/paths.mjs';
+import { privatePlugin } from './scripts/content/private.mjs';
 import { notFoundPlugin } from './scripts/not-found.mjs';
 import { musicPlugin } from './scripts/music.mjs';
 import { sitemapPlugin } from './scripts/content/sitemap.mjs';
@@ -30,6 +32,8 @@ const notes = articlesPlugin({
   lockedDirectory: 'content/locked/notes',
   lockedLevels: 'content/locked/access.yml',
 });
+// Every page, and locked documents in plain form, for the blog API: written to dist-private/.
+const privateDocuments = privatePlugin([blog.api, notes.api]);
 
 // This repository is deployed as a GitHub User Page at the domain root.
 export default defineConfig({
@@ -43,6 +47,9 @@ export default defineConfig({
       lockedReader: 'src/content/locked/LockedArticle.tsx',
     }),
     sitemapPlugin([blog.api, notes.api], blogFeed.siteUrl),
+    privateDocuments,
+    // The dev server answers /api itself, or passes it to the backend that BLOG_API names.
+    mockApiPlugin(privateDocuments.api),
     musicPlugin(),
   ],
   base: '/',
